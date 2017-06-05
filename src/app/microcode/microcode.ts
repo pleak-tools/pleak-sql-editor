@@ -24,6 +24,7 @@ Prism.languages.sql = {
   'punctuation': /[;[\]()`,.]/
 };
 
+// Based on micro code-editor by https://codepen.io/kazzkiq/
 export class Microcode {
 
   constructor(private inputSel: any, private outputSel: any) {
