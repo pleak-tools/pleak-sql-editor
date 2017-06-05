@@ -1,0 +1,195 @@
+/* You can add global styles to this file, and also import other style files */
+html, body, #canvas, #canvas > div {
+  height: 100%;
+}
+
+code[class*="language-"], pre[class*="language-"] {
+    white-space: pre-wrap!important;
+}
+
+/** http://tobiasahlin.com/spinkit/ **/
+.spinner {
+  width: 40px;
+  height: 40px;
+
+  position: relative;
+  margin: 50px auto;
+}
+
+.double-bounce1, .double-bounce2 {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background-color: #333;
+  opacity: 0.6;
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  -webkit-animation: sk-bounce 2.0s infinite ease-in-out;
+  animation: sk-bounce 2.0s infinite ease-in-out;
+}
+
+.double-bounce2 {
+  -webkit-animation-delay: -1.0s;
+  animation-delay: -1.0s;
+}
+
+@-webkit-keyframes sk-bounce {
+  0%, 100% { -webkit-transform: scale(0.0) }
+  50% { -webkit-transform: scale(1.0) }
+}
+
+@keyframes sk-bounce {
+  0%, 100% {
+    transform: scale(0.0);
+    -webkit-transform: scale(0.0);
+  } 50% {
+    transform: scale(1.0);
+    -webkit-transform: scale(1.0);
+  }
+}
+
+.highlight-input {
+  cursor: pointer!important;
+}
+
+.highlight-input:not(.djs-connection) .djs-visual > :nth-child(1) {
+  fill: orange!important;
+}
+
+.code-dialog {
+  background:lightblue;
+  z-index: 1500;
+  width: 500px;
+}
+
+.code-highlighted span.token {
+  text-transform: uppercase!important;
+}
+
+.code-error {
+  background-color: transparent;
+  color: #a94442;
+  border-radius: 5px;
+  font-size: 14px;
+  padding: 5px;
+  min-height: 16px;
+  width: 400px;
+  text-align: left;
+}
+
+/** Sensitivity matrix **/
+
+ input.inlined-matrix {
+  border: none;
+  min-width: 60px;
+  width: 100%;
+  font-size: 14px;
+  background-color: white;
+}
+
+input.inlined-matrix:hover {
+  background-color: #eee;
+}
+
+input.inlined-matrix:focus {
+  background-color: #ccf;
+}
+
+input.inlined-matrix:not(:focus) {
+  text-align: right;
+}
+
+table.inlined-matrix {
+  border-collapse: collapse;  
+}
+
+td.inlined-matrix {
+  border: 1px solid #999;
+  padding: 0;
+  min-width: 80px;
+  text-align: center;
+  background-color: white;
+}
+
+tr.inlined-matrix:first-child td.inlined-matrix, td.inlined-matrix:first-child {
+  background-color: #f5f5f5;
+  color: #000;
+  padding: 5px 5px;
+  font-weight: bold;
+  font-size: 16px;
+  text-align: center;
+  min-width: 30px;
+}
+
+#resultsModal {
+  div.modal-body {
+    text-align: center;
+  }
+}
+
+.result-matrix {
+  display: inline-table;
+}
+
+/** SQL editing popups **/
+.editor {
+  background:white;
+
+  .editor-body {
+    position: relative;
+    height: 200px;
+    width: 460px;
+
+    .code-input, .code-output {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      padding: 1rem;
+      font-family: 'PT Mono', monospace;
+      font-size: 14px;
+      white-space: pre-wrap;
+      line-height: 1.5em;
+      word-wrap: break-word;
+      margin: 0;
+    }
+
+    .code-input {
+      resize: none;
+      background: white;
+    }
+
+    .code-output {
+      background: transparent;
+      pointer-events: none;
+      z-index: 1000;
+      overflow-y: auto;
+
+      code {
+        position: absolute;
+        top: 0;
+        left: 0;
+        margin: 0;
+        padding: 1rem;
+        display: block;
+        color: #666;
+        font-size: 14px;
+        font-family: 'PT Mono', monospace;
+      }
+    }
+  }
+}
+
+.code-highlighted {
+  code {
+    font-size: 16px;
+    background: #fff!important
+  }
+}
+
+.hidden-code-input {
+  display: none;
+}

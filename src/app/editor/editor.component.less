@@ -1,0 +1,97 @@
+html, body, #canvas, #canvas > div {
+  height: 100%;
+}
+
+.djs-palette {
+  margin-top: 80px;
+}
+
+.header-buttons {
+  position: fixed;
+  top: 10px;
+  left: 20px;
+  padding: 0;
+  z-index: 1000;
+  min-width: 850px;
+
+  .editor-title {
+    margin-top: 12px;
+    margin-left: 20px;
+  }
+}
+
+.error-messages {
+  position: fixed;
+  top: 50px;
+  left: 55px;
+  padding: 0;
+  z-index: 1000;
+  min-width: 850px;
+}
+
+.buttons {
+  background: #FFF;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  border-radius: 2px;
+  list-style: none;
+  padding: 5px;
+  display: inline-block;
+  margin-right: 5px;
+  margin-bottom: 0;
+  cursor: pointer;
+}
+
+.buttons > li {
+  display: inline-block;
+}
+
+.buttons > li > a {
+  display: inline-block;
+  padding: 5px;
+  text-decoration: none;
+  opacity: 0.3;
+}
+
+.buttons > li > a.active {
+  opacity: 1.0;
+}
+
+.analyze {
+  background-color: #337ab7;
+}
+
+.analyze a {
+  color: #fff;
+  &.active {
+    color: #fff;
+  }
+}
+
+.separator {
+  color: #337ab7;
+  opacity: 0.3;
+}
+
+.file-name-container {
+  padding-right: 0!important;
+}
+
+.buttons-container {
+  padding-left: 10px !important;
+}
+
+.error-message {
+  color: #D43535 !important;
+}
+
+.success-message {
+  color: #259825 !important;
+}
+
+/* Bootstrap fix */
+.has-error span {
+  color: #a94442;
+}
+.has-error label {
+  color: #a94442;
+}

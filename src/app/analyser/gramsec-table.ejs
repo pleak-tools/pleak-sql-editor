@@ -1,0 +1,20 @@
+<div class="diagram-note">
+  <table class="inlined-matrix result-matrix">
+    <p style="font-size:16px">Sensitivity matrix:</p>
+    <tbody>
+      <tr class="inlined-matrix"> <td class="inlined-matrix"></td>
+        <% targets.forEach(function (succ) { -%>
+        <td class="inlined-matrix" style="min-width: 30px;"><%= name(succ) %></td>
+        <% }) %>
+      </tr>
+      <% sources.forEach(function (src) { -%>
+      <tr class="inlined-matrix">
+        <td class="inlined-matrix" style="min-width: 30px;"><%= name(src) %></td>
+        <% targets.forEach(function (tgt) { -%>
+        <td class="inlined-matrix"><%=dc[src][tgt] ? dc[src][tgt] : ''%></td>
+        <% }) %>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>

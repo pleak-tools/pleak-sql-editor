@@ -1,0 +1,57 @@
+<div class="row header-buttons">
+  <div class="col-xs-12">
+    <div class="row">
+      <div class="col-xs-4">
+        <h4 class="editor-title">Pleak SQL-privacy editor</h4>
+      </div>
+      <div class="col-xs-8 buttons-container">
+        <ul class="buttons" style="display:none">
+          <li>
+            <a id="save-diagram"title="save BPMN diagram" href="#" class="active">
+              <span class="glyphicon glyphicon-floppy-disk"></span> Save diagram
+            </a>
+          </li>
+        </ul>
+        <ul class="buttons analyze" style="display:none">
+          <li>
+            <a id="analyse-diagram" title="analyze PA-BPMN diagram" href="#" class="active">
+              <span class="glyphicon glyphicon-equalizer"></span> Analyze diagram
+            </a>
+          </li>
+        </ul>
+        <ul class="buttons analyze" style="display:none" id="login-container">
+          <li>
+            <a id="log-in" onclick="$('#loginModal').modal()" title="Log in" href="#" class="active">
+              <span class="glyphicon glyphicon-log-in"></span> Log in
+            </a>
+          </li>
+        </ul>
+        <div class="file-name-container">
+          <span id="fileSaveSuccess" class="help-block success-message" style="display: none;">
+            Successfully saved the diagram!
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row error-messages">
+  <span id="analyserInputError" class="help-block error-message" style="display: none;">
+    SQL-analyser couldn't analyse all the tasks of the model! Makse sure that all input queries are correct!
+  </span>
+</div>
+
+<div class="modal fade" id="resultsModal" role="dialog">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <h4 class="modal-title">Results</h4>
+      </div>
+      <div class="modal-body"></div>
+    </div>
+  </div>
+</div>
+
+<div id="canvas"></div>
