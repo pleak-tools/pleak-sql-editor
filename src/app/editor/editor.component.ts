@@ -166,8 +166,8 @@ export class EditorComponent {
                 $('#fileSaveSuccess').show();
                 $('#fileSaveSuccess').fadeOut(5000);
                 var date = new Date();
-                localStorage.setItem("ngStorage-lastModifiedFileId", '"' + res.body.id + '"');
-                localStorage.setItem("ngStorage-lastModified", '"' + date.getTime() + '"');
+                localStorage.setItem("lastModifiedFileId", '"' + res.body.id + '"');
+                localStorage.setItem("lastModified", '"' + date.getTime() + '"');
                 if (that.fileId !== res.body.id) {
                   window.location.href = domain + '/modeler/' + res.body.id;
                 }

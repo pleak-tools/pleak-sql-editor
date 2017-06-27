@@ -36,7 +36,7 @@ export class AuthComponent implements OnInit {
   }
 
   getToken() {
-    var token = localStorage.getItem('ngStorage-jwt');
+    var token = localStorage.getItem('jwt');
     if (token !== null) {
       token = token.replace(/['"]+/g, '');
     }
@@ -85,7 +85,7 @@ export class AuthComponent implements OnInit {
 
           if (!err) {
 
-            localStorage.setItem("ngStorage-jwt", '"' + res.body.token + '"');
+            localStorage.setItem("jwt", '"' + res.body.token + '"');
 
             if ($.isEmptyObject(that.editor.file)) {
               that.editor.getModel();
