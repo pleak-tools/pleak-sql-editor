@@ -240,7 +240,7 @@ export let analizeSQLDFlow = (element: any, registry: any, canvas: any, overlays
         let outputDataId = dataFlowEdges[node.id][0];
         dataDefStatements[outputDataId] = outputDefStatements[outputDataId];
 
-        if (dataFlowEdges[outputDataId] && dataFlowEdges[outputDataId].length) {
+        if (dataFlowEdges[outputDataId] && dataFlowEdges[outputDataId].length > 0) {
 
           var newlyEnabledNodes = dataFlowEdges[outputDataId].filter( (nodeId:string) => invDataFlowEdges[nodeId].every((predId:string) => dataDefStatements[predId]));
           newlyEnabledNodes.forEach((nodeId:string) => analyzeProcessingNode(nodeId, dataDefStatements, outputDefStatements, dataFlowEdges, invDataFlowEdges, registry, canvas, overlays, overlaysMap));
