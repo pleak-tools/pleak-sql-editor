@@ -37,11 +37,14 @@ let analyzeProcessingNode = (nodeId: string, dataDefStatements: {[id: string]: s
 
       if (embeddedQuery.parse_tree.length) {
 
-        let numberOfColumns = embeddedQuery.parse_tree[0].SelectStmt.targetList.length;
+        let numberOfColumns = 0;
+        if (embeddedQuery.parse_tree[0].SelectStmt.targetList) {
+          numberOfColumns = embeddedQuery.parse_tree[0].SelectStmt.targetList.length;
+        }
         let numberOfParameters = result.parse_tree[0].CreateFunctionStmt.parameters.length;
         let offset = numberOfParameters - numberOfColumns;
         let outputData = registry.get(dataFlowEdges[nodeId][0]).businessObject;
-        var outputCreateStatement = `create table ${outputData.name.replace(/[^\w\s]/gi, '').replace(/[\s]/gi, '_')} (`;
+        var outputCreateStatement = `create table ${outputData.name.replace(/ *\([^)]*\) */g, "").replace(/[^\w\s]/gi, '').replace(/[\s]/gi, '_')} (`;
 
         for (var i = offset; i < numberOfParameters; i++) {
 
@@ -53,7 +56,7 @@ let analyzeProcessingNode = (nodeId: string, dataDefStatements: {[id: string]: s
 
           }
 
-          outputCreateStatement += param.name + ' INT';
+          outputCreateStatement += param.name + ' ' + param.argType.TypeName.names[0].String.str;
 
         }
 
@@ -73,7 +76,6 @@ let analyzeProcessingNode = (nodeId: string, dataDefStatements: {[id: string]: s
         var obj_query = stprocBody.replace(/\r?\n|\r/g, '');
 
         canvas.addMarker(nodeId, 'highlight-input');
-
         request.post(backend + '/rest/sql-privacy/analyse')
           .send({schema : obj_schema, query : obj_query})
           .end(function(err, res) {
@@ -238,7 +240,7 @@ export let analizeSQLDFlow = (element: any, registry: any, canvas: any, overlays
         let outputDataId = dataFlowEdges[node.id][0];
         dataDefStatements[outputDataId] = outputDefStatements[outputDataId];
 
-        if (dataFlowEdges[outputDataId] && dataFlowEdges[outputDataId].length > 0) {
+        if (dataFlowEdges[outputDataId] && dataFlowEdges[outputDataId].length) {
 
           var newlyEnabledNodes = dataFlowEdges[outputDataId].filter( (nodeId:string) => invDataFlowEdges[nodeId].every((predId:string) => dataDefStatements[predId]));
           newlyEnabledNodes.forEach((nodeId:string) => analyzeProcessingNode(nodeId, dataDefStatements, outputDefStatements, dataFlowEdges, invDataFlowEdges, registry, canvas, overlays, overlaysMap));

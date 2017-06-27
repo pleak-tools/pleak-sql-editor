@@ -157,7 +157,6 @@ export class EditorComponent {
           console.log(err)
         } else {
           that.file.content = xml;
-          $('#fileNameError').hide();
           request
             .put(backend + '/rest/directories/files/' + that.fileId)
             .set('JSON-Web-Token', authComponent.getToken())
