@@ -117,6 +117,7 @@ let analyzeProcessingNode = (nodeId: string, dataDefStatements: {[id: string]: s
                 <div class="code-dialog" id="` + nodeId + `-analysis-results">
                   <div class="panel panel-default">
                     <div class="panel-heading">
+                      <button type="button" class="btn btn-default pull-right" id="` + nodeId + `-results-close-button">Close</button>
                       <h4>Output SQL</h4>
                     </div>
                     <div class="panel-body">
@@ -148,6 +149,11 @@ let analyzeProcessingNode = (nodeId: string, dataDefStatements: {[id: string]: s
               );
 
               overlaysMap[nodeId] = overlays.add(nodeId, {position:{bottom: 0, right: 0}, html:overlayHtml});
+
+              $(overlayHtml).on('click', '#' + nodeId+'-results-close-button', function(e) {
+                $('#' + nodeId + '-analysis-results').hide();
+              });
+
               node.sensitivityMatrix = JSON.stringify(matrix);
               var editor = new Microcode($(overlayHtml).find('.hidden-code-input'), $(overlayHtml).find('.code-highlighted'));
 

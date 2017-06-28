@@ -79,7 +79,7 @@ export class EditorComponent {
 
       eventBus.on('element.click', function(e) {
 
-        if (is(e.element.businessObject, 'bpmn:DataObjectReference') || is(e.element.businessObject, 'bpmn:Task')) {
+        if ((is(e.element.businessObject, 'bpmn:DataObjectReference') || is(e.element.businessObject, 'bpmn:Task')) && !$(document).find("[data-element-id='" + e.element.id + "']").hasClass('highlight-input')) {
 
           let task = e.element.businessObject;
           var sqlQuery;
@@ -98,7 +98,7 @@ export class EditorComponent {
                  </pre>
                </div>
                <br>
-               <button id="` + e.element.id + `-save-button">Save</button>
+               <button class="btn btn-success" id="` + e.element.id + `-save-button">Save</button>
              </div>`
           );
           
@@ -110,8 +110,9 @@ export class EditorComponent {
             html: overlayHtml
           });
 
-          $(overlayHtml).on('click', '#' + e.element.id+'-save-button', function(e) {
-					  task.sqlScript = $(overlayHtml).find('.code-input').val();
+          $(overlayHtml).on('click', '#' + e.element.id+'-save-button', function() {
+            task.sqlScript = $(overlayHtml).find('.code-input').val();
+            $('#' + e.element.id + '-sql-editor').hide();
           });
 
           $(document).mouseup(function(ee) {
