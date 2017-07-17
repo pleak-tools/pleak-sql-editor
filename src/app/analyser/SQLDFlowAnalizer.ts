@@ -37,6 +37,7 @@ let analyzeProcessingNode = (nodeId: string, dataDefStatements: {[id: string]: s
 
       if (embeddedQuery.parse_tree.length) {
 
+
         let numberOfColumns = 0;
         if (embeddedQuery.parse_tree[0].SelectStmt.targetList) {
           numberOfColumns = embeddedQuery.parse_tree[0].SelectStmt.targetList.length;
@@ -44,7 +45,8 @@ let analyzeProcessingNode = (nodeId: string, dataDefStatements: {[id: string]: s
         let numberOfParameters = result.parse_tree[0].CreateFunctionStmt.parameters.length;
         let offset = numberOfParameters - numberOfColumns;
         let outputData = registry.get(dataFlowEdges[nodeId][0]).businessObject;
-        var outputCreateStatement = `create table ${outputData.name.replace(/ *\([^)]*\) */g, "").replace(/[^\w\s]/gi, '').replace(/[\s]/gi, '_')} (`;
+        let tableName = outputData.name.replace(/ *\([^)]*\) */g, "").replace(/[^\w\s]/gi, '').replace(/[\s]/gi, '_');
+        var outputCreateStatement = `create table ${tableName} (`;
 
         for (var i = offset; i < numberOfParameters; i++) {
 
@@ -61,8 +63,8 @@ let analyzeProcessingNode = (nodeId: string, dataDefStatements: {[id: string]: s
         }
 
         outputCreateStatement += ');';
+        outputCreateStatement = outputCreateStatement.replace(/\r?\n|\r/g, '');
 
-        // console.log(outputData.name)
         let inputCreateStatements = invDataFlowEdges[nodeId].map((inputData:string) => dataDefStatements[inputData]);
 
         var obj_schema = [];
@@ -97,13 +99,13 @@ let analyzeProcessingNode = (nodeId: string, dataDefStatements: {[id: string]: s
 
               errorInModel = false;
               $('#analyserInputError').hide();
-              var result = "";
+              var resultRows = "";
               var matrix = {};
 
               for (var i=0; i < (res.body.resultSet).length; i++) {
 
                 var resultSensitivity = res.body.resultSet[i].sensitivity >= 0 ? res.body.resultSet[i].sensitivity : Infinity;
-                result += "<tr><td>" + registry.get(res.body.resultSet[i].tableId).businessObject.name + "</td><td>" + resultSensitivity + "</td><tr>";
+                resultRows += "<tr><td>" + registry.get(res.body.resultSet[i].tableId).businessObject.name + "</td><td>" + resultSensitivity + "</td><tr>";
                 var inputName = res.body.resultSet[i].tableId;
                 var outputName = outputData.id;
                 var sensitivity = res.body.resultSet[i].sensitivity;
@@ -111,7 +113,36 @@ let analyzeProcessingNode = (nodeId: string, dataDefStatements: {[id: string]: s
 
               }
 
-              outputCreateStatement = outputCreateStatement.replace(/\r?\n|\r/g, '');
+              if (res.body.primaryKeysSet && res.body.primaryKeysSet.indexOf(1) > -1) {
+
+                outputCreateStatement = `create table ${tableName} (`;
+
+                for (var i = offset; i < numberOfParameters; i++) {
+
+                  var param = result.parse_tree[0].CreateFunctionStmt.parameters[i].FunctionParameter;
+
+                  if (i > offset) {
+
+                    outputCreateStatement += ', ';
+
+                  }
+
+                  let pKey = "";
+
+                  if (res.body.primaryKeysSet[i] === 1) {
+
+                    pKey = " primary key";
+
+                  }
+
+                  outputCreateStatement += param.name + ' ' + param.argType.TypeName.names[0].String.str + pKey;
+
+                }
+
+                outputCreateStatement += ');';
+                outputCreateStatement = outputCreateStatement.replace(/\r?\n|\r/g, '');
+
+              }
 
               var overlayHtml = $(`
                 <div class="code-dialog" id="` + nodeId + `-analysis-results">
@@ -139,7 +170,7 @@ let analyzeProcessingNode = (nodeId: string, dataDefStatements: {[id: string]: s
                           </tr>
                         </thead
                         <tbody>
-                          ${result}
+                          ${resultRows}
                         </tbody>
                         </div>
                       </table>
@@ -157,11 +188,11 @@ let analyzeProcessingNode = (nodeId: string, dataDefStatements: {[id: string]: s
               node.sensitivityMatrix = JSON.stringify(matrix);
               var editor = new Microcode($(overlayHtml).find('.hidden-code-input'), $(overlayHtml).find('.code-highlighted'));
 
+              outputDefStatements[outputData.id] = outputCreateStatement;
+
             }
 
           });
-
-        outputDefStatements[outputData.id] = outputCreateStatement;
 
       } else {
 
@@ -263,7 +294,11 @@ export let analizeSQLDFlow = (element: any, registry: any, canvas: any, overlays
           if (!$.isEmptyObject(dc)) {
             
             $('#resultsModal').find('.modal-body').html(tableBuilder({dc: dc, sources: sources, targets: targets, name: (nid:string) => {
-              var name = registry.get(nid).businessObject.name; var shortName = name.match(/\(([^\)]+)\)/);
+              var name = registry.get(nid).businessObject.name;
+              var shortName;
+              if (name != null) {
+                shortName = name.match(/\(([^\)]+)\)/);
+              }
               return shortName? shortName[1] : name;}}
             ));
             $('#resultsModal').modal();
