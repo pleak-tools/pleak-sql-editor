@@ -142,7 +142,7 @@ export let computeSensitivitiesMatrix = (process: any, registry: any): [any, any
   let ls = [];
   let matrix = [];
 
-  // Sensitivites from analyser (relations only between inputs and outputs)
+  // Add sensitivites from analyser into Ds array (relations only between inputs and outputs)
   for (var input in Dinputs) {
     if (Dinputs.hasOwnProperty(input)) {
       for (var output in Dinputs[input]) {
@@ -158,6 +158,26 @@ export let computeSensitivitiesMatrix = (process: any, registry: any): [any, any
     }
   }
 
+  // Add other sensitivities into Ds array (relations only between inputs themselves)
+  for (let source of sources) {
+    for (let source2 of sources) {
+      let outp;
+      if (source == source2) {
+        // D[input,input] = 1
+        outp = {input: source, output: source, value: 1};
+      } else {
+        // D[input1, input2] = 0 (if not specified differently)
+        outp = {input: source, output: source2, value: 0};
+      }
+      let sameElements = Ds.filter(function( obj ) {
+        return obj.input == source && obj.output == source2;
+      });
+      if (sameElements.length == 0) {
+        Ds.push(outp);
+      }
+    }
+  }
+
   for (let node of process.flowElements.filter((e:any) => is(e, "bpmn:Task"))) {
 
     if (processingNodes.indexOf(node.id) >= 0 && node.sensitivityMatrix) {
@@ -165,7 +185,7 @@ export let computeSensitivitiesMatrix = (process: any, registry: any): [any, any
       node.nSensitivityMatrixJSON = JSON.parse(node.sensitivityMatrix);
       let object = node.nSensitivityMatrixJSON;
 
-      // Sensitivities from analyser (all relations)
+      // Add ensitivities from analyser into ls array (all relations)
       for (var input in object) {
         if (object.hasOwnProperty(input)) {
           for (var output in object[input]) {
@@ -178,19 +198,6 @@ export let computeSensitivitiesMatrix = (process: any, registry: any): [any, any
 
     }
 
-  }
-
-  // Add other sensitivities to Ds array (relations only between inputs themselves)
-  for (let source of sources) {
-    for (let source2 of sources) {
-      let outp;
-      if (source == source2) {
-        outp = {input: source, output: source, value: 1};
-      } else {
-        outp = {input: source, output: source2, value: 0};
-      }
-      Ds.push(outp)
-    }
   }
 
   // Calculate sensitivity values (sum of multiple multiplications) for the result matrix
