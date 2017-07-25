@@ -1,15 +1,8 @@
-export const Custom = {
-  id: `pleak-pa-bpmn`,
-  name: `Pleak PA-BPMN`,
-  prefix: `pleak`,
-  uri: "http://pleak.io/",
-};
-
 export const SqlBPMNModdle = {
-  name: Custom.name,
-  prefix: Custom.prefix,
-  uri: Custom.uri,
-  xml: {
+    name: 'Pleak PA-BPMN & PE-BPMN',
+    prefix: 'pleak',
+    uri: 'http://pleak.io/',
+    xml: {
     tagAlias: "lowerCase"
   },
   associations: new Array(),
