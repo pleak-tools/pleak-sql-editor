@@ -3,8 +3,7 @@ import { AuthComponent } from 'app/auth/auth.component';
 import { Microcode } from "app/microcode/microcode";
 import { SqlBPMNModdle } from "./bpmn-sql-extension";
 import { analizeSQLDFlow } from "app/analyser/SQLDFlowAnalizer";
-import { computeGraMSecMatrices } from "app/analyser/GraMSecAnalizer";
-import * as Viewer from 'bpmn-js/lib/Viewer.js';
+import * as Viewer from 'bpmn-js/lib/NavigatedViewer.js';
 
 declare var $: any;
 declare function require(name:string);

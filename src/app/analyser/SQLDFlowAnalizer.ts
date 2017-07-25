@@ -1,4 +1,4 @@
-import { dataFlowAnalysis, computeGraMSecMatrices } from "./GraMSecAnalizer";
+import { dataFlowAnalysis, computeSensitivitiesMatrix } from "./GraMSecAnalizer";
 import { Microcode } from "app/microcode/microcode";
 
 declare function require(name:string);
@@ -289,10 +289,10 @@ export let analizeSQLDFlow = (element: any, registry: any, canvas: any, overlays
 
         if (enabledNodes.length == 0) {
 
-          let [dc, sources, targets] = computeGraMSecMatrices(element, registry);
+          let [dc, sources, targets] = computeSensitivitiesMatrix(element, registry);
 
           if (!$.isEmptyObject(dc)) {
-            
+
             $('#resultsModal').find('.modal-body').html(tableBuilder({dc: dc, sources: sources, targets: targets, name: (nid:string) => {
               var name = registry.get(nid).businessObject.name;
               var shortName;

@@ -131,6 +131,145 @@ export let dataFlowAnalysis = (process: any, registry: any): any => {
 
 }
 
+export let computeSensitivitiesMatrix = (process: any, registry: any): [any, any, any] => {
+
+  var info = dataFlowAnalysis(process, registry);
+  let [processingNodes, dataFlowEdges, invDataFlowEdges, sources] = [info.processingNodes, info.dataFlowEdges, info.invDataFlowEdges, info.sources];
+
+  let [Dinputs, tmp1, tmp2] = computeGraMSecMatrices(process, registry);
+
+  let Ds = [];
+  let ls = [];
+  let matrix = [];
+
+  // Sensitivites from analyser (relations only between inputs and outputs)
+  for (var input in Dinputs) {
+    if (Dinputs.hasOwnProperty(input)) {
+      for (var output in Dinputs[input]) {
+        if (Dinputs[input].hasOwnProperty(output)) {
+          let sameElements = Ds.filter(function( obj ) {
+            return obj.input == input && obj.output == output && obj.value == Dinputs[input][output];
+          });
+          if (sameElements.length == 0) {
+            Ds.push({input: input, output: output, value: Dinputs[input][output]});
+          }
+        }
+      }
+    }
+  }
+
+  for (let node of process.flowElements.filter((e:any) => is(e, "bpmn:Task"))) {
+
+    if (processingNodes.indexOf(node.id) >= 0 && node.sensitivityMatrix) {
+
+      node.nSensitivityMatrixJSON = JSON.parse(node.sensitivityMatrix);
+      let object = node.nSensitivityMatrixJSON;
+
+      // Sensitivities from analyser (all relations)
+      for (var input in object) {
+        if (object.hasOwnProperty(input)) {
+          for (var output in object[input]) {
+            if (object[input].hasOwnProperty(output)) {
+              ls.push({input: input, output: output, value: object[input][output]});
+            }
+          }
+        }
+      }
+
+    }
+
+  }
+
+  // Add other sensitivities to Ds array (relations only between inputs themselves)
+  for (let source of sources) {
+    for (let source2 of sources) {
+      let outp;
+      if (source == source2) {
+        outp = {input: source, output: source, value: 1};
+      } else {
+        outp = {input: source, output: source2, value: 0};
+      }
+      Ds.push(outp)
+    }
+  }
+
+  // Calculate sensitivity values (sum of multiple multiplications) for the result matrix
+  for (let source of sources) {
+    for (let target of Object.keys(invDataFlowEdges).filter((e:any) => processingNodes.indexOf(e) < 0)) {
+      let value = 0;
+
+      let targets = ls.filter(function( obj ) {
+        return obj.output == target;
+      });
+      if (targets.length > 0) {
+        for (let tar of targets) {
+
+          // First value of the multiplication
+          let values1 = Ds.filter(function( obj ) {
+            return obj.input == source && obj.output == tar.input;
+          });
+          let val1 = values1[0].value;
+
+          // Second value of the multiplication
+          let values2 = ls.filter(function( obj ) {
+            return obj.input == tar.input && obj.output == target;
+          });
+
+          let val2 = values2[0].value;
+
+          let preval;
+
+          if (val1 == -1 && val2 == 1) {
+            preval = Infinity;
+          } else if (val1 == -1 && val2 == 0) {
+            preval = 0;
+          } else if (val1 == 1 && val2 == -1) {
+            preval = Infinity;
+          } else if (val1 == 0 && val2 == -1) {
+            preval = 0;
+          } else {
+            preval = val1 * val2;
+          }
+
+          // Sensitivity value for the matrix (sum of multiplications)
+          if (value == Infinity || preval == Infinity) {
+            value = Infinity;
+          } else {
+            value += preval;
+          }
+
+        }
+      }
+
+      // Add calculated value to the Ds array to calculate next sensitivities
+      Ds.push({input: source, output: target, value: value})
+
+      // Add calculated value to the result matrix
+      matrix.push({input: source, output: target, value: value})
+
+    }
+  }
+
+  var dc = {};
+
+  // Format matrix for the result modal
+  for (let input of sources) {
+    let targets = matrix.filter(function( obj ) {
+      return obj.input == input;
+    });
+    if (targets.length > 0) {
+      let obj = {}
+      for (let i = 0; i < targets.length; i++) {
+        obj[targets[i].output] = targets[i].value;
+      }
+      dc[input] = obj;
+    }
+  }
+
+  return [dc, sources, Object.keys(invDataFlowEdges).filter((e:any) => processingNodes.indexOf(e) < 0)];
+
+}
+
 export let computeGraMSecMatrices = (process: any, registry: any): [any, any, any] => {
 
   // console.log("Analyzing", process);

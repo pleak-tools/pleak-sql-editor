@@ -11,7 +11,7 @@
       <tr class="inlined-matrix">
         <td class="inlined-matrix" style="min-width: 30px;"><%= name(src) %></td>
         <% targets.forEach(function (tgt) { -%>
-        <td class="inlined-matrix"><%=dc[src][tgt] ? dc[src][tgt] : ''%></td>
+        <td class="inlined-matrix"><%=dc[src][tgt] ? dc[src][tgt] : (dc[src][tgt] === 0 ? dc[src][tgt] : '')%></td>
         <% }) %>
       </tr>
       <% }) %>
