@@ -1,8 +1,8 @@
 export const SqlBPMNModdle = {
-    name: 'Pleak PA-BPMN & PE-BPMN',
-    prefix: 'pleak',
-    uri: 'http://pleak.io/',
-    xml: {
+  name: 'Pleak PA-BPMN & PE-BPMN',
+  prefix: 'pleak',
+  uri: 'http://pleak.io/',
+  xml: {
     tagAlias: "lowerCase"
   },
   associations: new Array(),
@@ -20,6 +20,19 @@ export const SqlBPMNModdle = {
         },
         {
           "name": "sensitivityMatrix",
+          "isAttr": false,
+          "type": "String"
+        }
+      ]
+    },
+    {
+      name: "SQLDataObjectReference",
+      extends: [
+        "bpmn:DataObjectReference"
+      ],
+      properties: [
+        {
+          "name": "sqlScript",
           "isAttr": false,
           "type": "String"
         }
@@ -114,13 +127,13 @@ export const SqlBPMNModdle = {
       ]
     },
     {
-      name: "SQLDataObjectReference",
+      name: "StereotypeMessageFlow",
       extends: [
-        "bpmn:DataObjectReference"
+        "bpmn:MessageFlow"
       ],
       properties: [
         {
-          "name": "sqlScript",
+          "name": "SecureChannel",
           "isAttr": false,
           "type": "String"
         }

@@ -5,23 +5,30 @@
         <h4 class="editor-title">Pleak SQL-privacy editor</h4>
       </div>
       <div class="col-xs-8 buttons-container">
-        <ul class="buttons" style="display:none">
+        <ul class="buttons" *ngIf="isAuthenticated()">
           <li>
             <a id="save-diagram"title="save BPMN diagram" href="#" class="active">
               <span class="glyphicon glyphicon-floppy-disk"></span> Save diagram
             </a>
           </li>
         </ul>
-        <ul class="buttons analyze" style="display:none">
+        <ul class="buttons analyze" *ngIf="isAuthenticated()">
           <li>
             <a id="analyse-diagram" title="analyze PA-BPMN diagram" href="#" class="active">
               <span class="glyphicon glyphicon-equalizer"></span> Analyze diagram
             </a>
           </li>
         </ul>
-        <ul class="buttons analyze" style="display:none" id="login-container">
+        <ul class="buttons analyze" id="login-container" *ngIf="isAuthenticated()">
           <li>
-            <a id="log-in" onclick="$('#loginModal').modal()" title="Log in" href="#" class="active">
+            <a id="log-out" data-toggle="modal" data-target="#logoutModal" href class="active">
+              <span class="glyphicon glyphicon-log-in"></span> Log out
+            </a>
+          </li>
+        </ul>
+        <ul class="buttons analyze" id="login-container" *ngIf="!isAuthenticated()">
+          <li>
+            <a id="log-in" data-toggle="modal" data-target="#loginModal" href class="active">
               <span class="glyphicon glyphicon-log-in"></span> Log in
             </a>
           </li>

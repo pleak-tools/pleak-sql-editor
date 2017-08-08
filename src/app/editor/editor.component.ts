@@ -1,197 +1,234 @@
-import { Component} from '@angular/core';
-import { AuthComponent } from 'app/auth/auth.component';
+import { Component, OnInit, Input } from '@angular/core';
+import { Http } from '@angular/http';
+import { AuthService } from "app/auth/auth.service";
 import { Microcode } from "app/microcode/microcode";
 import { SqlBPMNModdle } from "./bpmn-sql-extension";
 import { analizeSQLDFlow } from "app/analyser/SQLDFlowAnalizer";
-import * as Viewer from 'bpmn-js/lib/NavigatedViewer.js';
+import * as Viewer from 'bpmn-js/lib/NavigatedViewer';
 
 declare var $: any;
 declare function require(name:string);
 
 let is = (element, type) => element.$instanceOf(type);
 
-var bpmn = require("bpmn-js");
-var request = require('superagent');
 var config = require('./../../config.json');
-var domain = config.frontend.host;
-var backend = config.backend.host;
-var authComponent = new AuthComponent();
 
 @Component({
-  selector: 'editor-component',
+  selector: 'app-sql-privacy-editor',
   templateUrl: '/editor.component.html',
   styleUrls: ['/editor.component.less']
 })
-export class EditorComponent {
+export class EditorComponent implements OnInit {
 
-  private viewer;
+  constructor(public http: Http, private authService: AuthService) {
+    this.authService.authStatus.subscribe(status => {
+      this.authenticated = status;
+      this.getModel();
+    });
+  }
 
-  private modelId = window.location.pathname.split('/')[2];
+  @Input() authenticated: Boolean;
 
-  private saveFailed = false;
-  private lastContent = '';
+  private viewer: Viewer;
 
-  private fileId = null;
-  private file;
+  private modelId: Number = Number.parseInt(window.location.pathname.split('/')[2]);
+
+  private saveFailed: Boolean = false;
+  private lastContent: String = '';
+
+  private fileId: Number = null;
+  private file: any;
+
+  isAuthenticated() {
+    return this.authenticated;
+  }
 
   // Load model
   getModel() {
-    var that = this;
-    request.get(backend + '/rest/directories/files/' + that.modelId)
-      .set('JSON-Web-Token', authComponent.getToken())
-      .end(function(err, res) {
-        if (!err) {
-          $('.buttons').show();
-          $('#login-container').hide();
-
-          that.file = res.body;
-          that.fileId = that.file.id;
-          if (that.file.content.length === 0) {
-            console.log("File can't be found or opened!");
-          }
-          that.openDiagram(that.file.content);
-          that.lastContent = that.file.content;
-          document.title += ' - ' + that.file.title;
+    var self = this;
+    $('#canvas').html('');
+    $('.buttons-container').off('click', '#save-diagram');
+    $('.buttons-container').off('click', '#analyse-diagram');
+    self.viewer = null;
+    this.http.get(config.backend.host + '/rest/directories/files/' + self.modelId, this.authService.loadRequestOptions()).subscribe(
+      success => {
+        self.file = JSON.parse((<any>success)._body);
+        self.fileId = self.file.id;
+        if (self.file.content.length === 0) {
+          console.log("File can't be found or opened!");
         }
-      });
+        self.openDiagram(self.file.content);
+        self.lastContent = self.file.content;
+        document.title = 'Pleak SQL-privacy editor - ' + self.file.title;
+      },
+      fail => {
+        self.fileId = null;
+        self.file = null;
+        self.lastContent = '';
+        self.saveFailed = false;
+      }
+    );
   }
 
-  // Load diagram and add editor to its components
-  openDiagram(diagram) {
+ // Load diagram and add editor
+  openDiagram(diagram: String) {
+    var self = this;
+    if (diagram && this.viewer == null) {
+      this.viewer = new Viewer({
+        container: '#canvas',
+        keyboard: {
+          bindTo: document 
+        },
+        moddleExtensions: {
+          sqlExt: SqlBPMNModdle
+        }
+      });
 
-    var that = this;
-
-    this.viewer = new Viewer({
-      container: '#canvas',
-      keyboard: {
-        bindTo: document 
-      },
-      moddleExtensions: {
-        sqlExt: SqlBPMNModdle
-      }
-    });
-
-    this.viewer.importXML(diagram, (error, definitions) => {
+      this.viewer.importXML(diagram, () => {
       
-      var eventBus = this.viewer.get('eventBus');
-      var overlays = this.viewer.get('overlays');
+        let eventBus = this.viewer.get('eventBus');
+        let overlays = this.viewer.get('overlays');
 
-      eventBus.on('element.click', function(e) {
+        eventBus.on('element.click', function(e) {
 
-        if ((is(e.element.businessObject, 'bpmn:DataObjectReference') || is(e.element.businessObject, 'bpmn:Task')) && !$(document).find("[data-element-id='" + e.element.id + "']").hasClass('highlight-input')) {
+          if ((is(e.element.businessObject, 'bpmn:DataObjectReference') || is(e.element.businessObject, 'bpmn:Task')) && !$(document).find("[data-element-id='" + e.element.id + "']").hasClass('highlight-input')) {
 
-          let task = e.element.businessObject;
-          var sqlQuery;
-          if (task.sqlScript == null) {
-            sqlQuery = "";
+            let task = e.element.businessObject;
+            let sqlQuery;
+            if (task.sqlScript == null) {
+              sqlQuery = "";
+            } else {
+              sqlQuery = task.sqlScript;
+            }
+
+            let overlayHtml = $(
+              `<div class="editor" id="` + e.element.id + `-sql-editor">
+                 <div class="editor-body">
+                   <textarea class="code-input">` + sqlQuery + `</textarea>
+                   <pre class="code-output">
+                     <code class="language-sql"></code>
+                   </pre>
+                 </div>
+                 <br>
+                 <button class="btn btn-success" id="` + e.element.id + `-save-button">Save</button>
+               </div>`
+            );
+          
+            overlays.add(e.element, {
+              position: {
+                bottom: 0,
+                right: 0
+              },
+              html: overlayHtml
+            });
+
+            $(overlayHtml).on('click', '#' + e.element.id+'-save-button', function() {
+              task.sqlScript = $(overlayHtml).find('.code-input').val();
+              self.updateModelContentVariable();
+              $('#' + e.element.id + '-sql-editor').hide();
+            });
+
+            $(document).mouseup(function(ee) {
+              var container = $('.editor');
+              if (!container.is(ee.target) && container.has(ee.target).length === 0) {
+                overlays.remove({element: e.element});
+              }
+            });
+
+            var editor = new Microcode($(overlayHtml).find('.code-input'), $(overlayHtml).find('.code-output'));
+
           } else {
-            sqlQuery = task.sqlScript;
+
+            overlays.remove({element: e.element});
+
           }
 
-          var overlayHtml = $(
-            `<div class="editor" id="` + e.element.id + `-sql-editor">
-               <div class="editor-body">
-                 <textarea class="code-input">` + sqlQuery + `</textarea>
-                 <pre class="code-output">
-                   <code class="language-sql"></code>
-                 </pre>
-               </div>
-               <br>
-               <button class="btn btn-success" id="` + e.element.id + `-save-button">Save</button>
-             </div>`
-          );
-          
-          overlays.add(e.element, {
-            position: {
-              bottom: 0,
-              right: 0
-            },
-            html: overlayHtml
-          });
-
-          $(overlayHtml).on('click', '#' + e.element.id+'-save-button', function() {
-            task.sqlScript = $(overlayHtml).find('.code-input').val();
-            $('#' + e.element.id + '-sql-editor').hide();
-          });
-
-          $(document).mouseup(function(ee) {
-            var container = $('.editor');
-            if (!container.is(ee.target) && container.has(ee.target).length === 0) {
-              overlays.remove({element: e.element});
-            }
-          });
-
-          var editor = new Microcode($(overlayHtml).find('.code-input'), $(overlayHtml).find('.code-output'));
-
-        } else {
-
-          overlays.remove({element: e.element});
-
-        }
+        });
 
       });
 
-    });
+      $('.buttons-container').on('click', '#save-diagram', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.save();
+      });
 
-    $('#save-diagram').click( function(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      that.save();
-    });
+      $('.buttons-container').on('click', '#analyse-diagram', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.analyse();
+      });
 
-    $('#analyse-diagram').click( function(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      that.analyse();
-    });
+      $(window).on('keydown', (e) => {
+        if (e.ctrlKey || e.metaKey) {
+          switch (String.fromCharCode(e.which).toLowerCase()) {
+            case 's':
+              event.preventDefault();
+              this.save();
+              break;
+          }
+        }
+      });
+
+      $(window).bind('beforeunload', (e) => {
+        if (this.file.content != this.lastContent) {
+          return 'Are you sure you want to close this tab? Unsaved progress will be lost.';
+        }
+      });
+
+    }
 
   }
 
   // Save model
   save() {
-    var that = this;
-
-    this.viewer.saveXML({format: true},
+    var self = this;
+    this.viewer.saveXML(
+      {
+        format: true
+      },
       (err: any, xml: string) => {
         if (err) {
           console.log(err)
         } else {
-          that.file.content = xml;
-          request
-            .put(backend + '/rest/directories/files/' + that.fileId)
-            .set('JSON-Web-Token', authComponent.getToken())
-            .send(that.file)
-            .end(function(err, res) {
-              if (res.statusCode === 200 || res.statusCode === 201) {
+          self.file.content = xml;
+          this.http.put(config.backend.host + '/rest/directories/files/' + self.fileId, self.file, this.authService.loadRequestOptions()).subscribe(
+            success => {
+              console.log(success)
+              if (success.status === 200 || success.status === 201) {
+                var data = JSON.parse((<any>success)._body);
                 $('#fileSaveSuccess').show();
                 $('#fileSaveSuccess').fadeOut(5000);
                 var date = new Date();
-                localStorage.setItem("lastModifiedFileId", '"' + res.body.id + '"');
+                localStorage.setItem("lastModifiedFileId", '"' + data.id + '"');
                 localStorage.setItem("lastModified", '"' + date.getTime() + '"');
-                if (that.fileId !== res.body.id) {
-                  window.location.href = domain + '/modeler/' + res.body.id;
+                if (self.fileId !== data.id) {
+                  window.location.href = config.frontend.host + '/modeler/' + data.id;
                 }
-                that.file.md5Hash = res.body.md5Hash;
-                that.lastContent = that.file.content;
-                that.fileId = res.body.id;
-                that.saveFailed = false;
-              } else if (res.statusCode === 401) {
-                that.saveFailed = true;
-                $('#loginModal').modal();
+                self.file.md5Hash = data.md5Hash;
+                self.lastContent = self.file.content;
+                self.fileId = data.id;
+                self.saveFailed = false;
+              } else if (success.status === 401) {
+                 self.saveFailed = true;
+                 $('#loginModal').modal();
               }
-            });
+            },
+            fail => {
+            }
+          );
           console.log(xml)
         }
       });
-
   }
 
   // Analyse model
   analyse() {
-    var that = this;
     this.viewer.saveXML({format: true}, (err: any, xml: string) => {
       this.viewer.get("moddle").fromXML(xml, (err:any, definitions:any) => {
-        this.viewer.importDefinitions(definitions, () => this.postLoad(definitions));
+        if (typeof definitions !== 'undefined') {
+          this.viewer.importDefinitions(definitions, () => this.postLoad(definitions));
+        }
       });
     });
   }
@@ -208,12 +245,34 @@ export class EditorComponent {
     }
   }
 
-  processBPMNProcess(element:any) {
+  processBPMNProcess(element: any) {
     let registry = this.viewer.get('elementRegistry');
     let canvas = this.viewer.get('canvas');
     let eventBus = this.viewer.get('eventBus');
     let overlays = this.viewer.get('overlays');
-    analizeSQLDFlow(element, registry, canvas, overlays, eventBus);
+    analizeSQLDFlow(element, registry, canvas, overlays, eventBus, this.http, this.authService);
+  }
+
+  updateModelContentVariable() {
+    this.viewer.saveXML(
+      {
+        format: true
+      },
+      (err: any, xml: string) => {
+        if (xml) {
+          this.file.content = xml;
+        }
+      }
+    );
+  }
+
+  ngOnInit() {
+    window.addEventListener('storage', (e) => {
+      if (e.storageArea === localStorage) {
+        this.authService.verifyToken();
+        this.getModel();
+      }
+    });
   }
 
 }

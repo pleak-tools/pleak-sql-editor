@@ -8,6 +8,11 @@ code[class*="language-"], pre[class*="language-"] {
 }
 
 /** http://tobiasahlin.com/spinkit/ **/
+#loginLoading, #logoutLoading {
+    display: none;
+}
+
+/** http://tobiasahlin.com/spinkit/ **/
 .spinner {
   width: 40px;
   height: 40px;
@@ -192,5 +197,27 @@ tr.inlined-matrix:first-child td.inlined-matrix, td.inlined-matrix:first-child {
 }
 
 .hidden-code-input {
+  display: none;
+}
+
+/* */
+
+.error-message {
+  color: #D43535 !important;
+}
+
+.success-message {
+  color: #259825 !important;
+}
+
+/* Bootstrap fix */
+.has-error span {
+  color: #a94442;
+}
+.has-error label {
+  color: #a94442;
+}
+
+.help-block {
   display: none;
 }

@@ -1,20 +1,20 @@
 import { dataFlowAnalysis, computeSensitivitiesMatrix } from "./GraMSecAnalizer";
 import { Microcode } from "app/microcode/microcode";
+import { Http } from '@angular/http';
+import { AuthService } from "app/auth/auth.service";
 
 declare function require(name:string);
 declare var $: any;
 
-var request = require('superagent');
 var pg_parser = require("exports-loader?Module!pgparser/pg_query.js")
 var tableBuilder = require('ejs-compiled-loader!./gramsec-table.ejs');
 var config = require('./../../config.json');
-var backend = config.backend.host;
 
 let is = (element, type) => element.$instanceOf(type);
 
 var errorInModel = false;
 
-let analyzeProcessingNode = (nodeId: string, dataDefStatements: {[id: string]: string}, outputDefStatements: {[id: string]: string}, dataFlowEdges: any, invDataFlowEdges: any, registry: any, canvas: any, overlays: any, overlaysMap: any) => {
+let analyzeProcessingNode = (nodeId: string, dataDefStatements: {[id: string]: string}, outputDefStatements: {[id: string]: string}, dataFlowEdges: any, invDataFlowEdges: any, registry: any, canvas: any, overlays: any, overlaysMap: any, http: Http, authService: AuthService) => {
 
   let node = registry.get(nodeId).businessObject;
 
@@ -78,42 +78,29 @@ let analyzeProcessingNode = (nodeId: string, dataDefStatements: {[id: string]: s
         var obj_query = stprocBody.replace(/\r?\n|\r/g, '');
 
         canvas.addMarker(nodeId, 'highlight-input');
-        request.post(backend + '/rest/sql-privacy/analyse')
-          .send({schema : obj_schema, query : obj_query})
-          .end(function(err, res) {
 
-            if (err) {
+        http.post(config.backend.host + '/rest/sql-privacy/analyse', {schema : obj_schema, query : obj_query}, authService.loadRequestOptions()).subscribe(
+          success => {
+            if (success.status === 200) {
 
-              if (err.status === 400) {
-
-                errorInModel = true;
-                $('#analyserInputError').show();
-
-              } else {
-
-                console.log("Server error!");
-
-              }
-
-            } else {
-
+              var res = JSON.parse((<any>success)._body);
               errorInModel = false;
               $('#analyserInputError').hide();
               var resultRows = "";
               var matrix = {};
 
-              for (var i=0; i < (res.body.resultSet).length; i++) {
+              for (var i=0; i < (res.resultSet).length; i++) {
 
-                var resultSensitivity = res.body.resultSet[i].sensitivity >= 0 ? res.body.resultSet[i].sensitivity : Infinity;
-                resultRows += "<tr><td>" + registry.get(res.body.resultSet[i].tableId).businessObject.name + "</td><td>" + resultSensitivity + "</td><tr>";
-                var inputName = res.body.resultSet[i].tableId;
+                var resultSensitivity = res.resultSet[i].sensitivity >= 0 ? res.resultSet[i].sensitivity : Infinity;
+                resultRows += "<tr><td>" + registry.get(res.resultSet[i].tableId).businessObject.name + "</td><td>" + resultSensitivity + "</td><tr>";
+                var inputName = res.resultSet[i].tableId;
                 var outputName = outputData.id;
-                var sensitivity = res.body.resultSet[i].sensitivity;
+                var sensitivity = res.resultSet[i].sensitivity;
                 matrix[inputName] = {[outputName] : sensitivity};
 
               }
 
-              if (res.body.primaryKeysSet && res.body.primaryKeysSet.indexOf(1) > -1) {
+              if (res.primaryKeysSet && res.primaryKeysSet.indexOf(1) > -1) {
 
                 outputCreateStatement = `create table ${tableName} (`;
 
@@ -122,17 +109,13 @@ let analyzeProcessingNode = (nodeId: string, dataDefStatements: {[id: string]: s
                   var param = result.parse_tree[0].CreateFunctionStmt.parameters[i].FunctionParameter;
 
                   if (i > offset) {
-
                     outputCreateStatement += ', ';
-
                   }
 
                   let pKey = "";
 
-                  if (res.body.primaryKeysSet[i] === 1) {
-
+                  if (res.primaryKeysSet[i] === 1) {
                     pKey = " primary key";
-
                   }
 
                   outputCreateStatement += param.name + ' ' + param.argType.TypeName.names[0].String.str + pKey;
@@ -163,17 +146,17 @@ let analyzeProcessingNode = (nodeId: string, dataDefStatements: {[id: string]: s
                     <div class="panel-body">
                       <div class="table-responsive">
                         <table class="table table-hover">
-                        <thead>
-                          <tr>
-                           <th>TableId</th>
-                           <th>Sensitivity</th>
-                          </tr>
-                        </thead
-                        <tbody>
-                          ${resultRows}
-                        </tbody>
-                        </div>
-                      </table>
+                          <thead>
+                            <tr>
+                              <th>TableId</th>
+                              <th>Sensitivity</th>
+                            </tr>
+                          </thead
+                          <tbody>
+                            ${resultRows}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   </div>
                 </div>`
@@ -191,8 +174,16 @@ let analyzeProcessingNode = (nodeId: string, dataDefStatements: {[id: string]: s
               outputDefStatements[outputData.id] = outputCreateStatement;
 
             }
-
-          });
+          },
+          fail => {
+            if (fail.status === 400) {
+              errorInModel = true;
+              $('#analyserInputError').show();
+            } else {
+              console.log("Server error!");
+            }
+          }
+        );
 
       } else {
 
@@ -217,7 +208,7 @@ let analyzeProcessingNode = (nodeId: string, dataDefStatements: {[id: string]: s
 
 }
 
-export let analizeSQLDFlow = (element: any, registry: any, canvas: any, overlays: any, eventBus: any) => {
+export let analizeSQLDFlow = (element: any, registry: any, canvas: any, overlays: any, eventBus: any, http: Http, authService: AuthService) => {
 
   let info = dataFlowAnalysis(element, registry);
   let [processingNodes, dataFlowEdges, invDataFlowEdges, sources] = [info.processingNodes, info.dataFlowEdges, info.invDataFlowEdges, info.sources];
@@ -255,7 +246,7 @@ export let analizeSQLDFlow = (element: any, registry: any, canvas: any, overlays
   var overlaysMap: {[id:string]: any} = {};
   var enabledNodes = processingNodes.filter( (nodeId:string) => alreadyProcessed.indexOf(nodeId) < 0 && invDataFlowEdges[nodeId].every((predId:string) => dataDefStatements[predId]));
 
-  enabledNodes.forEach((nodeId:string) => analyzeProcessingNode(nodeId, dataDefStatements, outputDefStatements, dataFlowEdges, invDataFlowEdges, registry, canvas, overlays, overlaysMap));
+  enabledNodes.forEach((nodeId:string) => analyzeProcessingNode(nodeId, dataDefStatements, outputDefStatements, dataFlowEdges, invDataFlowEdges, registry, canvas, overlays, overlaysMap, http, authService));
 
   eventBus.on('element.click', function(e:any) {
 
@@ -280,7 +271,7 @@ export let analizeSQLDFlow = (element: any, registry: any, canvas: any, overlays
         if (dataFlowEdges[outputDataId] && dataFlowEdges[outputDataId].length > 0) {
 
           var newlyEnabledNodes = dataFlowEdges[outputDataId].filter( (nodeId:string) => invDataFlowEdges[nodeId].every((predId:string) => dataDefStatements[predId]));
-          newlyEnabledNodes.forEach((nodeId:string) => analyzeProcessingNode(nodeId, dataDefStatements, outputDefStatements, dataFlowEdges, invDataFlowEdges, registry, canvas, overlays, overlaysMap));
+          newlyEnabledNodes.forEach((nodeId:string) => analyzeProcessingNode(nodeId, dataDefStatements, outputDefStatements, dataFlowEdges, invDataFlowEdges, registry, canvas, overlays, overlaysMap, http, authService));
           enabledNodes = enabledNodes.concat(newlyEnabledNodes);
 
         }
