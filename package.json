@@ -12,8 +12,8 @@
   "license": "MIT",
   "scripts": {
     "start": "npm install",
-    "poststart": "npm run build",
-    "build": "npm run build"
+    "poststart": "webpack",
+    "build": "webpack"
   },
   "private": true,
   "dependencies": {
