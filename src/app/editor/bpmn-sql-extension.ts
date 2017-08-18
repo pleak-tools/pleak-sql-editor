@@ -124,6 +124,56 @@ export const SqlBPMNModdle = {
           "isAttr": false,
           "type": "String"
         },
+        {
+          "name": "SGXComputation",
+          "isAttr": false,
+          "type": "String"
+        },
+        {
+          "name": "SGXAttestationEnclave",
+          "isAttr": false,
+          "type": "String"
+        },
+        {
+          "name": "SGXAttestationChallenge",
+          "isAttr": false,
+          "type": "String"
+        },
+        {
+          "name": "SGXQuoting",
+          "isAttr": false,
+          "type": "String"
+        },
+        {
+          "name": "SGXQuoteVerification",
+          "isAttr": false,
+          "type": "String"
+        },
+        {
+          "name": "DimensionalityReduction",
+          "isAttr": false,
+          "type": "String"
+        },
+        {
+          "name": "GCGarble",
+          "isAttr": false,
+          "type": "String"
+        },
+        {
+          "name": "GCEvaluate",
+          "isAttr": false,
+          "type": "String"
+        },
+        {
+          "name": "OTSend",
+          "isAttr": false,
+          "type": "String"
+        },
+        {
+          "name": "OTReceive",
+          "isAttr": false,
+          "type": "String"
+        }
       ]
     },
     {
