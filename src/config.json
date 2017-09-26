@@ -5,15 +5,15 @@
     "frontend": {
         "host": "http://localhost:8000",
         "port": 8000,
-        "folder": "frontend"
+        "folder": "pleak-frontend"
     },
     "sql_editor": {
-        "folder": "sql-editor"
+        "folder": "pleak-sql-editor"
     },
     "sql_analyser": {
-        "folder": "sql-analyser"
+        "folder": "pleak-sql-analysis"
     },
     "pe_bpmn_editor": {
-        "folder": "pe-bpmn-editor"
+        "folder": "pleak-pe-bpmn-editor"
     }
 }

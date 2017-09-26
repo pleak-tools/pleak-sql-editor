@@ -173,6 +173,11 @@ export const SqlBPMNModdle = {
           "name": "OTReceive",
           "isAttr": false,
           "type": "String"
+        },
+        {
+          "name": "DifferentialPrivacy",
+          "isAttr": false,
+          "type": "String"
         }
       ]
     },

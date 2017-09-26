@@ -60,6 +60,7 @@ export class EditorComponent implements OnInit {
         self.openDiagram(self.file.content);
         self.lastContent = self.file.content;
         document.title = 'Pleak SQL-privacy editor - ' + self.file.title;
+        $('#fileName').text(this.file.title);
       },
       fail => {
         self.fileId = null;
@@ -147,6 +148,13 @@ export class EditorComponent implements OnInit {
 
       });
 
+      $('.buttons-container').on('click', '.buttons a', (e) => {
+        if (!$(e.target).is('.active')) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      });
+
       $('.buttons-container').on('click', '#save-diagram', (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -163,8 +171,10 @@ export class EditorComponent implements OnInit {
         if (e.ctrlKey || e.metaKey) {
           switch (String.fromCharCode(e.which).toLowerCase()) {
             case 's':
-              event.preventDefault();
-              this.save();
+              if ($('#save-diagram').is('.active')) {
+                event.preventDefault();
+                this.save();
+              }
               break;
           }
         }
@@ -183,43 +193,46 @@ export class EditorComponent implements OnInit {
   // Save model
   save() {
     var self = this;
-    this.viewer.saveXML(
-      {
-        format: true
-      },
-      (err: any, xml: string) => {
-        if (err) {
-          console.log(err)
-        } else {
-          self.file.content = xml;
-          this.http.put(config.backend.host + '/rest/directories/files/' + self.fileId, self.file, this.authService.loadRequestOptions()).subscribe(
-            success => {
-              console.log(success)
-              if (success.status === 200 || success.status === 201) {
-                var data = JSON.parse((<any>success)._body);
-                $('#fileSaveSuccess').show();
-                $('#fileSaveSuccess').fadeOut(5000);
-                var date = new Date();
-                localStorage.setItem("lastModifiedFileId", '"' + data.id + '"');
-                localStorage.setItem("lastModified", '"' + date.getTime() + '"');
-                if (self.fileId !== data.id) {
-                  window.location.href = config.frontend.host + '/modeler/' + data.id;
+    if ($('#save-diagram').is('.active')) {
+      this.viewer.saveXML(
+        {
+          format: true
+        },
+        (err: any, xml: string) => {
+          if (err) {
+            console.log(err)
+          } else {
+            self.file.content = xml;
+            this.http.put(config.backend.host + '/rest/directories/files/' + self.fileId, self.file, this.authService.loadRequestOptions()).subscribe(
+              success => {
+                console.log(success)
+                if (success.status === 200 || success.status === 201) {
+                  var data = JSON.parse((<any>success)._body);
+                  $('#fileSaveSuccess').show();
+                  $('#fileSaveSuccess').fadeOut(5000);
+                  $('#save-diagram').removeClass('active');
+                  var date = new Date();
+                  localStorage.setItem("lastModifiedFileId", '"' + data.id + '"');
+                  localStorage.setItem("lastModified", '"' + date.getTime() + '"');
+                  if (self.fileId !== data.id) {
+                    window.location.href = config.frontend.host + '/modeler/' + data.id;
+                  }
+                  self.file.md5Hash = data.md5Hash;
+                  self.lastContent = self.file.content;
+                  self.fileId = data.id;
+                  self.saveFailed = false;
+                } else if (success.status === 401) {
+                   self.saveFailed = true;
+                   $('#loginModal').modal();
                 }
-                self.file.md5Hash = data.md5Hash;
-                self.lastContent = self.file.content;
-                self.fileId = data.id;
-                self.saveFailed = false;
-              } else if (success.status === 401) {
-                 self.saveFailed = true;
-                 $('#loginModal').modal();
+              },
+              fail => {
               }
-            },
-            fail => {
-            }
-          );
-          console.log(xml)
-        }
-      });
+            );
+            console.log(xml)
+          }
+        });
+      }
   }
 
   // Analyse model
@@ -261,6 +274,7 @@ export class EditorComponent implements OnInit {
       (err: any, xml: string) => {
         if (xml) {
           this.file.content = xml;
+          $('#save-diagram').addClass('active');
         }
       }
     );
