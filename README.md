@@ -4,9 +4,10 @@ This project is the front-end part of the [SQL analysis tool for pleak.io](https
 
 ## Prerequisites
 
-You need to have [pleak-backend](https://github.com/pleak-tools/pleak-backend), [pleak-frontend](https://github.com/pleak-tools/pleak-frontend), [pleak-sql-analysis](https://github.com/pleak-tools/pleak-sql-analysis) and pleak-sql-editor directories all in the same directory and their names specified in the config.json file.
+You need to locate [pleak-backend](https://github.com/pleak-tools/pleak-backend), [pleak-frontend](https://github.com/pleak-tools/pleak-frontend), [pleak-sql-analysis](https://github.com/pleak-tools/pleak-sql-analysis) and pleak-sql-editor directories all in the same directory and specify their names in the config.json file.
+Read more from sub-repositories how to build each module.
 
-To set up the [pleak-sql-analysis](https://github.com/pleak-tools/pleak-sql-analysis) tool, you need:
+To use all functionalities of the SQL-privacy editor, set up the [pleak-sql-analysis](https://github.com/pleak-tools/pleak-sql-analysis) tool:
 
 1) Haskell Tool Stack - to install, execute `wget -qO- https://get.haskellstack.org/ | sh`
 
@@ -20,9 +21,11 @@ To make it available for the pleak-sql-editor, execute:
 
 `stack setup`
 
-`stack build` (sqla file is created into .stack-work/install/x86_64-linux/lts-7.19/8.0.1/bin or similar located folder)
+`stack build` (sqla file is created into .stack-work/install/x86_64-linux/lts-7.19/8.0.1/bin directory - or into some other similarly named directory)
 
-`ln -s .stack-work/install/x86_64-linux/lts-7.19/8.0.1/bin/sqla .` (this command creates a shortcut to the sqla file, this shortcut is needed for the editor to run the analyser)
+`ln -s .stack-work/install/x86_64-linux/lts-7.19/8.0.1/bin/sqla .` (this command creates a shortcut to the sqla file, this shortcut is needed for the editor to execute the analyser)
+
+You can find more information from the [SQL analysis tool repository](https://github.com/pleak-tools/pleak-sql-analysis).
 
 ## Build
 
@@ -34,7 +37,7 @@ Execute `npm run build` to build the project. The build artifacts will be stored
 
 ## Using
 
-You can use the editor for each model from the Action menu next to the model on Files page (of front-end) or from the URL: http://localhost:8000/sql-privacy-editor/id (id of the model).
+You can use the editor for each model from the Action menu next to the model on Files page (of frontend) or from the URL: http://localhost:8000/sql-privacy-editor/id (id of the model).
 
 ## License
 
