@@ -14,6 +14,8 @@ let is = (element, type) => element.$instanceOf(type);
 
 var errorInModel = false;
 
+var analyseInProgress = true;
+
 let analyzeProcessingNode = (nodeId: string, dataDefStatements: {[id: string]: string}, outputDefStatements: {[id: string]: string}, dataFlowEdges: any, invDataFlowEdges: any, registry: any, canvas: any, overlays: any, overlaysMap: any, http: Http, authService: AuthService) => {
 
   let node = registry.get(nodeId).businessObject;
@@ -45,7 +47,7 @@ let analyzeProcessingNode = (nodeId: string, dataDefStatements: {[id: string]: s
         let numberOfParameters = result.parse_tree[0].CreateFunctionStmt.parameters.length;
         let offset = numberOfParameters - numberOfColumns;
         let outputData = registry.get(dataFlowEdges[nodeId][0]).businessObject;
-        let tableName = outputData.name.replace(/ *\([^)]*\) */g, "").replace(/[^\w\s]/gi, '').replace(/[\s]/gi, '_');
+        let tableName = outputData.name.replace(/\s+$/, '').replace(/ *\([^)]*\) */g, "").replace(/[^\w\s]/gi, '').replace(/[\s]/gi, '_');
         var outputCreateStatement = `create table ${tableName} (`;
 
         for (var i = offset; i < numberOfParameters; i++) {
@@ -76,8 +78,7 @@ let analyzeProcessingNode = (nodeId: string, dataDefStatements: {[id: string]: s
         }
         
         var obj_query = stprocBody.replace(/\r?\n|\r/g, '');
-
-        canvas.addMarker(nodeId, 'highlight-input');
+        analyseInProgress = true;
 
         http.post(config.backend.host + '/rest/sql-privacy/analyse', {schema : obj_schema, query : obj_query}, authService.loadRequestOptions()).subscribe(
           success => {
@@ -173,6 +174,9 @@ let analyzeProcessingNode = (nodeId: string, dataDefStatements: {[id: string]: s
 
               outputDefStatements[outputData.id] = outputCreateStatement;
 
+              analyseInProgress = false;
+              canvas.addMarker(nodeId, 'highlight-input');
+
             }
           },
           fail => {
@@ -250,7 +254,7 @@ export let analizeSQLDFlow = (element: any, registry: any, canvas: any, overlays
 
   eventBus.on('element.click', function(e:any) {
 
-    if ( is(e.element.businessObject, 'bpmn:Task')) {
+    if ( is(e.element.businessObject, 'bpmn:Task') && !analyseInProgress) {
 
       let node = e.element.businessObject;
 

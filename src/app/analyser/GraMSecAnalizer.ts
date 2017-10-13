@@ -178,6 +178,21 @@ export let computeSensitivitiesMatrix = (process: any, registry: any): [any, any
     }
   }
 
+  // Add other sensitivities into Ds array (relations between inputs and outputs (those that are missing yet))
+  for (let source of sources) {
+    for (let target of Object.keys(invDataFlowEdges).filter((e:any) => processingNodes.indexOf(e) < 0)) {
+      // D[input1, input2] = 0 (if not specified differently)
+      let outp = {input: source, output: target, value: 0};
+      let sameElements = Ds.filter(function( obj ) {
+        return obj.input == source && obj.output == target;
+      });
+      if (sameElements.length == 0) {
+        Ds.push(outp);
+      }
+
+    }
+  }
+
   for (let node of process.flowElements.filter((e:any) => is(e, "bpmn:Task"))) {
 
     if (processingNodes.indexOf(node.id) >= 0 && node.sensitivityMatrix) {
@@ -185,7 +200,7 @@ export let computeSensitivitiesMatrix = (process: any, registry: any): [any, any
       node.nSensitivityMatrixJSON = JSON.parse(node.sensitivityMatrix);
       let object = node.nSensitivityMatrixJSON;
 
-      // Add ensitivities from analyser into ls array (all relations)
+      // Add sensitivities from analyser into ls array (all relations)
       for (var input in object) {
         if (object.hasOwnProperty(input)) {
           for (var output in object[input]) {
@@ -234,6 +249,8 @@ export let computeSensitivitiesMatrix = (process: any, registry: any): [any, any
             preval = Infinity;
           } else if (val1 == 0 && val2 == -1) {
             preval = 0;
+          } else if (val1 == -1 && val2 == -1) {
+            preval = Infinity;
           } else {
             preval = val1 * val2;
           }
@@ -333,7 +350,6 @@ export let computeGraMSecMatrices = (process: any, registry: any): [any, any, an
             if (node.nSensitivityMatrixJSON) {
 
               let value =  node.nSensitivityMatrixJSON[pred][succ];
-              value = value >= 0 ? value : Infinity;
 
               if (source === pred) {
 
