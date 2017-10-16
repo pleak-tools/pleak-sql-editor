@@ -1,3 +1,5 @@
+declare var $: any;
+
 const is = (element: any, type: any) => element.$instanceOf(type);
 
 let transitiveClosure = (adjList: {[src: string]: Array<string>}, sources: Array<string>): {[src: string]: Array<string>} => {
@@ -178,21 +180,6 @@ export let computeSensitivitiesMatrix = (process: any, registry: any): [any, any
     }
   }
 
-  // Add other sensitivities into Ds array (relations between inputs and outputs (those that are missing yet))
-  for (let source of sources) {
-    for (let target of Object.keys(invDataFlowEdges).filter((e:any) => processingNodes.indexOf(e) < 0)) {
-      // D[input1, input2] = 0 (if not specified differently)
-      let outp = {input: source, output: target, value: 0};
-      let sameElements = Ds.filter(function( obj ) {
-        return obj.input == source && obj.output == target;
-      });
-      if (sameElements.length == 0) {
-        Ds.push(outp);
-      }
-
-    }
-  }
-
   for (let node of process.flowElements.filter((e:any) => is(e, "bpmn:Task"))) {
 
     if (processingNodes.indexOf(node.id) >= 0 && node.sensitivityMatrix) {
@@ -213,6 +200,21 @@ export let computeSensitivitiesMatrix = (process: any, registry: any): [any, any
 
     }
 
+  }
+
+  // Add other sensitivities into Ds array (relations between inputs and outputs (those that are missing yet))
+  for (let source of ls) {
+    for (let target of Object.keys(invDataFlowEdges).filter((e:any) => processingNodes.indexOf(e) < 0)) {
+      // D[input1, input2] = 0 (if not specified differently)
+      let outp = {input: source.input, output: target, value: 0};
+      let sameElements = Ds.filter(function( obj ) {
+        return obj.input == source.input && obj.output == target;
+      });
+      if (sameElements.length == 0) {
+        Ds.push(outp);
+      }
+
+    }
   }
 
   // Calculate sensitivity values (sum of multiple multiplications) for the result matrix
@@ -266,7 +268,12 @@ export let computeSensitivitiesMatrix = (process: any, registry: any): [any, any
       }
 
       // Add calculated value to the Ds array to calculate next sensitivities
-      Ds.push({input: source, output: target, value: value})
+      let sameElements = Ds.filter(function( obj ) {
+        return obj.input == source && obj.output == target;
+      });
+      if (sameElements.length == 0) {
+        Ds.push({input: source, output: target, value: value});
+      }
 
       // Add calculated value to the result matrix
       matrix.push({input: source, output: target, value: value})
