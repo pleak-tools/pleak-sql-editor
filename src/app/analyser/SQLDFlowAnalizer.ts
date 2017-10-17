@@ -39,7 +39,6 @@ let analyzeProcessingNode = (nodeId: string, dataDefStatements: {[id: string]: s
 
       if (embeddedQuery.parse_tree.length) {
 
-
         let numberOfColumns = 0;
         if (embeddedQuery.parse_tree[0].SelectStmt.targetList) {
           numberOfColumns = embeddedQuery.parse_tree[0].SelectStmt.targetList.length;
@@ -79,6 +78,24 @@ let analyzeProcessingNode = (nodeId: string, dataDefStatements: {[id: string]: s
         
         var obj_query = stprocBody.replace(/\r?\n|\r/g, '');
         analyseInProgress = true;
+
+        var analysisOverlayHtml = $(`
+          <div class="code-dialog" id="` + nodeId + `-analysis-loader">
+            <div class="panel panel-default">
+              <div class="panel-heading">
+                <h4>Analysis in progress...</h4>
+              </div>
+              <div class="panel-body">
+                <div class="spinner">
+                  <div class="double-bounce1"></div>
+                  <div class="double-bounce2"></div>
+                </div>
+              </div>
+            </div>
+          </div>`
+        );
+
+        overlaysMap[nodeId] = overlays.add(nodeId, {position:{bottom: 0, right: 0}, html:analysisOverlayHtml});
 
         http.post(config.backend.host + '/rest/sql-privacy/analyse', {schema : obj_schema, query : obj_query}, authService.loadRequestOptions()).subscribe(
           success => {
@@ -127,6 +144,8 @@ let analyzeProcessingNode = (nodeId: string, dataDefStatements: {[id: string]: s
                 outputCreateStatement = outputCreateStatement.replace(/\r?\n|\r/g, '');
 
               }
+
+              overlays.remove(overlaysMap[nodeId]);
 
               var overlayHtml = $(`
                 <div class="code-dialog" id="` + nodeId + `-analysis-results">
