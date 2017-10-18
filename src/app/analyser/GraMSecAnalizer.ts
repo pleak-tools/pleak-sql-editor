@@ -243,18 +243,24 @@ export let computeSensitivitiesMatrix = (process: any, registry: any): [any, any
 
           let preval;
 
-          if (val1 == -1 && val2 == 1) {
-            preval = Infinity;
-          } else if (val1 == -1 && val2 == 0) {
+          if (val1 == 0) {
             preval = 0;
-          } else if (val1 == 1 && val2 == -1) {
-            preval = Infinity;
-          } else if (val1 == 0 && val2 == -1) {
-            preval = 0;
-          } else if (val1 == -1 && val2 == -1) {
-            preval = Infinity;
+          } else if (val1 == -1) {
+            if (val2 == -1) {
+              preval = Infinity;
+            } else if (val2 == 0) {
+              preval = 0;
+            } else {
+              preval = Infinity;
+            }
           } else {
-            preval = val1 * val2;
+            if (val2 == -1) {
+              preval = Infinity;
+            } else if (val2 == 0) {
+              preval = 0;
+            } else {
+              preval = val1 * val2;
+            }
           }
 
           // Sensitivity value for the matrix (sum of multiplications)

@@ -44,7 +44,10 @@ let analyzeProcessingNode = (nodeId: string, dataDefStatements: {[id: string]: s
           numberOfColumns = embeddedQuery.parse_tree[0].SelectStmt.targetList.length;
         }
         let numberOfParameters = result.parse_tree[0].CreateFunctionStmt.parameters.length;
-        let offset = numberOfParameters - numberOfColumns;
+        let offset = 0;
+        if (numberOfColumns != 0) {
+          offset = numberOfParameters - numberOfColumns;
+        }
         let outputData = registry.get(dataFlowEdges[nodeId][0]).businessObject;
         let tableName = outputData.name.replace(/\s+$/, '').replace(/ *\([^)]*\) */g, "").replace(/[^\w\s]/gi, '').replace(/[\s]/gi, '_');
         var outputCreateStatement = `create table ${tableName} (`;
