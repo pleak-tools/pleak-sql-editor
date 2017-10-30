@@ -205,7 +205,7 @@ export class EditorComponent implements OnInit {
             self.file.content = xml;
             this.http.put(config.backend.host + '/rest/directories/files/' + self.fileId, self.file, this.authService.loadRequestOptions()).subscribe(
               success => {
-                console.log(success)
+                // console.log(success)
                 if (success.status === 200 || success.status === 201) {
                   var data = JSON.parse((<any>success)._body);
                   $('#fileSaveSuccess').show();
@@ -229,7 +229,7 @@ export class EditorComponent implements OnInit {
               fail => {
               }
             );
-            console.log(xml)
+            // console.log(xml)
           }
         });
       }

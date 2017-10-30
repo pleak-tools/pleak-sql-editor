@@ -73,13 +73,13 @@ let analyzeProcessingNode = (nodeId: string, dataDefStatements: {[id: string]: s
 
         var obj_schema = [];
         for (var i = 0, len = invDataFlowEdges[nodeId].length; i < len; i++) {
-          var parseTree = pg_parser.parse(dataDefStatements[invDataFlowEdges[nodeId][i]].replace(/\r?\n|\r/g, ''));
+          var parseTree = pg_parser.parse(dataDefStatements[invDataFlowEdges[nodeId][i]].replace(/\r?\n|\r/g, ' '));
           var tableId = invDataFlowEdges[nodeId][i];
-          var script = dataDefStatements[invDataFlowEdges[nodeId][i]].replace(/\r?\n|\r/g, '');
+          var script = dataDefStatements[invDataFlowEdges[nodeId][i]].replace(/\r?\n|\r/g, ' ');
           obj_schema.push({tableId : tableId,  script : script});
         }
         
-        var obj_query = stprocBody.replace(/\r?\n|\r/g, '');
+        var obj_query = stprocBody.replace(/\r?\n|\r/g, ' ');
         analyseInProgress = true;
 
         var analysisOverlayHtml = $(`

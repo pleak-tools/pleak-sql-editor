@@ -10,11 +10,11 @@
           <form id="loginForm">
             <div class="form-group">
               <label for="userEmail">Email address</label>
-              <input type="email" class="form-control" id="userEmail" placeholder="Email" autofocus #userEmail (keyup)="setUserEmail(userEmail.value)">
+              <input type="email" class="form-control" id="userEmail" placeholder="Email" autofocus #userEmail (keyup)="setUserEmail(userEmail.value)" (input)="setUserEmail(userEmail.value)">
             </div>
             <div class="form-group">
               <label for="userPassword">Password</label>
-              <input type="password" class="form-control" id="userPassword" placeholder="Password" #userPassword (keyup)="setUserPassword(userPassword.value)">
+              <input type="password" class="form-control" id="userPassword" placeholder="Password" #userPassword (keyup)="setUserPassword(userPassword.value)" (input)="setUserPassword(userPassword.value)">
               <button type="submit" (click)="login()" class="btn btn-success" style="display:none;">Login</button>
               <span id="loginHelpCredentials" class="help-block">Incorrect credentials. Please try again.</span>
               <span id="loginHelpServer" class="help-block">Could not reach the server. Please try again <b>later</b>.</span>
