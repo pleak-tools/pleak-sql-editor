@@ -165,6 +165,11 @@ export const SqlBPMNModdle = {
           "type": "String"
         },
         {
+          "name": "GCComputation",
+          "isAttr": false,
+          "type": "String"
+        },
+        {
           "name": "OTSend",
           "isAttr": false,
           "type": "String"
@@ -189,6 +194,24 @@ export const SqlBPMNModdle = {
       properties: [
         {
           "name": "SecureChannel",
+          "isAttr": false,
+          "type": "String"
+        }
+      ]
+    },
+    {
+      name: "StereotypeDataObjectReference",
+      extends: [
+        "bpmn:DataObjectReference"
+      ],
+      properties: [
+        {
+          "name": "PKPublic",
+          "isAttr": false,
+          "type": "String"
+        },
+        {
+          "name": "PKPrivate",
           "isAttr": false,
           "type": "String"
         }
