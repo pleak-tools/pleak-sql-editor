@@ -23,8 +23,11 @@ export class EditorComponent implements OnInit {
   constructor(public http: Http, private authService: AuthService) {
     this.authService.authStatus.subscribe(status => {
       this.authenticated = status;
-      this.getModel();
+      if (!status || !this.file) {
+        this.getModel();
+      }
     });
+    this.getModel();
   }
 
   @Input() authenticated: Boolean;
@@ -38,6 +41,8 @@ export class EditorComponent implements OnInit {
 
   private fileId: Number = null;
   private file: any;
+
+  private lastModified: Number = null;
 
   isAuthenticated() {
     return this.authenticated;
@@ -61,6 +66,7 @@ export class EditorComponent implements OnInit {
         self.lastContent = self.file.content;
         document.title = 'Pleak SQL-privacy editor - ' + self.file.title;
         $('#fileName').text(this.file.title);
+        self.lastModified = new Date().getTime();
       },
       fail => {
         self.fileId = null;
@@ -212,6 +218,7 @@ export class EditorComponent implements OnInit {
                   $('#fileSaveSuccess').fadeOut(5000);
                   $('#save-diagram').removeClass('active');
                   var date = new Date();
+                  self.lastModified = date.getTime();
                   localStorage.setItem("lastModifiedFileId", '"' + data.id + '"');
                   localStorage.setItem("lastModified", '"' + date.getTime() + '"');
                   if (self.fileId !== data.id) {
@@ -283,8 +290,20 @@ export class EditorComponent implements OnInit {
   ngOnInit() {
     window.addEventListener('storage', (e) => {
       if (e.storageArea === localStorage) {
-        this.authService.verifyToken();
-        this.getModel();
+        if (!this.authService.verifyToken()) {
+          this.getModel();
+        } else {
+          let lastModifiedFileId = Number(localStorage.getItem('lastModifiedFileId').replace(/['"]+/g, ''));
+          let currentFileId = null;
+          if (this.file) {
+            currentFileId = this.file.id;
+          }
+          let localStorageLastModifiedTime = Number(localStorage.getItem('lastModified').replace(/['"]+/g, ''))
+          let lastModifiedTime = this.lastModified;
+          if (lastModifiedFileId && currentFileId && localStorageLastModifiedTime && lastModifiedTime && lastModifiedFileId == currentFileId && localStorageLastModifiedTime > lastModifiedTime) {
+            this.getModel();
+          }
+        }
       }
     });
   }

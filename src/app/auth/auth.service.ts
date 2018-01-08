@@ -66,8 +66,10 @@ export class AuthService {
         localStorage.removeItem('jwt');
         this.user = null;
         this.authStatusChanged(false);
+        return false;
       }
     );
+    return true;
   }
 
   verifyTokenWithCallbacks(callbacks: any) {
