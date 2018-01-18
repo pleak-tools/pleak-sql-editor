@@ -188,6 +188,21 @@ export const SqlBPMNModdle = {
           "name": "DifferentialPrivacy",
           "isAttr": false,
           "type": "String"
+        },
+        {
+          "name": "ProtectConfidentiality",
+          "isAttr": false,
+          "type": "String"
+        },
+        {
+          "name": "OpenConfidentiality",
+          "isAttr": false,
+          "type": "String"
+        },
+        {
+          "name": "PETComputation",
+          "isAttr": false,
+          "type": "String"
         }
       ]
     },
