@@ -1,36 +1,150 @@
+const fs = require('fs');
 const path = require('path');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 const ProgressPlugin = require('webpack/lib/ProgressPlugin');
+const CircularDependencyPlugin = require('circular-dependency-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const ExtractTextPlugin = require('extract-text-webpack-plugin');
+const rxPaths = require('rxjs/_esm5/path-mapping');
 const autoprefixer = require('autoprefixer');
 const postcssUrl = require('postcss-url');
+const cssnano = require('cssnano');
+const postcssImports = require('postcss-import');
 const configJson = require('./src/config.json');
 
-const { NoEmitOnErrorsPlugin, LoaderOptionsPlugin } = require('webpack');
-const { GlobCopyWebpackPlugin, BaseHrefWebpackPlugin } = require('@angular/cli/plugins/webpack');
+const { NoEmitOnErrorsPlugin, SourceMapDevToolPlugin, NamedModulesPlugin } = require('webpack');
+const { ScriptsWebpackPlugin, NamedLazyChunksWebpackPlugin, BaseHrefWebpackPlugin } = require('@angular/cli/plugins/webpack');
 const { CommonsChunkPlugin } = require('webpack').optimize;
-const { AotPlugin } = require('@ngtools/webpack');
+const { AngularCompilerPlugin } = require('@ngtools/webpack');
 
 const nodeModules = path.join(process.cwd(), 'node_modules');
-const entryPoints = ["inline","polyfills","sw-register","scripts","styles","vendor","main"];
+const realNodeModules = fs.realpathSync(nodeModules);
+const genDirNodeModules = path.join(process.cwd(), 'src', '$$_gendir', 'node_modules');
+const entryPoints = ["inline","polyfills","sw-register","styles","scripts","vendor","main"];
+const minimizeCss = false;
 const baseHref = "";
 const deployUrl = "";
+const projectRoot = process.cwd();
+const maximumInlineSize = 10;
+const postcssPlugins = function (loader) {
+        // safe settings based on: https://github.com/ben-eb/cssnano/issues/358#issuecomment-283696193
+        const importantCommentRe = /@preserve|@licen[cs]e|[@#]\s*source(?:Mapping)?URL|^!/i;
+        const minimizeOptions = {
+            autoprefixer: false,
+            safe: true,
+            mergeLonghand: false,
+            discardComments: { remove: (comment) => !importantCommentRe.test(comment) }
+        };
+        return [
+            postcssImports({
+                resolve: (url, context) => {
+                    return new Promise((resolve, reject) => {
+                        let hadTilde = false;
+                        if (url && url.startsWith('~')) {
+                            url = url.substr(1);
+                            hadTilde = true;
+                        }
+                        loader.resolve(context, (hadTilde ? '' : './') + url, (err, result) => {
+                            if (err) {
+                                if (hadTilde) {
+                                    reject(err);
+                                    return;
+                                }
+                                loader.resolve(context, url, (err, result) => {
+                                    if (err) {
+                                        reject(err);
+                                        return;
+                                    }
+                                    resolve(result);
+                                });
+                            }
+                            resolve(result);
+                        });
+                    });
+                },
+                load: (filename) => {
+                    return new Promise((resolve, reject) => {
+                        loader.fs.readFile(filename, (err, data) => {
+                            if (err) {
+                                reject(err);
+                                return;
+                            }
+                            const content = data.toString();
+                            resolve(content);
+                        });
+                    });
+                }
+            }),
+            postcssUrl({
+                filter: ({ url }) => url.startsWith('~'),
+                url: ({ url }) => {
+                    const fullPath = path.join(projectRoot, 'node_modules', url.substr(1));
+                    return path.relative(loader.context, fullPath).replace(/\\/g, '/');
+                }
+            }),
+            postcssUrl([
+                {
+                    // Only convert root relative URLs, which CSS-Loader won't process into require().
+                    filter: ({ url }) => url.startsWith('/') && !url.startsWith('//'),
+                    url: ({ url }) => {
+                        if (deployUrl.match(/:\/\//) || deployUrl.startsWith('/')) {
+                            // If deployUrl is absolute or root relative, ignore baseHref & use deployUrl as is.
+                            return `${deployUrl.replace(/\/$/, '')}${url}`;
+                        }
+                        else if (baseHref.match(/:\/\//)) {
+                            // If baseHref contains a scheme, include it as is.
+                            return baseHref.replace(/\/$/, '') +
+                                `/${deployUrl}/${url}`.replace(/\/\/+/g, '/');
+                        }
+                        else {
+                            // Join together base-href, deploy-url and the original URL.
+                            // Also dedupe multiple slashes into single ones.
+                            return `/${baseHref}/${deployUrl}/${url}`.replace(/\/\/+/g, '/');
+                        }
+                    }
+                },
+                {
+                    // TODO: inline .cur if not supporting IE (use browserslist to check)
+                    filter: (asset) => {
+                        return maximumInlineSize > 0 && !asset.hash && !asset.absolutePath.endsWith('.cur');
+                    },
+                    url: 'inline',
+                    // NOTE: maxSize is in KB
+                    maxSize: maximumInlineSize,
+                    fallback: 'rebase',
+                },
+                { url: 'rebase' },
+            ]),
+            autoprefixer({ grid: true }),
+        ].concat(minimizeCss ? [cssnano(minimizeOptions)] : []);
+    };
+
+
+
 
 module.exports = {
-  "devtool": "source-map",
   "resolve": {
     "extensions": [
       ".ts",
       ".js"
     ],
     "modules": [
+      "./node_modules",
       "./node_modules"
+    ],
+    "symlinks": true,
+    "alias": rxPaths(),
+    "mainFields": [
+      "browser",
+      "module",
+      "main"
     ]
   },
   "resolveLoader": {
     "modules": [
+      "./node_modules",
       "./node_modules"
-    ]
+    ],
+    "alias": rxPaths()
   },
   "entry": {
     "main": [
@@ -39,16 +153,12 @@ module.exports = {
     "polyfills": [
       "./src/polyfills.ts"
     ],
-    "scripts": [
-      "script-loader!./node_modules/jquery/dist/jquery.js",
-      "script-loader!./node_modules/bootstrap/dist/js/bootstrap.js"
-    ],
     "styles": [
-      "./node_modules/bootstrap/dist/css/bootstrap.css",
-      "./node_modules/font-awesome/css/font-awesome.css",
+      "./node_modules/diagram-js/assets/diagram-js.css",
       "./node_modules/bpmn-js/assets/bpmn-font/css/bpmn.css",
       "./node_modules/bpmn-js/assets/bpmn-font/css/bpmn-embedded.css",
-      "./node_modules/diagram-js/assets/diagram-js.css",
+      "./node_modules/bootstrap/dist/css/bootstrap.min.css",
+      "./node_modules/font-awesome/css/font-awesome.css",
       "./node_modules/prismjs/themes/prism.css",
       "./src/styles.less"
     ]
@@ -57,187 +167,312 @@ module.exports = {
     "path": path.join(process.cwd(), "dist"),
     "publicPath": configJson.sql_editor.folder + "/dist/",
     "filename": "[name].bundle.js",
-    "chunkFilename": "[id].chunk.js"
+    "chunkFilename": "[id].chunk.js",
+    "crossOriginLoading": false
   },
   "module": {
     "rules": [
-      {
-        "enforce": "pre",
-        "test": /\.js$/,
-        "loader": "source-map-loader",
-        "exclude": [
-          /\/node_modules\//
-        ]
-      },
-      {
-        "test": /\.json$/,
-        "loader": "json-loader"
-      },
       {
         "test": /\.html$/,
         "loader": "raw-loader"
       },
       {
-        "test": /\.(eot|svg)$/,
-        "loader": "file-loader?name=[name].[hash:20].[ext]"
+        "test": /\.(eot|svg|cur)$/,
+        "loader": "file-loader",
+        "options": {
+          "name": "[name].[hash:20].[ext]",
+          "limit": 10000
+        }
       },
       {
-        "test": /\.(jpg|png|gif|otf|ttf|woff|woff2|cur|ani)$/,
-        "loader": "url-loader?name=[name].[hash:20].[ext]&limit=10000"
+        "test": /\.(jpg|png|webp|gif|otf|ttf|woff|woff2|ani)$/,
+        "loader": "url-loader",
+        "options": {
+          "name": "[name].[hash:20].[ext]",
+          "limit": 10000
+        }
       },
       {
         "exclude": [
-          path.join(process.cwd(), "node_modules/bootstrap/dist/css/bootstrap.css"),
-          path.join(process.cwd(), "node_modules/font-awesome/css/font-awesome.css"),
+          path.join(process.cwd(), "node_modules/diagram-js/assets/diagram-js.css"),
           path.join(process.cwd(), "node_modules/bpmn-js/assets/bpmn-font/css/bpmn.css"),
           path.join(process.cwd(), "node_modules/bpmn-js/assets/bpmn-font/css/bpmn-embedded.css"),
-          path.join(process.cwd(), "node_modules/diagram-js/assets/diagram-js.css"),
+          path.join(process.cwd(), "node_modules/bootstrap/dist/css/bootstrap.min.css"),
+          path.join(process.cwd(), "node_modules/font-awesome/css/font-awesome.css"),
           path.join(process.cwd(), "node_modules/prismjs/themes/prism.css"),
           path.join(process.cwd(), "src/styles.less")
         ],
         "test": /\.css$/,
-        "loaders": [
+        "use": [
           "exports-loader?module.exports.toString()",
-          "css-loader?{\"sourceMap\":false,\"importLoaders\":1}",
-          "postcss-loader"
+          {
+            "loader": "css-loader",
+            "options": {
+              "sourceMap": false,
+              "import": false
+            }
+          },
+          {
+            "loader": "postcss-loader",
+            "options": {
+              "ident": "postcss",
+              "plugins": postcssPlugins,
+              "sourceMap": false
+            }
+          }
         ]
       },
       {
         "exclude": [
-          path.join(process.cwd(), "node_modules/bootstrap/dist/css/bootstrap.css"),
-          path.join(process.cwd(), "node_modules/font-awesome/css/font-awesome.css"),
+          path.join(process.cwd(), "node_modules/diagram-js/assets/diagram-js.css"),
           path.join(process.cwd(), "node_modules/bpmn-js/assets/bpmn-font/css/bpmn.css"),
           path.join(process.cwd(), "node_modules/bpmn-js/assets/bpmn-font/css/bpmn-embedded.css"),
-          path.join(process.cwd(), "node_modules/diagram-js/assets/diagram-js.css"),
+          path.join(process.cwd(), "node_modules/bootstrap/dist/css/bootstrap.min.css"),
+          path.join(process.cwd(), "node_modules/font-awesome/css/font-awesome.css"),
           path.join(process.cwd(), "node_modules/prismjs/themes/prism.css"),
           path.join(process.cwd(), "src/styles.less")
         ],
         "test": /\.scss$|\.sass$/,
-        "loaders": [
+        "use": [
           "exports-loader?module.exports.toString()",
-          "css-loader?{\"sourceMap\":false,\"importLoaders\":1}",
-          "postcss-loader",
-          "sass-loader"
+          {
+            "loader": "css-loader",
+            "options": {
+              "sourceMap": false,
+              "import": false
+            }
+          },
+          {
+            "loader": "postcss-loader",
+            "options": {
+              "ident": "postcss",
+              "plugins": postcssPlugins,
+              "sourceMap": false
+            }
+          },
+          {
+            "loader": "sass-loader",
+            "options": {
+              "sourceMap": false,
+              "precision": 8,
+              "includePaths": []
+            }
+          }
         ]
       },
       {
         "exclude": [
-          path.join(process.cwd(), "node_modules/bootstrap/dist/css/bootstrap.css"),
-          path.join(process.cwd(), "node_modules/font-awesome/css/font-awesome.css"),
+          path.join(process.cwd(), "node_modules/diagram-js/assets/diagram-js.css"),
           path.join(process.cwd(), "node_modules/bpmn-js/assets/bpmn-font/css/bpmn.css"),
           path.join(process.cwd(), "node_modules/bpmn-js/assets/bpmn-font/css/bpmn-embedded.css"),
-          path.join(process.cwd(), "node_modules/diagram-js/assets/diagram-js.css"),
+          path.join(process.cwd(), "node_modules/bootstrap/dist/css/bootstrap.min.css"),
+          path.join(process.cwd(), "node_modules/font-awesome/css/font-awesome.css"),
           path.join(process.cwd(), "node_modules/prismjs/themes/prism.css"),
           path.join(process.cwd(), "src/styles.less")
         ],
         "test": /\.less$/,
-        "loaders": [
+        "use": [
           "exports-loader?module.exports.toString()",
-          "css-loader?{\"sourceMap\":false,\"importLoaders\":1}",
-          "postcss-loader",
-          "less-loader"
+          {
+            "loader": "css-loader",
+            "options": {
+              "sourceMap": false,
+              "import": false
+            }
+          },
+          {
+            "loader": "postcss-loader",
+            "options": {
+              "ident": "postcss",
+              "plugins": postcssPlugins,
+              "sourceMap": false
+            }
+          },
+          {
+            "loader": "less-loader",
+            "options": {
+              "sourceMap": false
+            }
+          }
         ]
       },
       {
         "exclude": [
-          path.join(process.cwd(), "node_modules/bootstrap/dist/css/bootstrap.css"),
-          path.join(process.cwd(), "node_modules/font-awesome/css/font-awesome.css"),
+          path.join(process.cwd(), "node_modules/diagram-js/assets/diagram-js.css"),
           path.join(process.cwd(), "node_modules/bpmn-js/assets/bpmn-font/css/bpmn.css"),
           path.join(process.cwd(), "node_modules/bpmn-js/assets/bpmn-font/css/bpmn-embedded.css"),
-          path.join(process.cwd(), "node_modules/diagram-js/assets/diagram-js.css"),
+          path.join(process.cwd(), "node_modules/bootstrap/dist/css/bootstrap.min.css"),
+          path.join(process.cwd(), "node_modules/font-awesome/css/font-awesome.css"),
           path.join(process.cwd(), "node_modules/prismjs/themes/prism.css"),
           path.join(process.cwd(), "src/styles.less")
         ],
         "test": /\.styl$/,
-        "loaders": [
+        "use": [
           "exports-loader?module.exports.toString()",
-          "css-loader?{\"sourceMap\":false,\"importLoaders\":1}",
-          "postcss-loader",
-          "stylus-loader?{\"sourceMap\":false,\"paths\":[]}"
+          {
+            "loader": "css-loader",
+            "options": {
+              "sourceMap": false,
+              "import": false
+            }
+          },
+          {
+            "loader": "postcss-loader",
+            "options": {
+              "ident": "postcss",
+              "plugins": postcssPlugins,
+              "sourceMap": false
+            }
+          },
+          {
+            "loader": "stylus-loader",
+            "options": {
+              "sourceMap": false,
+              "paths": []
+            }
+          }
         ]
       },
       {
         "include": [
-          path.join(process.cwd(), "node_modules/bootstrap/dist/css/bootstrap.css"),
-          path.join(process.cwd(), "node_modules/font-awesome/css/font-awesome.css"),
+          path.join(process.cwd(), "node_modules/diagram-js/assets/diagram-js.css"),
           path.join(process.cwd(), "node_modules/bpmn-js/assets/bpmn-font/css/bpmn.css"),
           path.join(process.cwd(), "node_modules/bpmn-js/assets/bpmn-font/css/bpmn-embedded.css"),
-          path.join(process.cwd(), "node_modules/diagram-js/assets/diagram-js.css"),
+          path.join(process.cwd(), "node_modules/bootstrap/dist/css/bootstrap.min.css"),
+          path.join(process.cwd(), "node_modules/font-awesome/css/font-awesome.css"),
           path.join(process.cwd(), "node_modules/prismjs/themes/prism.css"),
           path.join(process.cwd(), "src/styles.less")
         ],
         "test": /\.css$/,
-        "loaders": ExtractTextPlugin.extract({
-  "use": [
-    "css-loader?{\"sourceMap\":false,\"importLoaders\":1}",
-    "postcss-loader"
-  ],
-  "fallback": "style-loader",
-  "publicPath": ""
-})
+        "use": [
+          "style-loader",
+          {
+            "loader": "css-loader",
+            "options": {
+              "sourceMap": false,
+              "import": false
+            }
+          },
+          {
+            "loader": "postcss-loader",
+            "options": {
+              "ident": "postcss",
+              "plugins": postcssPlugins,
+              "sourceMap": false
+            }
+          }
+        ]
       },
       {
         "include": [
-          path.join(process.cwd(), "node_modules/bootstrap/dist/css/bootstrap.css"),
-          path.join(process.cwd(), "node_modules/font-awesome/css/font-awesome.css"),
+          path.join(process.cwd(), "node_modules/diagram-js/assets/diagram-js.css"),
           path.join(process.cwd(), "node_modules/bpmn-js/assets/bpmn-font/css/bpmn.css"),
           path.join(process.cwd(), "node_modules/bpmn-js/assets/bpmn-font/css/bpmn-embedded.css"),
-          path.join(process.cwd(), "node_modules/diagram-js/assets/diagram-js.css"),
+          path.join(process.cwd(), "node_modules/bootstrap/dist/css/bootstrap.min.css"),
+          path.join(process.cwd(), "node_modules/font-awesome/css/font-awesome.css"),
           path.join(process.cwd(), "node_modules/prismjs/themes/prism.css"),
           path.join(process.cwd(), "src/styles.less")
         ],
         "test": /\.scss$|\.sass$/,
-        "loaders": ExtractTextPlugin.extract({
-  "use": [
-    "css-loader?{\"sourceMap\":false,\"importLoaders\":1}",
-    "postcss-loader",
-    "sass-loader"
-  ],
-  "fallback": "style-loader",
-  "publicPath": ""
-})
+        "use": [
+          "style-loader",
+          {
+            "loader": "css-loader",
+            "options": {
+              "sourceMap": false,
+              "import": false
+            }
+          },
+          {
+            "loader": "postcss-loader",
+            "options": {
+              "ident": "postcss",
+              "plugins": postcssPlugins,
+              "sourceMap": false
+            }
+          },
+          {
+            "loader": "sass-loader",
+            "options": {
+              "sourceMap": false,
+              "precision": 8,
+              "includePaths": []
+            }
+          }
+        ]
       },
       {
         "include": [
-          path.join(process.cwd(), "node_modules/bootstrap/dist/css/bootstrap.css"),
-          path.join(process.cwd(), "node_modules/font-awesome/css/font-awesome.css"),
+          path.join(process.cwd(), "node_modules/diagram-js/assets/diagram-js.css"),
           path.join(process.cwd(), "node_modules/bpmn-js/assets/bpmn-font/css/bpmn.css"),
           path.join(process.cwd(), "node_modules/bpmn-js/assets/bpmn-font/css/bpmn-embedded.css"),
-          path.join(process.cwd(), "node_modules/diagram-js/assets/diagram-js.css"),
+          path.join(process.cwd(), "node_modules/bootstrap/dist/css/bootstrap.min.css"),
+          path.join(process.cwd(), "node_modules/font-awesome/css/font-awesome.css"),
           path.join(process.cwd(), "node_modules/prismjs/themes/prism.css"),
           path.join(process.cwd(), "src/styles.less")
         ],
         "test": /\.less$/,
-        "loaders": ExtractTextPlugin.extract({
-  "use": [
-    "css-loader?{\"sourceMap\":false,\"importLoaders\":1}",
-    "postcss-loader",
-    "less-loader"
-  ],
-  "fallback": "style-loader",
-  "publicPath": ""
-})
+        "use": [
+          "style-loader",
+          {
+            "loader": "css-loader",
+            "options": {
+              "sourceMap": false,
+              "import": false
+            }
+          },
+          {
+            "loader": "postcss-loader",
+            "options": {
+              "ident": "postcss",
+              "plugins": postcssPlugins,
+              "sourceMap": false
+            }
+          },
+          {
+            "loader": "less-loader",
+            "options": {
+              "sourceMap": false
+            }
+          }
+        ]
       },
       {
         "include": [
-          path.join(process.cwd(), "node_modules/bootstrap/dist/css/bootstrap.css"),
-          path.join(process.cwd(), "node_modules/font-awesome/css/font-awesome.css"),
+          path.join(process.cwd(), "node_modules/diagram-js/assets/diagram-js.css"),
           path.join(process.cwd(), "node_modules/bpmn-js/assets/bpmn-font/css/bpmn.css"),
           path.join(process.cwd(), "node_modules/bpmn-js/assets/bpmn-font/css/bpmn-embedded.css"),
-          path.join(process.cwd(), "node_modules/diagram-js/assets/diagram-js.css"),
+          path.join(process.cwd(), "node_modules/bootstrap/dist/css/bootstrap.min.css"),
+          path.join(process.cwd(), "node_modules/font-awesome/css/font-awesome.css"),
           path.join(process.cwd(), "node_modules/prismjs/themes/prism.css"),
           path.join(process.cwd(), "src/styles.less")
         ],
         "test": /\.styl$/,
-        "loaders": ExtractTextPlugin.extract({
-  "use": [
-    "css-loader?{\"sourceMap\":false,\"importLoaders\":1}",
-    "postcss-loader",
-    "stylus-loader?{\"sourceMap\":false,\"paths\":[]}"
-  ],
-  "fallback": "style-loader",
-  "publicPath": ""
-})
+        "use": [
+          "style-loader",
+          {
+            "loader": "css-loader",
+            "options": {
+              "sourceMap": false,
+              "import": false
+            }
+          },
+          {
+            "loader": "postcss-loader",
+            "options": {
+              "ident": "postcss",
+              "plugins": postcssPlugins,
+              "sourceMap": false
+            }
+          },
+          {
+            "loader": "stylus-loader",
+            "options": {
+              "sourceMap": false,
+              "paths": []
+            }
+          }
+        ]
       },
       {
         "test": /\.ts$/,
@@ -247,18 +482,49 @@ module.exports = {
   },
   "plugins": [
     new NoEmitOnErrorsPlugin(),
-    new GlobCopyWebpackPlugin({
-      "patterns": [
-        "assets",
-        "favicon.ico"
+    new ScriptsWebpackPlugin({
+      "name": "scripts",
+      "sourceMap": true,
+      "filename": "scripts.bundle.js",
+      "scripts": [
+        "./node_modules/jquery/dist/jquery.js",
+        "./node_modules/bootstrap/dist/js/bootstrap.js"
       ],
-      "globOptions": {
-        "cwd": "/home/atoots/Documents/test-projects/pleak-sql-editor/src",
-        "dot": true,
-        "ignore": "**/.gitkeep"
+      "basePath": "./"
+    }),
+    new CopyWebpackPlugin([
+      {
+        "context": "src",
+        "to": "",
+        "from": {
+          "glob": "src/assets/**/*",
+          "dot": true
+        }
+      },
+      {
+        "context": "src",
+        "to": "",
+        "from": {
+          "glob": "src/favicon.ico",
+          "dot": true
+        }
       }
+    ], {
+      "ignore": [
+        ".gitkeep",
+        "**/.DS_Store",
+        "**/Thumbs.db"
+      ],
+      "debug": "warning"
     }),
     new ProgressPlugin(),
+    new CircularDependencyPlugin({
+      "exclude": /(\\|\/)node_modules(\\|\/)/,
+      "failOnError": false,
+      "onDetected": false,
+      "cwd": projectRoot
+    }),
+    new NamedLazyChunksWebpackPlugin(),
     new HtmlWebpackPlugin({
       "template": "./src/index.html",
       "filename": "./index.html",
@@ -289,64 +555,49 @@ module.exports = {
     }),
     new BaseHrefWebpackPlugin({}),
     new CommonsChunkPlugin({
-      "name": "inline",
+      "name": [
+        "inline"
+      ],
       "minChunks": null
     }),
     new CommonsChunkPlugin({
-      "name": "vendor",
-      "minChunks": (module) => module.resource && module.resource.startsWith(nodeModules),
+      "name": [
+        "vendor"
+      ],
+      "minChunks": (module) => {
+                return module.resource
+                    && (module.resource.startsWith(nodeModules)
+                        || module.resource.startsWith(genDirNodeModules)
+                        || module.resource.startsWith(realNodeModules));
+            },
       "chunks": [
         "main"
       ]
     }),
-    new ExtractTextPlugin({
-      "filename": "[name].bundle.css",
-      "disable": true
+    new SourceMapDevToolPlugin({
+      "filename": "[file].map[query]",
+      "moduleFilenameTemplate": "[resource-path]",
+      "fallbackModuleFilenameTemplate": "[resource-path]?[hash]",
+      "sourceRoot": "webpack:///"
     }),
-    new LoaderOptionsPlugin({
-      "sourceMap": false,
-      "options": {
-        "postcss": [
-          autoprefixer(),
-          postcssUrl({"url": (URL) => {
-            // Only convert root relative URLs, which CSS-Loader won't process into require().
-            if (!URL.startsWith('/') || URL.startsWith('//')) {
-                return URL;
-            }
-            if (deployUrl.match(/:\/\//)) {
-                // If deployUrl contains a scheme, ignore baseHref use deployUrl as is.
-                return `${deployUrl.replace(/\/$/, '')}${URL}`;
-            }
-            else if (baseHref.match(/:\/\//)) {
-                // If baseHref contains a scheme, include it as is.
-                return baseHref.replace(/\/$/, '') +
-                    `/${deployUrl}/${URL}`.replace(/\/\/+/g, '/');
-            }
-            else {
-                // Join together base-href, deploy-url and the original URL.
-                // Also dedupe multiple slashes into single ones.
-                return `/${baseHref}/${deployUrl}/${URL}`.replace(/\/\/+/g, '/');
-            }
-        }})
-        ],
-        "sassLoader": {
-          "sourceMap": false,
-          "includePaths": []
-        },
-        "lessLoader": {
-          "sourceMap": false
-        },
-        "context": ""
-      }
+    new CommonsChunkPlugin({
+      "name": [
+        "main"
+      ],
+      "minChunks": 2,
+      "async": "common"
     }),
-    new AotPlugin({
+    new NamedModulesPlugin({}),
+    new AngularCompilerPlugin({
       "mainPath": "main.ts",
+      "platform": 0,
       "hostReplacementPaths": {
         "environments/environment.ts": "environments/environment.ts"
       },
-      "exclude": [],
+      "sourceMap": true,
       "tsConfigPath": "src/tsconfig.app.json",
-      "skipCodeGeneration": true
+      "skipCodeGeneration": true,
+      "compilerOptions": {}
     })
   ],
   "node": {
@@ -359,5 +610,8 @@ module.exports = {
     "module": false,
     "clearImmediate": false,
     "setImmediate": false
+  },
+  "devServer": {
+    "historyApiFallback": true
   }
 };
