@@ -1,13 +1,12 @@
 import { dataFlowAnalysis, computeSensitivitiesMatrix } from "./GraMSecAnalizer";
-import { Microcode } from "app/microcode/microcode";
+import { Microcode } from "../microcode/microcode";
 import { Http } from '@angular/http';
-import { AuthService } from "app/auth/auth.service";
+import { AuthService } from "../auth/auth.service";
 
 declare function require(name:string);
 declare var $: any;
 
 var pg_parser = require("exports-loader?Module!pgparser/pg_query.js")
-var tableBuilder = require('ejs-compiled-loader!./gramsec-table.ejs');
 var config = require('./../../config.json');
 
 let is = (element, type) => element.$instanceOf(type);
@@ -310,14 +309,46 @@ export let analizeSQLDFlow = (element: any, registry: any, canvas: any, overlays
 
           if (!$.isEmptyObject(dc)) {
 
-            $('#resultsModal').find('.modal-body').html(tableBuilder({dc: dc, sources: sources, targets: targets, name: (nid:string) => {
-              var name = registry.get(nid).businessObject.name;
-              var shortName;
-              if (name != null) {
-                shortName = name.match(/\(([^\)]+)\)/);
+            let getName = function(id:String) {
+              let fullName = registry.get(id).businessObject.name;
+              let shortName;
+              if (fullName != null) {
+                shortName = fullName.match(/\(([^\)]+)\)/);
               }
-              return shortName? shortName[1] : name;}}
-            ));
+              return shortName ? shortName[1] : fullName;
+            };
+
+            let targetsHtml = '';
+            for (let target of targets) {
+              targetsHtml += '<td class="inlined-matrix" style="min-width: 30px;">'+getName(target)+'</td>';
+            }
+
+            let sourcesHtml = '';
+            for (let source2 of sources) {
+              sourcesHtml += `<tr class="inlined-matrix">`;
+              sourcesHtml += `<td class="inlined-matrix" style="min-width: 30px;">` + getName(source2) + `</td>`;
+              for (let target2 of targets) {
+                let value = dc[source2][target2] ? dc[source2][target2] : (dc[source2][target2] === 0 ? dc[source2][target2] : '');
+                sourcesHtml += `<td class="inlined-matrix">` + value + `</td>`;
+              }
+              sourcesHtml += `</tr>`;
+            }
+
+            let resultTable = `
+              <div class="diagram-note">
+                <table class="inlined-matrix result-matrix">
+                  <p style="font-size:16px">Sensitivity matrix:</p>
+                  <tbody>
+                    <tr class="inlined-matrix"> <td class="inlined-matrix"></td>
+                      ` + targetsHtml + `
+                    </tr>
+                    ` + sourcesHtml + `
+                  </tbody>
+                </table>
+              </div>
+            `;
+
+            $('#resultsModal').find('.modal-body').html(resultTable);
             $('#resultsModal').modal();
 
             overlays.remove({element: e.element});
