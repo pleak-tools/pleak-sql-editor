@@ -1,12 +1,13 @@
-import { Component, OnInit, Input } from '@angular/core';
+import { Component, OnInit, Input, ViewChild } from '@angular/core';
 import { Http } from '@angular/http';
-import { AuthService } from "app/auth/auth.service";
-import { Microcode } from "app/microcode/microcode";
+import { AuthService } from "../auth/auth.service";
 import { SqlBPMNModdle } from "./bpmn-sql-extension";
-import { analizeSQLDFlow } from "app/analyser/SQLDFlowAnalizer";
+import { Analyser } from "../analyser/SQLDFlowAnalizer";
 import * as Viewer from 'bpmn-js/lib/NavigatedViewer';
+import { SidebarComponent } from '../sidebar/sidebar.component';
 
 declare var $: any;
+declare var CodeMirror: any;
 declare function require(name:string);
 
 let is = (element, type) => element.$instanceOf(type);
@@ -31,17 +32,15 @@ export class EditorComponent implements OnInit {
   }
 
   @Input() authenticated: Boolean;
+  @ViewChild(SidebarComponent) sidebarComponent: SidebarComponent
 
   private viewer: Viewer;
-
   private modelId: Number = Number.parseInt(window.location.pathname.split('/')[2]);
-
   private saveFailed: Boolean = false;
   private lastContent: String = '';
-
+  private codeMirror: any;
   private fileId: Number = null;
   private file: any;
-
   private lastModified: Number = null;
 
   isAuthenticated() {
@@ -92,12 +91,10 @@ export class EditorComponent implements OnInit {
       });
 
       this.viewer.importXML(diagram, () => {
-      
         let eventBus = this.viewer.get('eventBus');
         let overlays = this.viewer.get('overlays');
 
         eventBus.on('element.click', function(e) {
-
           if ((is(e.element.businessObject, 'bpmn:DataObjectReference') || is(e.element.businessObject, 'bpmn:Task')) && !$(document).find("[data-element-id='" + e.element.id + "']").hasClass('highlight-input')) {
 
             let task = e.element.businessObject;
@@ -108,50 +105,33 @@ export class EditorComponent implements OnInit {
               sqlQuery = task.sqlScript;
             }
 
-            let overlayHtml = $(
-              `<div class="editor" id="` + e.element.id + `-sql-editor">
-                 <div class="editor-body">
-                   <textarea class="code-input">` + sqlQuery + `</textarea>
-                   <pre class="code-output">
-                     <code class="language-sql"></code>
-                   </pre>
-                 </div>
-                 <br>
-                 <button class="btn btn-success" id="` + e.element.id + `-save-button">Save</button>
-               </div>`
-            );
-          
-            overlays.add(e.element, {
-              position: {
-                bottom: 0,
-                right: 0
-              },
-              html: overlayHtml
-            });
-
-            $(overlayHtml).on('click', '#' + e.element.id+'-save-button', function() {
-              task.sqlScript = $(overlayHtml).find('.code-input').val();
+            $('#SaveEditing').on('click', function() {
+              task.sqlScript = self.codeMirror.getValue();
               self.updateModelContentVariable();
-              $('#' + e.element.id + '-sql-editor').hide();
+              self.sidebarComponent.isEditing = false;
+              $('#SaveEditing').off('click');
             });
 
             $(document).mouseup(function(ee) {
-              var container = $('.editor');
-              if (!container.is(ee.target) && container.has(ee.target).length === 0) {
-                overlays.remove({element: e.element});
+              var container = $('#canvas');
+              if (container && container.has(ee.target).length) {
+                self.sidebarComponent.isEditing = false;
+                $('#SaveEditing').off('click');
               }
             });
 
-            var editor = new Microcode($(overlayHtml).find('.code-input'), $(overlayHtml).find('.code-output'));
+            self.sidebarComponent.isEditing = true;
 
-          } else {
-
-            overlays.remove({element: e.element});
-
+            $('textarea#CodeEditor').val(sqlQuery);
+            self.codeMirror.setValue(sqlQuery);
+            setTimeout(function() {
+              self.codeMirror.refresh();
+            }, 10);
           }
-
+          else {
+            overlays.remove({element: e.element});
+          }
         });
-
       });
 
       $('.buttons-container').on('click', '.buttons a', (e) => {
@@ -170,6 +150,7 @@ export class EditorComponent implements OnInit {
       $('.buttons-container').on('click', '#analyse-diagram', (e) => {
         e.preventDefault();
         e.stopPropagation();
+        this.sidebarComponent.clear();
         this.analyse();
       });
 
@@ -191,9 +172,7 @@ export class EditorComponent implements OnInit {
           return 'Are you sure you want to close this tab? Unsaved progress will be lost.';
         }
       });
-
     }
-
   }
 
   // Save model
@@ -270,7 +249,8 @@ export class EditorComponent implements OnInit {
     let canvas = this.viewer.get('canvas');
     let eventBus = this.viewer.get('eventBus');
     let overlays = this.viewer.get('overlays');
-    analizeSQLDFlow(element, registry, canvas, overlays, eventBus, this.http, this.authService);
+    
+    Analyser.analizeSQLDFlow(element, registry, canvas, overlays, eventBus, this.http, this.authService);
   }
 
   updateModelContentVariable() {
@@ -306,6 +286,16 @@ export class EditorComponent implements OnInit {
         }
       }
     });
-  }
+    this.codeMirror = CodeMirror.fromTextArea(document.getElementById("CodeEditor"), {
+      mode: "text/x-mysql",
+      lineNumbers: true,
+      showCursorWhenSelecting: true,
+      lineWiseCopyCut: false
+    });
+    this.codeMirror.setSize("100%", 220);
 
+    Analyser.onAnalysisCompleted.subscribe(result => {
+      this.sidebarComponent.emitTaskResult(result);
+    });
+  }
 }
