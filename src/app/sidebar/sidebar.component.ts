@@ -18,6 +18,10 @@ export class SidebarComponent {
     return this.authenticated;
   }
 
+  showResults() {
+    $('#messageModal').modal();
+  }
+
   clear() {
     this.resultTable = [];
     this.analysisSteps = [];

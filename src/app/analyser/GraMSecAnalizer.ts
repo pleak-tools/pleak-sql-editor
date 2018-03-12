@@ -280,6 +280,9 @@ export let computeSensitivitiesMatrix = (process: any, registry: any): [any, any
       if (sameElements.length == 0) {
         Ds.push({input: source, output: target, value: value});
       }
+      else {
+        sameElements[0].value = value;
+      }
 
       // Add calculated value to the result matrix
       matrix.push({input: source, output: target, value: value})

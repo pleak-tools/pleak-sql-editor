@@ -17,21 +17,7 @@
             <h3 class="title">Results</h3>
         </div>
         <div class="panel-group" role="tablist" aria-multiselectable="true">
-            <div class="panel panel-default" *ngFor="let result of resultTable">
-                <div class="panel-heading" role="tab" [id]="result.nodeId + 'Heading'">
-                    <h4 class="panel-title">
-                        <a role="button" data-toggle="collapse" [href]="'#' + result.nodeId + 'Result'" aria-expanded="false">
-                            <div class="row">
-                                <div class="col-xs-10 title">{{result.nodeName}}</div>
-                                <div class="col-xs-2 collapser"></div>
-                            </div>
-                        </a>
-                    </h4>
-                </div>
-                <div [id]="result.nodeId + 'Result'" class="panel-collapse collapse" role="tabpanel">
-                    <div [innerHTML]="result.overlayHtml[0].innerHTML"></div>
-                </div>
-            </div>
+            <button type="button" class="btn btn-info btn-block" (click)="showResults()">Show Table</button>
         </div>
     </div>
 
