@@ -207,8 +207,12 @@ let analyzeProcessingNode = (nodeId: string, eventBus: any, dataDefStatements: {
     }
 
   } else {
-    overlays.add(nodeId, { position: { bottom: 0, right: 0 }, html: `<div class="code-error">${result.error.message}</div>` });
-    throw new Error(result.error.message);
+    setTimeout(() => {
+      $('#messageModal').modal('toggle');
+    }, 1000);
+    
+    Analyser.onAnalysisCompleted.emit({ node: node, overlayHtml: `<div class="code-error">${result.error.message}</div>` });
+    // throw new Error(result.error.message);
   }
 
 }

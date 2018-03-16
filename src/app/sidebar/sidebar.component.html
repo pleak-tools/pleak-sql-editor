@@ -38,8 +38,9 @@
                         </a>
                     </h4>
                 </div>
-                <div [id]="result.nodeId + 'Result'" class="panel-collapse collapse" role="tabpanel">
-                    <div [innerHTML]="result.overlayHtml[0].innerHTML | sanitizeHtml"></div>
+                <div [id]="result.nodeId + 'Result'" class="panel-collapse collapse" role="tabpanel" [ngSwitch]="!!result.overlayHtml[0].innerHTML">
+                    <div *ngSwitchCase="true" [innerHTML]="result.overlayHtml[0].innerHTML | sanitizeHtml"></div>
+                    <div *ngSwitchCase="false" [innerHTML]="result.overlayHtml | sanitizeHtml"></div>
                 </div>
             </div>
         </div>
