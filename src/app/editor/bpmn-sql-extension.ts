@@ -229,6 +229,11 @@ export const SqlBPMNModdle = {
           "name": "SecureChannel",
           "isAttr": false,
           "type": "String"
+        },
+        {
+          "name": "CommunicationProtection",
+          "isAttr": false,
+          "type": "String"
         }
       ]
     },
