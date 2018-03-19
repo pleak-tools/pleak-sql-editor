@@ -15,5 +15,8 @@
     },
     "pe_bpmn_editor": {
         "folder": "pleak-pe-bpmn-editor"
+    },
+    "sql_local_sensitivity_editor": {
+        "folder": "pleak-sql-local-sensitivity-editor"
     }
 }

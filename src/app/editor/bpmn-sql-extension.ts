@@ -26,19 +26,6 @@ export const SqlBPMNModdle = {
       ]
     },
     {
-      name: "SQLDataObjectReference",
-      extends: [
-        "bpmn:DataObjectReference"
-      ],
-      properties: [
-        {
-          "name": "sqlScript",
-          "isAttr": false,
-          "type": "String"
-        }
-      ]
-    },
-    {
       name: "StereotypeTask",
       extends: [
         "bpmn:Task"
@@ -207,6 +194,32 @@ export const SqlBPMNModdle = {
       ]
     },
     {
+      name: "SQLLocalSensitivityTask",
+      extends: [
+        "bpmn:Task"
+      ],
+      properties: [
+        {
+          "name": "sqlTaskInfo",
+          "isAttr": false,
+          "type": "String"
+        },
+      ]
+    },
+    {
+      name: "SQLDataObjectReference",
+      extends: [
+        "bpmn:DataObjectReference"
+      ],
+      properties: [
+        {
+          "name": "sqlScript",
+          "isAttr": false,
+          "type": "String"
+        }
+      ]
+    },
+    {
       name: "StereotypeMessageFlow",
       extends: [
         "bpmn:MessageFlow"
@@ -214,11 +227,6 @@ export const SqlBPMNModdle = {
       properties: [
         {
           "name": "SecureChannel",
-          "isAttr": false,
-          "type": "String"
-        },
-        {
-          "name": "CommunicationProtection",
           "isAttr": false,
           "type": "String"
         }
@@ -241,6 +249,19 @@ export const SqlBPMNModdle = {
           "type": "String"
         }
       ]
-    }
+    },
+    {
+      name: "SQLLocalSensitivityDataObjectReference",
+      extends: [
+        "bpmn:DataObjectReference"
+      ],
+      properties: [
+        {
+          "name": "sqlDataObjectInfo",
+          "isAttr": false,
+          "type": "String"
+        }
+      ]
+    },
   ]
 };
