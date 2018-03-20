@@ -3,12 +3,13 @@ import { Http } from '@angular/http';
 import { AuthService } from "../auth/auth.service";
 import { SqlBPMNModdle } from "./bpmn-sql-extension";
 import { Analyser } from "../analyser/SQLDFlowAnalizer";
+import { topologicalSorting, dataFlowAnalysis } from "../analyser/GraMSecAnalizer";
 import * as Viewer from 'bpmn-js/lib/NavigatedViewer';
 import { SidebarComponent } from '../sidebar/sidebar.component';
 
 declare var $: any;
 declare var CodeMirror: any;
-declare function require(name:string);
+declare function require(name: string);
 
 let is = (element, type) => element.$instanceOf(type);
 
@@ -76,14 +77,14 @@ export class EditorComponent implements OnInit {
     );
   }
 
- // Load diagram and add editor
+  // Load diagram and add editor
   openDiagram(diagram: String) {
     var self = this;
     if (diagram && this.viewer == null) {
       this.viewer = new Viewer({
         container: '#canvas',
         keyboard: {
-          bindTo: document 
+          bindTo: document
         },
         moddleExtensions: {
           sqlExt: SqlBPMNModdle
@@ -94,7 +95,7 @@ export class EditorComponent implements OnInit {
         let eventBus = this.viewer.get('eventBus');
         let overlays = this.viewer.get('overlays');
 
-        eventBus.on('element.click', function(e) {
+        eventBus.on('element.click', function (e) {
           if ((is(e.element.businessObject, 'bpmn:DataObjectReference') || is(e.element.businessObject, 'bpmn:Task')) && !$(document).find("[data-element-id='" + e.element.id + "']").hasClass('highlight-input')) {
 
             let task = e.element.businessObject;
@@ -105,14 +106,14 @@ export class EditorComponent implements OnInit {
               sqlQuery = task.sqlScript;
             }
 
-            $('#SaveEditing').on('click', function() {
+            $('#SaveEditing').on('click', function () {
               task.sqlScript = self.codeMirror.getValue();
               self.updateModelContentVariable();
               self.sidebarComponent.isEditing = false;
               $('#SaveEditing').off('click');
             });
 
-            $(document).mouseup(function(ee) {
+            $(document).mouseup(function (ee) {
               var container = $('#canvas');
               if (container && container.has(ee.target).length) {
                 self.sidebarComponent.isEditing = false;
@@ -124,12 +125,12 @@ export class EditorComponent implements OnInit {
 
             $('textarea#CodeEditor').val(sqlQuery);
             self.codeMirror.setValue(sqlQuery);
-            setTimeout(function() {
+            setTimeout(function () {
               self.codeMirror.refresh();
             }, 10);
           }
           else {
-            overlays.remove({element: e.element});
+            overlays.remove({ element: e.element });
           }
         });
       });
@@ -152,6 +153,7 @@ export class EditorComponent implements OnInit {
         e.stopPropagation();
         this.sidebarComponent.clear();
         this.analyse();
+        // this.buildSqlInTopologicalOrder();
       });
 
       $(window).on('keydown', (e) => {
@@ -208,8 +210,8 @@ export class EditorComponent implements OnInit {
                   self.fileId = data.id;
                   self.saveFailed = false;
                 } else if (success.status === 401) {
-                   self.saveFailed = true;
-                   $('#loginModal').modal();
+                  self.saveFailed = true;
+                  $('#loginModal').modal();
                 }
               },
               fail => {
@@ -218,13 +220,13 @@ export class EditorComponent implements OnInit {
             // console.log(xml)
           }
         });
-      }
+    }
   }
 
   // Analyse model
   analyse() {
-    this.viewer.saveXML({format: true}, (err: any, xml: string) => {
-      this.viewer.get("moddle").fromXML(xml, (err:any, definitions:any) => {
+    this.viewer.saveXML({ format: true }, (err: any, xml: string) => {
+      this.viewer.get("moddle").fromXML(xml, (err: any, definitions: any) => {
         if (typeof definitions !== 'undefined') {
           this.viewer.importDefinitions(definitions, () => this.postLoad(definitions));
         }
@@ -249,7 +251,7 @@ export class EditorComponent implements OnInit {
     let canvas = this.viewer.get('canvas');
     let eventBus = this.viewer.get('eventBus');
     let overlays = this.viewer.get('overlays');
-    
+
     Analyser.analizeSQLDFlow(element, registry, canvas, overlays, eventBus, this.http, this.authService);
   }
 
@@ -265,6 +267,31 @@ export class EditorComponent implements OnInit {
         }
       }
     );
+  }
+
+  buildSqlInTopologicalOrder() {
+    this.viewer.saveXML({ format: true }, (err: any, xml: string) => {
+      this.viewer.get("moddle").fromXML(xml, (err: any, definitions: any) => {
+        this.viewer.importDefinitions(definitions, () => {
+          var element = definitions.diagrams[0].plane.bpmnElement;
+          let registry = this.viewer.get('elementRegistry');
+          let info = dataFlowAnalysis(element, registry);
+          let [processingNodes, dataFlowEdges, invDataFlowEdges, sources] = [info.processingNodes, info.dataFlowEdges, info.invDataFlowEdges, info.sources];
+          let order = topologicalSorting(dataFlowEdges, invDataFlowEdges, sources);
+
+          let sqlCommands = order.reduce(function (sqlCommands, id) {
+            let obj = registry.get(id);
+            if (obj.type == "bpmn:DataObjectReference" && !obj.incoming.length ||
+              obj.type == "bpmn:Task") {
+              let sql = obj.businessObject.sqlScript;
+              sqlCommands += sql + '\n\n';
+            }
+            return sqlCommands;
+          }, "");
+          console.log(sqlCommands);
+        });
+      });
+    });
   }
 
   ngOnInit() {
