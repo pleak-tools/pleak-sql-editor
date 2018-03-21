@@ -194,7 +194,7 @@ export const SqlBPMNModdle = {
       ]
     },
     {
-      name: "SQLLocalSensitivityTask",
+      name: "SQLDerivativeSensitivityTask",
       extends: [
         "bpmn:Task"
       ],
@@ -256,7 +256,7 @@ export const SqlBPMNModdle = {
       ]
     },
     {
-      name: "SQLLocalSensitivityDataObjectReference",
+      name: "SQLDerivativeSensitivityDataObjectReference",
       extends: [
         "bpmn:DataObjectReference"
       ],
