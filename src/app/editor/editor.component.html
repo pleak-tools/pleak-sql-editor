@@ -14,8 +14,15 @@
         </ul>
         <ul class="buttons analyze" *ngIf="isAuthenticated()">
           <li>
-            <a id="analyse-diagram" title="analyze PA-BPMN diagram" href="#" class="active">
-              <span class="glyphicon glyphicon-equalizer"></span> Analyze diagram
+            <a id="analyse-diagram" title="Analyze PA-BPMN diagram" href="#" class="active">
+              <span class="glyphicon glyphicon-equalizer"></span> Analyze Sensitivities
+            </a>
+          </li>
+        </ul>
+        <ul class="buttons analyze" *ngIf="isAuthenticated()">
+          <li>
+            <a id="leaks-report" title="Generate leaks report" href="#" class="active">
+              <span class="glyphicon glyphicon-equalizer"></span> Leaks Report
             </a>
           </li>
         </ul>

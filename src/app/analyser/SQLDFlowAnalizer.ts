@@ -161,7 +161,7 @@ let analyzeProcessingNode = (nodeId: string, eventBus: any, dataDefStatements: {
 
               node.sensitivityMatrix = JSON.stringify(matrix);
 
-              setTimeout(function() {
+              setTimeout(function () {
                 let codeMirror = CodeMirror.fromTextArea(document.getElementById(nodeId + "-analysis-textarea"), {
                   mode: "text/x-mysql",
                   lineNumbers: false,
@@ -170,7 +170,7 @@ let analyzeProcessingNode = (nodeId: string, eventBus: any, dataDefStatements: {
                   readOnly: true
                 });
                 codeMirror.setSize("100%", 100);
-                
+
                 $('.panel').on('shown.bs.collapse', function (e) {
                   codeMirror.refresh();
                 });
@@ -210,7 +210,7 @@ let analyzeProcessingNode = (nodeId: string, eventBus: any, dataDefStatements: {
     setTimeout(() => {
       $('#messageModal').modal('toggle');
     }, 1000);
-    
+
     Analyser.onAnalysisCompleted.emit({ node: node, overlayHtml: `<div class="code-error">${result.error.message}</div>` });
     // throw new Error(result.error.message);
   }
@@ -289,26 +289,26 @@ export class Analyser {
 
               let targetsHtml = '';
               for (let target of targets) {
-                targetsHtml += '<td class="inlined-matrix" style="min-width: 30px;">' + getName(target) + '</td>';
+                targetsHtml += '<td class="" style="min-width: 30px;">' + getName(target) + '</td>';
               }
 
               let sourcesHtml = '';
               for (let source2 of sources) {
-                sourcesHtml += `<tr class="inlined-matrix">`;
-                sourcesHtml += `<td class="inlined-matrix" style="min-width: 30px;">` + getName(source2) + `</td>`;
+                sourcesHtml += `<tr class="">`;
+                sourcesHtml += `<td class="" style="min-width: 30px;">` + getName(source2) + `</td>`;
                 for (let target2 of targets) {
                   let value = dc[source2][target2] ? dc[source2][target2] : (dc[source2][target2] === 0 ? dc[source2][target2] : '');
-                  sourcesHtml += `<td class="inlined-matrix">` + value + `</td>`;
+                  sourcesHtml += `<td class="">` + value + `</td>`;
                 }
                 sourcesHtml += `</tr>`;
               }
 
               let resultTable = `
                 <div>
-                  <table class="inlined-matrix result-matrix">
+                  <table class="table table-hover">
                     <p style="font-size:16px">Sensitivity matrix:</p>
                     <tbody>
-                      <tr class="inlined-matrix"> <td class="inlined-matrix"></td>
+                      <tr class=""> <td class=""></td>
                         ` + targetsHtml + `
                       </tr>
                       ` + sourcesHtml + `
@@ -317,11 +317,41 @@ export class Analyser {
                 </div>
               `;
 
+              // resultTable = `<table class="table-highlight">
+              // <tr>
+              //     <td>Peter</td>
+              //     <td>Jeffery</td>
+              //     <td>Griffin</td>
+              // </tr>
+              // <tr>
+              //     <td>Lois</td>
+              //     <td>Marie</td>
+              //     <td>Griffin</td>
+              // </tr>
+              // <tr>
+              //     <td>Margie</td>
+              //     <td>Ann</td>
+              //     <td>Thatcher</td>
+              // </tr>
+              // </table>`;
+
               $('#messageModal').find('.modal-title').text("Results");
               $('#messageModal').find('.modal-body').html(resultTable);
-              
+
               Analyser.onAnalysisCompleted.emit({ node: { id: "result", name: "Result Table" }, overlayHtml: $(resultTable) });
               overlays.remove({ element: e.element });
+
+              // setTimeout(function () {
+              //   $("body").addClass("nohover");
+
+              //   // Make all the cells focusable
+              //   $("td, th")
+              //     .attr("tabindex", "1")
+              //     // When they are tapped, focus them
+              //     .on("touchstart", function () {
+              //       $(this).focus();
+              //     });
+              // }, 1000);
             }
           }
         }

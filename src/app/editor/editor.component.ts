@@ -43,6 +43,7 @@ export class EditorComponent implements OnInit {
   private fileId: Number = null;
   private file: any;
   private lastModified: Number = null;
+  private selectedDataObjects: Array<string> = [];
 
   isAuthenticated() {
     return this.authenticated;
@@ -96,41 +97,59 @@ export class EditorComponent implements OnInit {
         let overlays = this.viewer.get('overlays');
 
         eventBus.on('element.click', function (e) {
-          if ((is(e.element.businessObject, 'bpmn:DataObjectReference') || is(e.element.businessObject, 'bpmn:Task')) && !$(document).find("[data-element-id='" + e.element.id + "']").hasClass('highlight-input')) {
-
-            let task = e.element.businessObject;
-            let sqlQuery;
-            if (task.sqlScript == null) {
-              sqlQuery = "";
-            } else {
-              sqlQuery = task.sqlScript;
+          // User can select intermediate and sync data objects for leaks report
+          if (is(e.element.businessObject, 'bpmn:DataObjectReference') && !!e.element.incoming.length) {
+            let canvas = self.viewer.get('canvas');
+            if (!e.element.businessObject.selectedForReport) {
+              self.selectedDataObjects.push(e.element.businessObject.name);
+              e.element.businessObject.selectedForReport = true;
+              canvas.addMarker(e.element.id, 'highlight-input-selected');
             }
-
-            $('#SaveEditing').on('click', function () {
-              task.sqlScript = self.codeMirror.getValue();
-              self.updateModelContentVariable();
-              self.sidebarComponent.isEditing = false;
-              $('#SaveEditing').off('click');
-            });
-
-            $(document).mouseup(function (ee) {
-              var container = $('#canvas');
-              if (container && container.has(ee.target).length) {
-                self.sidebarComponent.isEditing = false;
-                $('#SaveEditing').off('click');
-              }
-            });
-
-            self.sidebarComponent.isEditing = true;
-
-            $('textarea#CodeEditor').val(sqlQuery);
-            self.codeMirror.setValue(sqlQuery);
-            setTimeout(function () {
-              self.codeMirror.refresh();
-            }, 10);
+            else {
+              let index = self.selectedDataObjects.findIndex(x => x == e.element.businessObject.name);
+              self.selectedDataObjects.splice(index, 1);
+              e.element.businessObject.selectedForReport = false;
+              canvas.removeMarker(e.element.id, 'highlight-input-selected');
+            }
           }
           else {
-            overlays.remove({ element: e.element });
+            if ((is(e.element.businessObject, 'bpmn:DataObjectReference') ||
+              is(e.element.businessObject, 'bpmn:Task')) && !$(document).find("[data-element-id='" + e.element.id + "']").hasClass('highlight-input')) {
+
+              let task = e.element.businessObject;
+              let sqlQuery;
+              if (task.sqlScript == null) {
+                sqlQuery = "";
+              } else {
+                sqlQuery = task.sqlScript;
+              }
+
+              $('#SaveEditing').on('click', function () {
+                task.sqlScript = self.codeMirror.getValue();
+                self.updateModelContentVariable();
+                self.sidebarComponent.isEditing = false;
+                $('#SaveEditing').off('click');
+              });
+
+              $(document).mouseup(function (ee) {
+                var container = $('#canvas');
+                if (container && container.has(ee.target).length) {
+                  self.sidebarComponent.isEditing = false;
+                  $('#SaveEditing').off('click');
+                }
+              });
+
+              self.sidebarComponent.isEditing = true;
+
+              $('textarea#CodeEditor').val(sqlQuery);
+              self.codeMirror.setValue(sqlQuery);
+              setTimeout(function () {
+                self.codeMirror.refresh();
+              }, 10);
+            }
+            else {
+              overlays.remove({ element: e.element });
+            }
           }
         });
       });
@@ -153,7 +172,13 @@ export class EditorComponent implements OnInit {
         e.stopPropagation();
         this.sidebarComponent.clear();
         this.analyse();
-        // this.buildSqlInTopologicalOrder();
+      });
+
+      $('.buttons-container').on('click', '#leaks-report', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.sidebarComponent.clear();
+        this.buildSqlInTopologicalOrder();
       });
 
       $(window).on('keydown', (e) => {
@@ -270,26 +295,26 @@ export class EditorComponent implements OnInit {
   }
 
   buildSqlInTopologicalOrder() {
+    let self = this;
     this.viewer.saveXML({ format: true }, (err: any, xml: string) => {
       this.viewer.get("moddle").fromXML(xml, (err: any, definitions: any) => {
-        this.viewer.importDefinitions(definitions, () => {
-          var element = definitions.diagrams[0].plane.bpmnElement;
-          let registry = this.viewer.get('elementRegistry');
-          let info = dataFlowAnalysis(element, registry);
-          let [processingNodes, dataFlowEdges, invDataFlowEdges, sources] = [info.processingNodes, info.dataFlowEdges, info.invDataFlowEdges, info.sources];
-          let order = topologicalSorting(dataFlowEdges, invDataFlowEdges, sources);
+        var element = definitions.diagrams[0].plane.bpmnElement;
+        let registry = this.viewer.get('elementRegistry');
+        let info = dataFlowAnalysis(element, registry);
+        let [processingNodes, dataFlowEdges, invDataFlowEdges, sources] = [info.processingNodes, info.dataFlowEdges, info.invDataFlowEdges, info.sources];
+        let order = topologicalSorting(dataFlowEdges, invDataFlowEdges, sources);
 
-          let sqlCommands = order.reduce(function (sqlCommands, id) {
-            let obj = registry.get(id);
-            if (obj.type == "bpmn:DataObjectReference" && !obj.incoming.length ||
-              obj.type == "bpmn:Task") {
-              let sql = obj.businessObject.sqlScript;
-              sqlCommands += sql + '\n\n';
-            }
-            return sqlCommands;
-          }, "");
-          console.log(sqlCommands);
-        });
+        let sqlCommands = order.reduce(function (sqlCommands, id) {
+          let obj = registry.get(id);
+          if (obj.type == "bpmn:DataObjectReference" && !obj.incoming.length ||
+            obj.type == "bpmn:Task") {
+            let sql = obj.businessObject.sqlScript;
+            sqlCommands += sql + '\n\n';
+          }
+          return sqlCommands;
+        }, "");
+        console.log(sqlCommands);
+        console.log(self.selectedDataObjects);
       });
     });
   }
