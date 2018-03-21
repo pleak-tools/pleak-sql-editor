@@ -289,26 +289,32 @@ export class Analyser {
 
               let targetsHtml = '';
               for (let target of targets) {
-                targetsHtml += '<td class="" style="min-width: 30px;">' + getName(target) + '</td>';
+                targetsHtml += '<td class="inlined-matrix" style="min-width: 30px;">' + getName(target) + '</td>';
               }
 
               let sourcesHtml = '';
+              let resultCellsIdCounter = 1;
+              let cellInputOutputDict = {};
+
               for (let source2 of sources) {
-                sourcesHtml += `<tr class="">`;
-                sourcesHtml += `<td class="" style="min-width: 30px;">` + getName(source2) + `</td>`;
+                sourcesHtml += `<tr class="inlined-matrix">`;
+                sourcesHtml += `<td class="inlined-matrix" style="min-width: 30px;">` + getName(source2) + `</td>`;
                 for (let target2 of targets) {
+                  cellInputOutputDict["resultCell" + resultCellsIdCounter] = {input: source2, output: target2};
                   let value = dc[source2][target2] ? dc[source2][target2] : (dc[source2][target2] === 0 ? dc[source2][target2] : '');
-                  sourcesHtml += `<td class="">` + value + `</td>`;
+                  sourcesHtml += `<td id="resultCell` + resultCellsIdCounter + `" class="inlined-matrix">` + value + `</td>`;
+                  resultCellsIdCounter++;
                 }
                 sourcesHtml += `</tr>`;
               }
 
               let resultTable = `
                 <div>
-                  <table class="table table-hover">
+                  <table class="inlined-matrix result-matrix">
                     <p style="font-size:16px">Sensitivity matrix:</p>
                     <tbody>
-                      <tr class=""> <td class=""></td>
+                      <tr class="inlined-matrix"> 
+                        <td class="inlined-matrix"></td>
                         ` + targetsHtml + `
                       </tr>
                       ` + sourcesHtml + `
@@ -317,41 +323,33 @@ export class Analyser {
                 </div>
               `;
 
-              // resultTable = `<table class="table-highlight">
-              // <tr>
-              //     <td>Peter</td>
-              //     <td>Jeffery</td>
-              //     <td>Griffin</td>
-              // </tr>
-              // <tr>
-              //     <td>Lois</td>
-              //     <td>Marie</td>
-              //     <td>Griffin</td>
-              // </tr>
-              // <tr>
-              //     <td>Margie</td>
-              //     <td>Ann</td>
-              //     <td>Thatcher</td>
-              // </tr>
-              // </table>`;
-
               $('#messageModal').find('.modal-title').text("Results");
               $('#messageModal').find('.modal-body').html(resultTable);
 
               Analyser.onAnalysisCompleted.emit({ node: { id: "result", name: "Result Table" }, overlayHtml: $(resultTable) });
               overlays.remove({ element: e.element });
 
-              // setTimeout(function () {
-              //   $("body").addClass("nohover");
-
-              //   // Make all the cells focusable
-              //   $("td, th")
-              //     .attr("tabindex", "1")
-              //     // When they are tapped, focus them
-              //     .on("touchstart", function () {
-              //       $(this).focus();
-              //     });
-              // }, 1000);
+              // Wait until jquery rendered result table
+              setTimeout(function () {
+                for(let i = 1; i < resultCellsIdCounter; i++)
+                  $("#resultCell" + i).on('click', (e) => {
+                    let opacity = $('#messageModal').css('opacity');
+                    if(opacity == 1) {
+                      $('#messageModal').css('opacity', 0.6);
+                      $(e.target).addClass('cell-selected');
+                      canvas.addMarker(cellInputOutputDict[e.target.id].input, 'highlight-input-selected');
+                      canvas.addMarker(cellInputOutputDict[e.target.id].output, 'highlight-output-selected');
+                    }
+                    else {
+                      $('#messageModal').css('opacity', 1);
+                      for(let i = 1; i < resultCellsIdCounter; i++) {
+                        $("#resultCell" + i).removeClass('cell-selected');
+                        canvas.removeMarker(cellInputOutputDict["resultCell" + i].input, 'highlight-input-selected');
+                        canvas.removeMarker(cellInputOutputDict["resultCell" + i].output, 'highlight-output-selected');
+                      }
+                    }
+                  });
+              }, 200);
             }
           }
         }

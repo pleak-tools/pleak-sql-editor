@@ -314,7 +314,9 @@ export class EditorComponent implements OnInit {
           return sqlCommands;
         }, "");
         console.log(sqlCommands);
-        console.log(self.selectedDataObjects);
+
+        let processedLabels = self.selectedDataObjects.map(x => x.split(" ").map(word => word.toLowerCase()).join("_"));
+        console.log(processedLabels);
       });
     });
   }

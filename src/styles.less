@@ -116,6 +116,21 @@ td.inlined-matrix {
   min-width: 70px;
   text-align: center;
   background-color: white;
+  cursor: pointer;
+}
+
+.cell-selected {
+  background-color: #f5f5f5 !important;
+  color: #000;
+  font-weight: bold;
+  font-size: 18px;
+}
+
+td.inlined-matrix:hover {
+  background-color: #c9c1c1;
+  color: #000;
+  font-weight: bold;
+  font-size: 16px;
 }
 
 tr.inlined-matrix:first-child td.inlined-matrix, td.inlined-matrix:first-child {
@@ -232,7 +247,8 @@ tr.inlined-matrix:first-child td.inlined-matrix, td.inlined-matrix:first-child {
 }
 
 .highlight-input-selected:not(.djs-connection) .djs-visual > :nth-child(1) {
-  fill: greenyellow!important;
+  fill: springgreen!important;
+  cursor: default !important;
 }
 
 .highlight-input-output:not(.djs-connection) .djs-visual > :nth-child(1) {
