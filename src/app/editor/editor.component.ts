@@ -13,6 +13,9 @@ declare function require(name: string);
 
 let is = (element, type) => element.$instanceOf(type);
 
+var pg_parser = require("exports-loader?Module!pgparser/pg_query.js");
+pg_parser.parse("");
+
 var config = require('./../../config.json');
 
 @Component({
@@ -99,18 +102,18 @@ export class EditorComponent implements OnInit {
         eventBus.on('element.click', function (e) {
           // User can select intermediate and sync data objects for leaks report
           if (is(e.element.businessObject, 'bpmn:DataObjectReference') && !!e.element.incoming.length) {
-            let canvas = self.viewer.get('canvas');
-            if (!e.element.businessObject.selectedForReport) {
-              self.selectedDataObjects.push(e.element.businessObject.name);
-              e.element.businessObject.selectedForReport = true;
-              canvas.addMarker(e.element.id, 'highlight-input-selected');
-            }
-            else {
-              let index = self.selectedDataObjects.findIndex(x => x == e.element.businessObject.name);
-              self.selectedDataObjects.splice(index, 1);
-              e.element.businessObject.selectedForReport = false;
-              canvas.removeMarker(e.element.id, 'highlight-input-selected');
-            }
+            // let canvas = self.viewer.get('canvas');
+            // if (!e.element.businessObject.selectedForReport) {
+            //   self.selectedDataObjects.push(e.element.businessObject.name);
+            //   e.element.businessObject.selectedForReport = true;
+            //   canvas.addMarker(e.element.id, 'highlight-input-selected');
+            // }
+            // else {
+            //   let index = self.selectedDataObjects.findIndex(x => x == e.element.businessObject.name);
+            //   self.selectedDataObjects.splice(index, 1);
+            //   e.element.businessObject.selectedForReport = false;
+            //   canvas.removeMarker(e.element.id, 'highlight-input-selected');
+            // }
           }
           else {
             if ((is(e.element.businessObject, 'bpmn:DataObjectReference') ||
