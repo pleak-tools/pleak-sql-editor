@@ -1,15 +1,20 @@
-import { Component, OnInit, Input } from '@angular/core';
+import { Component, OnInit, Input, ViewChild } from '@angular/core';
 import { Http } from '@angular/http';
-import { AuthService } from "app/auth/auth.service";
-import { Microcode } from "app/microcode/microcode";
+import { AuthService } from "../auth/auth.service";
 import { SqlBPMNModdle } from "./bpmn-sql-extension";
-import { analizeSQLDFlow } from "app/analyser/SQLDFlowAnalizer";
+import { Analyser } from "../analyser/SQLDFlowAnalizer";
+import { topologicalSorting, dataFlowAnalysis } from "../analyser/GraMSecAnalizer";
 import * as Viewer from 'bpmn-js/lib/NavigatedViewer';
+import { SidebarComponent } from '../sidebar/sidebar.component';
 
 declare var $: any;
-declare function require(name:string);
+declare var CodeMirror: any;
+declare function require(name: string);
 
 let is = (element, type) => element.$instanceOf(type);
+
+var pg_parser = require("exports-loader?Module!pgparser/pg_query.js");
+pg_parser.parse("");
 
 var config = require('./../../config.json');
 
@@ -31,18 +36,17 @@ export class EditorComponent implements OnInit {
   }
 
   @Input() authenticated: Boolean;
+  @ViewChild(SidebarComponent) sidebarComponent: SidebarComponent
 
   private viewer: Viewer;
-
   private modelId: Number = Number.parseInt(window.location.pathname.split('/')[2]);
-
   private saveFailed: Boolean = false;
   private lastContent: String = '';
-
+  private codeMirror: any;
   private fileId: Number = null;
   private file: any;
-
   private lastModified: Number = null;
+  private selectedDataObjects: Array<string> = [];
 
   isAuthenticated() {
     return this.authenticated;
@@ -77,14 +81,14 @@ export class EditorComponent implements OnInit {
     );
   }
 
- // Load diagram and add editor
+  // Load diagram and add editor
   openDiagram(diagram: String) {
     var self = this;
     if (diagram && this.viewer == null) {
       this.viewer = new Viewer({
         container: '#canvas',
         keyboard: {
-          bindTo: document 
+          bindTo: document
         },
         moddleExtensions: {
           sqlExt: SqlBPMNModdle
@@ -92,66 +96,65 @@ export class EditorComponent implements OnInit {
       });
 
       this.viewer.importXML(diagram, () => {
-      
         let eventBus = this.viewer.get('eventBus');
         let overlays = this.viewer.get('overlays');
 
-        eventBus.on('element.click', function(e) {
-
-          if ((is(e.element.businessObject, 'bpmn:DataObjectReference') || is(e.element.businessObject, 'bpmn:Task')) && !$(document).find("[data-element-id='" + e.element.id + "']").hasClass('highlight-input')) {
-
-            let task = e.element.businessObject;
-            let sqlQuery;
-            if (task.sqlScript == null) {
-              sqlQuery = "";
-            } else {
-              sqlQuery = task.sqlScript;
-            }
-
-            let overlayHtml = $(
-              `<div class="editor" id="` + e.element.id + `-sql-editor">
-                 <div class="editor-body">
-                   <textarea class="code-input">` + sqlQuery + `</textarea>
-                   <pre class="code-output">
-                     <code class="language-sql"></code>
-                   </pre>
-                 </div>
-                 <br>
-                 <button class="btn btn-success" id="` + e.element.id + `-save-button">Save</button>
-               </div>`
-            );
-          
-            overlays.add(e.element, {
-              position: {
-                bottom: 0,
-                right: 0
-              },
-              html: overlayHtml
-            });
-
-            $(overlayHtml).on('click', '#' + e.element.id+'-save-button', function() {
-              task.sqlScript = $(overlayHtml).find('.code-input').val();
-              self.updateModelContentVariable();
-              $('#' + e.element.id + '-sql-editor').hide();
-            });
-
-            $(document).mouseup(function(ee) {
-              var container = $('.editor');
-              if (!container.is(ee.target) && container.has(ee.target).length === 0) {
-                overlays.remove({element: e.element});
-              }
-            });
-
-            var editor = new Microcode($(overlayHtml).find('.code-input'), $(overlayHtml).find('.code-output'));
-
-          } else {
-
-            overlays.remove({element: e.element});
-
+        eventBus.on('element.click', function (e) {
+          // User can select intermediate and sync data objects for leaks report
+          if (is(e.element.businessObject, 'bpmn:DataObjectReference') && !!e.element.incoming.length) {
+            // let canvas = self.viewer.get('canvas');
+            // if (!e.element.businessObject.selectedForReport) {
+            //   self.selectedDataObjects.push(e.element.businessObject.name);
+            //   e.element.businessObject.selectedForReport = true;
+            //   canvas.addMarker(e.element.id, 'highlight-input-selected');
+            // }
+            // else {
+            //   let index = self.selectedDataObjects.findIndex(x => x == e.element.businessObject.name);
+            //   self.selectedDataObjects.splice(index, 1);
+            //   e.element.businessObject.selectedForReport = false;
+            //   canvas.removeMarker(e.element.id, 'highlight-input-selected');
+            // }
           }
+          else {
+            if ((is(e.element.businessObject, 'bpmn:DataObjectReference') ||
+              is(e.element.businessObject, 'bpmn:Task')) && !$(document).find("[data-element-id='" + e.element.id + "']").hasClass('highlight-input')) {
 
+              let task = e.element.businessObject;
+              let sqlQuery;
+              if (task.sqlScript == null) {
+                sqlQuery = "";
+              } else {
+                sqlQuery = task.sqlScript;
+              }
+
+              $('#SaveEditing').on('click', function () {
+                task.sqlScript = self.codeMirror.getValue();
+                self.updateModelContentVariable();
+                self.sidebarComponent.isEditing = false;
+                $('#SaveEditing').off('click');
+              });
+
+              $(document).mouseup(function (ee) {
+                var container = $('#canvas');
+                if (container && container.has(ee.target).length) {
+                  self.sidebarComponent.isEditing = false;
+                  $('#SaveEditing').off('click');
+                }
+              });
+
+              self.sidebarComponent.isEditing = true;
+
+              $('textarea#CodeEditor').val(sqlQuery);
+              self.codeMirror.setValue(sqlQuery);
+              setTimeout(function () {
+                self.codeMirror.refresh();
+              }, 10);
+            }
+            else {
+              overlays.remove({ element: e.element });
+            }
+          }
         });
-
       });
 
       $('.buttons-container').on('click', '.buttons a', (e) => {
@@ -170,7 +173,15 @@ export class EditorComponent implements OnInit {
       $('.buttons-container').on('click', '#analyse-diagram', (e) => {
         e.preventDefault();
         e.stopPropagation();
+        this.sidebarComponent.clear();
         this.analyse();
+      });
+
+      $('.buttons-container').on('click', '#leaks-report', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.sidebarComponent.clear();
+        this.buildSqlInTopologicalOrder();
       });
 
       $(window).on('keydown', (e) => {
@@ -191,9 +202,7 @@ export class EditorComponent implements OnInit {
           return 'Are you sure you want to close this tab? Unsaved progress will be lost.';
         }
       });
-
     }
-
   }
 
   // Save model
@@ -229,8 +238,8 @@ export class EditorComponent implements OnInit {
                   self.fileId = data.id;
                   self.saveFailed = false;
                 } else if (success.status === 401) {
-                   self.saveFailed = true;
-                   $('#loginModal').modal();
+                  self.saveFailed = true;
+                  $('#loginModal').modal();
                 }
               },
               fail => {
@@ -239,13 +248,13 @@ export class EditorComponent implements OnInit {
             // console.log(xml)
           }
         });
-      }
+    }
   }
 
   // Analyse model
   analyse() {
-    this.viewer.saveXML({format: true}, (err: any, xml: string) => {
-      this.viewer.get("moddle").fromXML(xml, (err:any, definitions:any) => {
+    this.viewer.saveXML({ format: true }, (err: any, xml: string) => {
+      this.viewer.get("moddle").fromXML(xml, (err: any, definitions: any) => {
         if (typeof definitions !== 'undefined') {
           this.viewer.importDefinitions(definitions, () => this.postLoad(definitions));
         }
@@ -270,7 +279,8 @@ export class EditorComponent implements OnInit {
     let canvas = this.viewer.get('canvas');
     let eventBus = this.viewer.get('eventBus');
     let overlays = this.viewer.get('overlays');
-    analizeSQLDFlow(element, registry, canvas, overlays, eventBus, this.http, this.authService);
+
+    Analyser.analizeSQLDFlow(element, registry, canvas, overlays, eventBus, this.http, this.authService);
   }
 
   updateModelContentVariable() {
@@ -285,6 +295,33 @@ export class EditorComponent implements OnInit {
         }
       }
     );
+  }
+
+  buildSqlInTopologicalOrder() {
+    let self = this;
+    this.viewer.saveXML({ format: true }, (err: any, xml: string) => {
+      this.viewer.get("moddle").fromXML(xml, (err: any, definitions: any) => {
+        var element = definitions.diagrams[0].plane.bpmnElement;
+        let registry = this.viewer.get('elementRegistry');
+        let info = dataFlowAnalysis(element, registry);
+        let [processingNodes, dataFlowEdges, invDataFlowEdges, sources] = [info.processingNodes, info.dataFlowEdges, info.invDataFlowEdges, info.sources];
+        let order = topologicalSorting(dataFlowEdges, invDataFlowEdges, sources);
+
+        let sqlCommands = order.reduce(function (sqlCommands, id) {
+          let obj = registry.get(id);
+          if (obj.type == "bpmn:DataObjectReference" && !obj.incoming.length ||
+            obj.type == "bpmn:Task") {
+            let sql = obj.businessObject.sqlScript;
+            sqlCommands += sql + '\n\n';
+          }
+          return sqlCommands;
+        }, "");
+        console.log(sqlCommands);
+
+        let processedLabels = self.selectedDataObjects.map(x => x.split(" ").map(word => word.toLowerCase()).join("_"));
+        console.log(processedLabels);
+      });
+    });
   }
 
   ngOnInit() {
@@ -306,6 +343,16 @@ export class EditorComponent implements OnInit {
         }
       }
     });
-  }
+    this.codeMirror = CodeMirror.fromTextArea(document.getElementById("CodeEditor"), {
+      mode: "text/x-mysql",
+      lineNumbers: true,
+      showCursorWhenSelecting: true,
+      lineWiseCopyCut: false
+    });
+    this.codeMirror.setSize("100%", 220);
 
+    Analyser.onAnalysisCompleted.subscribe(result => {
+      this.sidebarComponent.emitTaskResult(result);
+    });
+  }
 }

@@ -14,11 +14,18 @@
         </ul>
         <ul class="buttons analyze" *ngIf="isAuthenticated()">
           <li>
-            <a id="analyse-diagram" title="analyze PA-BPMN diagram" href="#" class="active">
-              <span class="glyphicon glyphicon-equalizer"></span> Analyze diagram
+            <a id="analyse-diagram" title="Analyze PA-BPMN diagram" href="#" class="active">
+              <span class="glyphicon glyphicon-equalizer"></span> Analyze Sensitivities
             </a>
           </li>
         </ul>
+        <!-- <ul class="buttons analyze" *ngIf="isAuthenticated()">
+          <li>
+            <a id="leaks-report" title="Generate leaks report" href="#" class="active">
+              <span class="glyphicon glyphicon-list-alt"></span> Leaks Report
+            </a>
+          </li>
+        </ul> -->
         <ul class="buttons analyze" id="login-container" *ngIf="isAuthenticated()">
           <li>
             <a id="log-out" data-toggle="modal" data-target="#logoutModal" href class="active">
@@ -54,16 +61,21 @@
   </span>
 </div>
 
-<div class="modal fade" id="resultsModal" role="dialog">
-  <div class="modal-dialog modal-lg">
+<div class="modal fade" id="messageModal" role="dialog">
+  <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal">&times;</button>
-        <h4 class="modal-title">Results</h4>
+        <h4 class="modal-title"></h4>
       </div>
-      <div class="modal-body"></div>
+      <div class="modal-body">
+      </div>
     </div>
   </div>
 </div>
 
 <div id="canvas"></div>
+
+<div id="sidebar">
+    <sidebar></sidebar>
+</div>

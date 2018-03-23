@@ -5,12 +5,16 @@ import { HttpModule } from '@angular/http';
 
 import { AppComponent } from './app.component';
 import { EditorComponent } from './editor/editor.component';
+import { SidebarComponent } from './sidebar/sidebar.component';
+import { SanitizeHtmlPipe } from './microcode/sanitizer';
 import { AuthService } from './auth/auth.service';
 
 @NgModule({
   declarations: [
     AppComponent,
-    EditorComponent
+    EditorComponent,
+    SidebarComponent,
+    SanitizeHtmlPipe
   ],
   imports: [
     BrowserModule,

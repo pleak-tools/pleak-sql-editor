@@ -113,9 +113,24 @@ table.inlined-matrix {
 td.inlined-matrix {
   border: 1px solid #999;
   padding: 0;
-  min-width: 80px;
+  min-width: 70px;
   text-align: center;
   background-color: white;
+  cursor: pointer;
+}
+
+.cell-selected {
+  background-color: #f5f5f5 !important;
+  color: #000;
+  font-weight: bold;
+  font-size: 18px;
+}
+
+td.inlined-matrix:hover {
+  background-color: #c9c1c1;
+  color: #000;
+  font-weight: bold;
+  font-size: 16px;
 }
 
 tr.inlined-matrix:first-child td.inlined-matrix, td.inlined-matrix:first-child {
@@ -128,7 +143,7 @@ tr.inlined-matrix:first-child td.inlined-matrix, td.inlined-matrix:first-child {
   min-width: 30px;
 }
 
-#resultsModal {
+#messageModal {
   div.modal-body {
     text-align: center;
   }
@@ -225,4 +240,56 @@ tr.inlined-matrix:first-child td.inlined-matrix, td.inlined-matrix:first-child {
 /* */
 .text-16 {
   font-size: 16px;
+}
+
+.highlight-input:not(.djs-connection) .djs-visual > :nth-child(1) {
+  fill: greenyellow!important;
+}
+
+.highlight-input-selected:not(.djs-connection) .djs-visual > :nth-child(1) {
+  fill: springgreen!important;
+  cursor: default !important;
+}
+
+.highlight-input-output:not(.djs-connection) .djs-visual > :nth-child(1) {
+  fill: rosybrown!important;
+}
+
+.highlight-input-output-selected:not(.djs-connection) .djs-visual > :nth-child(1) {
+  fill: brown!important;
+}
+
+.highlight-output:not(.djs-connection) .djs-visual > :nth-child(1) {
+  fill: lightsalmon!important;
+}
+
+.highlight-output-selected:not(.djs-connection) .djs-visual > :nth-child(1) {
+  fill: lightcoral!important;
+}
+
+.highlight-group:not(.djs-connection) .djs-visual > :nth-child(1) {
+  fill: lightskyblue!important;
+}
+
+.highlight-general-error:not(.djs-connection) .djs-visual > :nth-child(1) {
+  fill: #f44842!important;
+}
+
+.highlight-general-error:not(.djs-connection) .djs-label {
+  stroke: white!important;
+}
+
+.highlight-general-error.djs-connection > .djs-visual > :nth-child(1) {
+  stroke: red!important;
+}
+.highlight-specific-error:not(.djs-connection) .djs-visual > :nth-child(1) {
+  fill: #f47741!important;
+}
+
+.highlight-specific-error:not(.djs-connection) .djs-label {
+  stroke: white!important;
+}
+
+.highlight-specific-error.djs-connection > .djs-visual > :nth-child(1) {
+  stroke: red!important;
 }

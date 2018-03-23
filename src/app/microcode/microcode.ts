@@ -62,7 +62,7 @@ export class Microcode {
       .html(value.replace(/&/g, "&amp;").replace(/</g, "&lt;")
       .replace(/>/g, "&gt;") + "\n");
 
-    Prism.highlightAll();
+    Prism.highlightElement(($(outputSel).find('.language-sql'))[0]);
   };
 		
   focusInput(inputSel) {

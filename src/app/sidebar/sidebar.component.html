@@ -1,0 +1,48 @@
+<div class="container">
+    <div [hidden]="!isEditing" class="panel-section">
+        <div class="panel panel-default">
+            <div align="left" class="panel-heading">
+                <b>Editing</b>
+            </div>
+            <div class="panel-body codemirror-container">
+                <textarea id="CodeEditor" style="display: none; width: 200px;"></textarea>
+            </div>
+        </div>
+
+        <button class="btn btn-success" id="SaveEditing" (click)="clear()">Save</button>
+    </div>
+
+    <div *ngIf="resultTable.length" class="panel-section">
+        <div>
+            <h3 class="title">Results</h3>
+        </div>
+        <div class="panel-group" role="tablist" aria-multiselectable="true">
+            <button type="button" class="btn btn-info btn-block" (click)="showResults()">Show Table</button>
+        </div>
+    </div>
+
+    <div class="clearfix"></div>
+    <div *ngIf="analysisSteps.length" class="panel-section">
+        <div>
+            <h3 class="title">Analysis</h3>
+        </div>
+        <div class="panel-group" role="tablist" aria-multiselectable="true">
+            <div class="panel panel-default" *ngFor="let result of analysisSteps">
+                <div class="panel-heading" role="tab" [id]="result.nodeId + 'Heading'">
+                    <h4 class="panel-title">
+                        <a role="button" data-toggle="collapse" [href]="'#' + result.nodeId + 'Result'" aria-expanded="false">
+                            <div class="row">
+                                <div class="col-xs-10 title">{{result.nodeName}}</div>
+                                <div class="col-xs-2 collapser"></div>
+                            </div>
+                        </a>
+                    </h4>
+                </div>
+                <div [id]="result.nodeId + 'Result'" class="panel-collapse collapse" role="tabpanel" [ngSwitch]="!!result.overlayHtml[0].innerHTML">
+                    <div *ngSwitchCase="true" [innerHTML]="result.overlayHtml[0].innerHTML | sanitizeHtml"></div>
+                    <div *ngSwitchCase="false" [innerHTML]="result.overlayHtml | sanitizeHtml"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

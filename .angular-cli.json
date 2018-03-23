@@ -25,12 +25,14 @@
         "../node_modules/bpmn-js/assets/bpmn-font/css/bpmn-embedded.css",
         "../node_modules/bootstrap/dist/css/bootstrap.min.css",
         "../node_modules/font-awesome/css/font-awesome.css",
-        "../node_modules/prismjs/themes/prism.css",
+        "../node_modules/codemirror/lib/codemirror.css",
         "styles.less"
       ],
       "scripts": [
         "../node_modules/jquery/dist/jquery.js",
-        "../node_modules/bootstrap/dist/js/bootstrap.js"
+        "../node_modules/bootstrap/dist/js/bootstrap.js",
+        "../node_modules/codemirror/lib/codemirror.js",
+        "../node_modules/codemirror/mode/sql/sql.js"
       ],
       "environmentSource": "environments/environment.ts",
       "environments": {

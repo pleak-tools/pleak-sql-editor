@@ -160,6 +160,7 @@ module.exports = {
       "./node_modules/bootstrap/dist/css/bootstrap.min.css",
       "./node_modules/font-awesome/css/font-awesome.css",
       "./node_modules/prismjs/themes/prism.css",
+      "./node_modules/codemirror/lib/codemirror.css",
       "./src/styles.less"
     ]
   },
@@ -200,6 +201,7 @@ module.exports = {
           path.join(process.cwd(), "node_modules/bootstrap/dist/css/bootstrap.min.css"),
           path.join(process.cwd(), "node_modules/font-awesome/css/font-awesome.css"),
           path.join(process.cwd(), "node_modules/prismjs/themes/prism.css"),
+          path.join(process.cwd(), "node_modules/codemirror/lib/codemirror.css"),
           path.join(process.cwd(), "src/styles.less")
         ],
         "test": /\.css$/,
@@ -230,6 +232,7 @@ module.exports = {
           path.join(process.cwd(), "node_modules/bootstrap/dist/css/bootstrap.min.css"),
           path.join(process.cwd(), "node_modules/font-awesome/css/font-awesome.css"),
           path.join(process.cwd(), "node_modules/prismjs/themes/prism.css"),
+          path.join(process.cwd(), "node_modules/codemirror/lib/codemirror.css"),
           path.join(process.cwd(), "src/styles.less")
         ],
         "test": /\.scss$|\.sass$/,
@@ -268,6 +271,7 @@ module.exports = {
           path.join(process.cwd(), "node_modules/bootstrap/dist/css/bootstrap.min.css"),
           path.join(process.cwd(), "node_modules/font-awesome/css/font-awesome.css"),
           path.join(process.cwd(), "node_modules/prismjs/themes/prism.css"),
+          path.join(process.cwd(), "node_modules/codemirror/lib/codemirror.css"),
           path.join(process.cwd(), "src/styles.less")
         ],
         "test": /\.less$/,
@@ -304,6 +308,7 @@ module.exports = {
           path.join(process.cwd(), "node_modules/bootstrap/dist/css/bootstrap.min.css"),
           path.join(process.cwd(), "node_modules/font-awesome/css/font-awesome.css"),
           path.join(process.cwd(), "node_modules/prismjs/themes/prism.css"),
+          path.join(process.cwd(), "node_modules/codemirror/lib/codemirror.css"),
           path.join(process.cwd(), "src/styles.less")
         ],
         "test": /\.styl$/,
@@ -341,6 +346,7 @@ module.exports = {
           path.join(process.cwd(), "node_modules/bootstrap/dist/css/bootstrap.min.css"),
           path.join(process.cwd(), "node_modules/font-awesome/css/font-awesome.css"),
           path.join(process.cwd(), "node_modules/prismjs/themes/prism.css"),
+          path.join(process.cwd(), "node_modules/codemirror/lib/codemirror.css"),
           path.join(process.cwd(), "src/styles.less")
         ],
         "test": /\.css$/,
@@ -371,6 +377,7 @@ module.exports = {
           path.join(process.cwd(), "node_modules/bootstrap/dist/css/bootstrap.min.css"),
           path.join(process.cwd(), "node_modules/font-awesome/css/font-awesome.css"),
           path.join(process.cwd(), "node_modules/prismjs/themes/prism.css"),
+          path.join(process.cwd(), "node_modules/codemirror/lib/codemirror.css"),
           path.join(process.cwd(), "src/styles.less")
         ],
         "test": /\.scss$|\.sass$/,
@@ -409,6 +416,7 @@ module.exports = {
           path.join(process.cwd(), "node_modules/bootstrap/dist/css/bootstrap.min.css"),
           path.join(process.cwd(), "node_modules/font-awesome/css/font-awesome.css"),
           path.join(process.cwd(), "node_modules/prismjs/themes/prism.css"),
+          path.join(process.cwd(), "node_modules/codemirror/lib/codemirror.css"),
           path.join(process.cwd(), "src/styles.less")
         ],
         "test": /\.less$/,
@@ -445,6 +453,7 @@ module.exports = {
           path.join(process.cwd(), "node_modules/bootstrap/dist/css/bootstrap.min.css"),
           path.join(process.cwd(), "node_modules/font-awesome/css/font-awesome.css"),
           path.join(process.cwd(), "node_modules/prismjs/themes/prism.css"),
+          path.join(process.cwd(), "node_modules/codemirror/lib/codemirror.css"),
           path.join(process.cwd(), "src/styles.less")
         ],
         "test": /\.styl$/,
@@ -488,7 +497,9 @@ module.exports = {
       "filename": "scripts.bundle.js",
       "scripts": [
         "./node_modules/jquery/dist/jquery.js",
-        "./node_modules/bootstrap/dist/js/bootstrap.js"
+        "./node_modules/bootstrap/dist/js/bootstrap.js",
+        "./node_modules/codemirror/lib/codemirror.js",
+        "./node_modules/codemirror/mode/sql/sql.js"
       ],
       "basePath": "./"
     }),
