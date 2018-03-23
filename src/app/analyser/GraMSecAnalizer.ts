@@ -282,9 +282,6 @@ export let computeSensitivitiesMatrix = (process: any, registry: any): [any, any
       } else {
         sameElements[0].value = value;
       }
-      else {
-        sameElements[0].value = value;
-      }
 
       // Add calculated value to the result matrix
       matrix.push({input: source, output: target, value: value});
