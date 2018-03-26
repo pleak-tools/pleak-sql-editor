@@ -346,20 +346,51 @@ export class EditorComponent implements OnInit {
               .then(
                 res => {
                   let files = res.json().files;
-  
-                  let counter = 0;
-                  files.forEach(path => {
-                    self.http.get(config.leakswhen.host + path)
-                      .toPromise()
-                      .then(res => {
-                          let response = (<any>res)._body;
-                          let filename = path.split('/').pop()
-                          Analyser.onAnalysisCompleted.emit({ node: { id: "Output" + counter++, name: filename }, overlayHtml: `<div>` + response + `</div>` });
-                        },
-                        msg => {
-                          reject(msg);
-                        });
-                  });
+                  let legend = files.filter(x => x.indexOf('legend') != -1)[0];
+
+                  self.http.get(config.leakswhen.host + legend)
+                  .toPromise()
+                  .then(res => {
+                      let legendObject = res.json();
+
+                      for (var key in legendObject) {
+                        let overlayInsert = ``;
+                        let counter = 0;
+                        
+                        let fileQuery = (index) => {
+                          self.http.get(config.leakswhen.host + '/leaks-when/data/tmp/' + legendObject[key][index])
+                            .toPromise()
+                            .then(res => {
+                                let response = (<any>res)._body;
+                                
+                                overlayInsert += `
+                                  <div align="left" class="panel-heading">
+                                    <b>` + key + '(' + counter + ')' + `</b>
+                                  </div>
+                                  <div class="panel-body">` + response + `</div>`;
+                                
+                                if(counter == Object.keys(legendObject[key]).length - 1) {
+                                  var overlayHtml = $(`
+                                      <div class="code-dialog" id="` + key + `-analysis-results">
+                                        <div class="panel panel-default">`+ overlayInsert + `</div></div>`
+                                    );
+                                  Analyser.onAnalysisCompleted.emit({ node: { id: "Output" + key + counter, name: key }, overlayHtml: overlayHtml });
+                                }
+                                else {
+                                  fileQuery(++counter);
+                                }
+                              },
+                              msg => {
+                                reject(msg);
+                              });
+                        };
+                        fileQuery(0);
+                      }
+                    },
+                    msg => {
+                      reject(msg);
+                    });
+                  
                   resolve();
                 },
                 msg => {
