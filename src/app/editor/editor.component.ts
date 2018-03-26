@@ -347,6 +347,9 @@ export class EditorComponent implements OnInit {
                 res => {
                   let files = res.json().files;
                   let legend = files.filter(x => x.indexOf('legend') != -1)[0];
+                  let namePathMapping = {};
+                  files.filter(x => x.indexOf('legend') == -1)
+                       .forEach(path => namePathMapping[path.split('/').pop()] = path);
 
                   self.http.get(config.leakswhen.host + legend)
                   .toPromise()
@@ -358,7 +361,7 @@ export class EditorComponent implements OnInit {
                         let counter = 0;
                         
                         let fileQuery = (index) => {
-                          self.http.get(config.leakswhen.host + '/leaks-when/data/tmp/' + legendObject[key][index])
+                          self.http.get(config.leakswhen.host + namePathMapping[legendObject[key][index]])
                             .toPromise()
                             .then(res => {
                                 let response = (<any>res)._body;
@@ -367,7 +370,7 @@ export class EditorComponent implements OnInit {
                                   <div align="left" class="panel-heading">
                                     <b>` + key + '(' + counter + ')' + `</b>
                                   </div>
-                                  <div class="panel-body">` + response + `</div>`;
+                                  <div class="panel-body" style="white-space: pre-wrap">` + response + `</div>`;
                                 
                                 if(counter == Object.keys(legendObject[key]).length - 1) {
                                   var overlayHtml = $(`
