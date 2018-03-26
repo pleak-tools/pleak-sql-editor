@@ -91,8 +91,7 @@ let analyzeProcessingNode = (nodeId: string, eventBus: any, dataDefStatements: {
         http.post(config.backend.host + '/rest/sql-privacy/analyse', { schema: obj_schema, query: obj_query }, authService.loadRequestOptions()).subscribe(
           success => {
             if (success.status === 200) {
-
-              var res = JSON.parse((<any>success)._body);
+              let res = success.json();
               errorInModel = false;
               $('#analyserInputError').hide();
               var resultRows = "";

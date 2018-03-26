@@ -19,13 +19,13 @@
             </a>
           </li>
         </ul>
-        <!-- <ul class="buttons analyze" *ngIf="isAuthenticated()">
+        <ul class="buttons analyze" *ngIf="isAuthenticated()">
           <li>
             <a id="leaks-report" title="Generate leaks report" href="#" class="active">
-              <span class="glyphicon glyphicon-list-alt"></span> Leaks Report
+              <span class="glyphicon glyphicon-list-alt"></span> LeaksWhen Report
             </a>
           </li>
-        </ul> -->
+        </ul>
         <ul class="buttons analyze" id="login-container" *ngIf="isAuthenticated()">
           <li>
             <a id="log-out" data-toggle="modal" data-target="#logoutModal" href class="active">
@@ -56,8 +56,11 @@
 </div>
 
 <div class="row error-messages">
-  <span id="analyserInputError" class="help-block error-message" style="display: none;">
+  <span id="analyserInputError" class="help-block error-message">
     SQL-analyser couldn't analyse all the tasks of the model! Makse sure that all input queries are correct!
+  </span>
+  <span id="leaksWhenInputError" class="help-block error-message">
+    No data objects selected!
   </span>
 </div>
 
