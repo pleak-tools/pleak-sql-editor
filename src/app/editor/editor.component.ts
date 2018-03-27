@@ -26,12 +26,12 @@ var config = require('./../../config.json');
 export class EditorComponent implements OnInit {
 
   constructor(public http: Http, private authService: AuthService) {
-    this.authService.authStatus.subscribe(status => {
-      this.authenticated = status;
-      if (!status || !this.file) {
-        this.getModel();
-      }
-    });
+      this.authService.authStatus.subscribe(status => {
+        this.authenticated = status;
+        if (!status || !this.file) {
+          this.getModel();
+        }
+      });
     this.getModel();
   }
 
@@ -102,18 +102,18 @@ export class EditorComponent implements OnInit {
         eventBus.on('element.click', function (e) {
           // User can select intermediate and sync data objects for leaks report
           if (is(e.element.businessObject, 'bpmn:DataObjectReference') && !!e.element.incoming.length) {
-            // let canvas = self.viewer.get('canvas');
-            // if (!e.element.businessObject.selectedForReport) {
-            //   self.selectedDataObjects.push(e.element.businessObject.name);
-            //   e.element.businessObject.selectedForReport = true;
-            //   canvas.addMarker(e.element.id, 'highlight-input-selected');
-            // }
-            // else {
-            //   let index = self.selectedDataObjects.findIndex(x => x == e.element.businessObject.name);
-            //   self.selectedDataObjects.splice(index, 1);
-            //   e.element.businessObject.selectedForReport = false;
-            //   canvas.removeMarker(e.element.id, 'highlight-input-selected');
-            // }
+            let canvas = self.viewer.get('canvas');
+            if (!e.element.businessObject.selectedForReport) {
+              self.selectedDataObjects.push(e.element.businessObject.name);
+              e.element.businessObject.selectedForReport = true;
+              canvas.addMarker(e.element.id, 'highlight-input-selected');
+            }
+            else {
+              let index = self.selectedDataObjects.findIndex(x => x == e.element.businessObject.name);
+              self.selectedDataObjects.splice(index, 1);
+              e.element.businessObject.selectedForReport = false;
+              canvas.removeMarker(e.element.id, 'highlight-input-selected');
+            }
           }
           else {
             if ((is(e.element.businessObject, 'bpmn:DataObjectReference') ||
@@ -180,6 +180,7 @@ export class EditorComponent implements OnInit {
       $('.buttons-container').on('click', '#leaks-report', (e) => {
         e.preventDefault();
         e.stopPropagation();
+        $('#leaksWhenInputError').hide();
         this.sidebarComponent.clear();
         this.buildSqlInTopologicalOrder();
       });
@@ -253,6 +254,8 @@ export class EditorComponent implements OnInit {
 
   // Analyse model
   analyse() {
+    $('#messageModal').find('.modal-title').text("Analysis in progress...");
+    this.selectedDataObjects = [];
     this.viewer.saveXML({ format: true }, (err: any, xml: string) => {
       this.viewer.get("moddle").fromXML(xml, (err: any, definitions: any) => {
         if (typeof definitions !== 'undefined') {
@@ -299,29 +302,111 @@ export class EditorComponent implements OnInit {
 
   buildSqlInTopologicalOrder() {
     let self = this;
-    this.viewer.saveXML({ format: true }, (err: any, xml: string) => {
-      this.viewer.get("moddle").fromXML(xml, (err: any, definitions: any) => {
-        var element = definitions.diagrams[0].plane.bpmnElement;
-        let registry = this.viewer.get('elementRegistry');
-        let info = dataFlowAnalysis(element, registry);
-        let [processingNodes, dataFlowEdges, invDataFlowEdges, sources] = [info.processingNodes, info.dataFlowEdges, info.invDataFlowEdges, info.sources];
-        let order = topologicalSorting(dataFlowEdges, invDataFlowEdges, sources);
 
-        let sqlCommands = order.reduce(function (sqlCommands, id) {
-          let obj = registry.get(id);
-          if (obj.type == "bpmn:DataObjectReference" && !obj.incoming.length ||
-            obj.type == "bpmn:Task") {
-            let sql = obj.businessObject.sqlScript;
-            sqlCommands += sql + '\n\n';
-          }
-          return sqlCommands;
-        }, "");
-        console.log(sqlCommands);
+    if(!self.selectedDataObjects.length) {
+      $('#leaksWhenInputError').show();
+    }
+    else {
+      this.viewer.saveXML({ format: true }, (err: any, xml: string) => {
+        this.viewer.get("moddle").fromXML(xml, (err: any, definitions: any) => {
+          var element = definitions.diagrams[0].plane.bpmnElement;
+          let registry = this.viewer.get('elementRegistry');
+          let info = dataFlowAnalysis(element, registry);
+          let [processingNodes, dataFlowEdges, invDataFlowEdges, sources] = [info.processingNodes, info.dataFlowEdges, info.invDataFlowEdges, info.sources];
+          let order = topologicalSorting(dataFlowEdges, invDataFlowEdges, sources);
+  
+          let sqlCommands = order.reduce(function (sqlCommands, id) {
+            let obj = registry.get(id);
+            if (obj.type == "bpmn:DataObjectReference" && !obj.incoming.length ||
+              obj.type == "bpmn:Task") {
+              let sql = obj.businessObject.sqlScript;
+              sqlCommands += sql + '\n\n';
+            }
+            return sqlCommands;
+          }, "");
+          // console.log(sqlCommands);
+  
+          let processedLabels = self.selectedDataObjects.map(x => x.split(" ").map(word => word.toLowerCase()).join("_"));
+          // console.log(processedLabels);
+  
+          let analysisHtml = `<div class="spinner">
+                <div class="double-bounce1"></div>
+                <div class="double-bounce2"></div>
+              </div>`;
+  
+          $('#messageModal').find('.modal-title').text("Leaks Report is building...");
+          $('#messageModal').find('.modal-body').html(analysisHtml);
+  
+          return new Promise((resolve, reject) => {
+            $('#messageModal').modal();
+  
+            let apiURL = config.leakswhen.host + config.leakswhen.report + processedLabels.join(',');
+            self.http.post(apiURL, sqlCommands)
+              .toPromise()
+              .then(
+                res => {
+                  let files = res.json().files;
+                  let legend = files.filter(x => x.indexOf('legend') != -1)[0];
+                  let namePathMapping = {};
+                  files.filter(x => x.indexOf('legend') == -1)
+                       .forEach(path => namePathMapping[path.split('/').pop()] = path);
 
-        let processedLabels = self.selectedDataObjects.map(x => x.split(" ").map(word => word.toLowerCase()).join("_"));
-        console.log(processedLabels);
+                  self.http.get(config.leakswhen.host + legend)
+                  .toPromise()
+                  .then(res => {
+                      let legendObject = res.json();
+
+                      for (var key in legendObject) {
+                        let overlayInsert = ``;
+                        let counter = 0;
+                        
+                        let fileQuery = (index) => {
+                          self.http.get(config.leakswhen.host + namePathMapping[legendObject[key][index]])
+                            .toPromise()
+                            .then(res => {
+                                let response = (<any>res)._body;
+                                
+                                overlayInsert += `
+                                  <div align="left" class="panel-heading">
+                                    <b>` + key + '(' + counter + ')' + `</b>
+                                  </div>
+                                  <div class="panel-body" style="white-space: pre-wrap">` + response + `</div>`;
+                                
+                                if(counter == Object.keys(legendObject[key]).length - 1) {
+                                  var overlayHtml = $(`
+                                      <div class="code-dialog" id="` + key + `-analysis-results">
+                                        <div class="panel panel-default">`+ overlayInsert + `</div></div>`
+                                    );
+                                  Analyser.onAnalysisCompleted.emit({ node: { id: "Output" + key + counter, name: key }, overlayHtml: overlayHtml });
+                                }
+                                else {
+                                  fileQuery(++counter);
+                                }
+                              },
+                              msg => {
+                                reject(msg);
+                              });
+                        };
+                        fileQuery(0);
+                      }
+                    },
+                    msg => {
+                      reject(msg);
+                    });
+                  
+                  resolve();
+                },
+                msg => {
+                  reject(msg);
+                }
+              )
+              .then(res => {
+                setTimeout(() => { $('#messageModal').modal('toggle'); }, 500);
+              });
+          });
+        });
       });
-    });
+    }
   }
 
   ngOnInit() {
