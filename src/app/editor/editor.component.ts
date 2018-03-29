@@ -340,8 +340,8 @@ export class EditorComponent implements OnInit {
           return new Promise((resolve, reject) => {
             $('#messageModal').modal();
   
-            let apiURL = config.leakswhen.host + config.leakswhen.report + processedLabels.join(',');
-            self.http.post(apiURL, sqlCommands)
+            let apiURL = config.leakswhen.host + config.leakswhen.report;
+            self.http.post(apiURL, {name: "tmp", targets: processedLabels.join(','), sql_script: sqlCommands})
               .toPromise()
               .then(
                 res => {

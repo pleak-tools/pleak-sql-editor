@@ -3,8 +3,8 @@
         "host": "http://localhost:8080/pleak-backend"
     },
     "leakswhen": {
-        "host": "http://localhost:3030",
-        "report": "/upload?targets="
+        "host": "http://localhost:3000",
+        "report": "/upload"
     },
     "frontend": {
         "host": "http://localhost:8000",
