@@ -22,5 +22,8 @@
     },
     "sql_derivative_sensitivity_editor": {
         "folder": "pleak-sql-derivative-sensitivity-editor"
+    },
+    "leakswhen_analysis_mode": {
+        "multi_runs": false
     }
 }

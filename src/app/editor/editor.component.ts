@@ -181,6 +181,7 @@ export class EditorComponent implements OnInit {
         e.preventDefault();
         e.stopPropagation();
         $('#leaksWhenInputError').hide();
+        $('#leaksWhenServerError').hide();
         this.sidebarComponent.clear();
         this.buildSqlInTopologicalOrder();
       });
@@ -300,9 +301,67 @@ export class EditorComponent implements OnInit {
     );
   }
 
+  buildRuns(startBusinessObj) {
+    var runs = [];
+    var crun = [];
+    var st = [startBusinessObj];
+    var xorSplitStack = [];
+    var marked = {};
+    
+    while(st.length > 0) {
+      var curr = st.pop();
+      crun.push(curr);
+
+      let inc = curr.incoming ? curr.incoming.map(x => x.sourceRef) : null;
+      let out = curr.outgoing ? curr.outgoing.map(x => x.targetRef) : null;
+
+      var isAllPredecessorsInRun = !inc || inc.reduce((acc, cur) => acc && !!crun.find(x => x==cur), true);
+      if(isAllPredecessorsInRun || curr.$type == 'bpmn:ExclusiveGateway' && out.length == 1 || 
+          curr.$type == 'bpmn:EndEvent') {
+        if(curr.$type == 'bpmn:ExclusiveGateway' && inc.length == 1) {
+          curr.stackImage = st.slice();
+          xorSplitStack.push(curr);
+
+          marked[curr.id] = [out[0]];
+          st.push(out[0]);
+        }
+        else {
+          if(curr.$type != 'bpmn:EndEvent') {
+            out.forEach(x => st.push(x));
+          }
+          else {
+            runs.push(crun.slice());
+            while(xorSplitStack.length > 0) {
+              var top = xorSplitStack[xorSplitStack.length - 1];
+              let xorOut = top.outgoing.map(x => x.targetRef);
+              if(!xorOut.reduce((acc, cur) => acc && !!marked[top.id].find(x => x==cur), true)) {
+                crun = crun.slice(0, crun.findIndex(x => x==top) + 1);
+
+                var unmarked = xorOut.filter(x => !marked[top.id].find(y => y==x));
+                marked[top.id].push(unmarked[0]);
+
+                // not to loose possible parallel tasks
+                st = top.stackImage;
+                st.push(unmarked[0]);
+                break;
+              }
+              else {
+                marked[top.id] = [];
+                xorSplitStack.pop();
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    return runs;
+  }
+
+  private promises: Array<any> = [];
+
   buildSqlInTopologicalOrder() {
     let self = this;
-
     if(!self.selectedDataObjects.length) {
       $('#leaksWhenInputError').show();
     }
@@ -312,101 +371,142 @@ export class EditorComponent implements OnInit {
           var element = definitions.diagrams[0].plane.bpmnElement;
           let registry = this.viewer.get('elementRegistry');
           let info = dataFlowAnalysis(element, registry);
-          let [processingNodes, dataFlowEdges, invDataFlowEdges, sources] = [info.processingNodes, info.dataFlowEdges, info.invDataFlowEdges, info.sources];
+          let [dataFlowEdges, invDataFlowEdges, sources] = [info.dataFlowEdges, info.invDataFlowEdges, info.sources];
           let order = topologicalSorting(dataFlowEdges, invDataFlowEdges, sources);
-  
-          let sqlCommands = order.reduce(function (sqlCommands, id) {
-            let obj = registry.get(id);
-            if (obj.type == "bpmn:DataObjectReference" && !obj.incoming.length ||
-              obj.type == "bpmn:Task") {
-              let sql = obj.businessObject.sqlScript;
-              sqlCommands += sql + '\n\n';
-            }
-            return sqlCommands;
-          }, "");
-          // console.log(sqlCommands);
-  
           let processedLabels = self.selectedDataObjects.map(x => x.split(" ").map(word => word.toLowerCase()).join("_"));
-          // console.log(processedLabels);
-  
+
           let analysisHtml = `<div class="spinner">
                 <div class="double-bounce1"></div>
                 <div class="double-bounce2"></div>
               </div>`;
-  
           $('#messageModal').find('.modal-title').text("Leaks Report is building...");
           $('#messageModal').find('.modal-body').html(analysisHtml);
-  
-          return new Promise((resolve, reject) => {
-            $('#messageModal').modal();
-  
-            let apiURL = config.leakswhen.host + config.leakswhen.report;
-            self.http.post(apiURL, {name: "tmp", targets: processedLabels.join(','), sql_script: sqlCommands})
-              .toPromise()
-              .then(
-                res => {
-                  let files = res.json().files;
-                  let legend = files.filter(x => x.indexOf('legend') != -1)[0];
-                  let namePathMapping = {};
-                  files.filter(x => x.indexOf('legend') == -1)
-                       .forEach(path => namePathMapping[path.split('/').pop()] = path);
 
-                  self.http.get(config.leakswhen.host + legend)
-                  .toPromise()
-                  .then(res => {
-                      let legendObject = res.json();
+          if(config.leakswhen_analysis_mode.multi_runs) {
+            let startEvent = null;
+            for(var i in registry._elements) {
+              if(registry._elements[i].element.type == "bpmn:StartEvent") {
+                startEvent = registry._elements[i].element.businessObject;
+                break;
+              }
+            }
 
-                      for (var key in legendObject) {
-                        let overlayInsert = ``;
-                        let counter = 0;
-                        
-                        let fileQuery = (index) => {
-                          self.http.get(config.leakswhen.host + namePathMapping[legendObject[key][index]])
-                            .toPromise()
-                            .then(res => {
-                                let response = (<any>res)._body;
-                                
-                                overlayInsert += `
-                                  <div align="left" class="panel-heading">
-                                    <b>` + key + '(' + counter + ')' + `</b>
-                                  </div>
-                                  <div class="panel-body" style="white-space: pre-wrap">` + response + `</div>`;
-                                
-                                if(counter == Object.keys(legendObject[key]).length - 1) {
-                                  var overlayHtml = $(`
-                                      <div class="code-dialog" id="` + key + `-analysis-results">
-                                        <div class="panel panel-default">`+ overlayInsert + `</div></div>`
-                                    );
-                                  Analyser.onAnalysisCompleted.emit({ node: { id: "Output" + key + counter, name: key }, overlayHtml: overlayHtml });
-                                }
-                                else {
-                                  fileQuery(++counter);
-                                }
-                              },
-                              msg => {
-                                reject(msg);
-                              });
-                        };
-                        fileQuery(0);
-                      }
-                    },
-                    msg => {
-                      reject(msg);
-                    });
-                  
-                  resolve();
-                },
-                msg => {
-                  reject(msg);
-                }
-              )
-              .then(res => {
-                setTimeout(() => { $('#messageModal').modal('toggle'); }, 500);
+            if(!!startEvent) {
+              let runs = self.buildRuns(startEvent).map(x => x.filter(y => y.$type == 'bpmn:Task').map(y => y.id));
+              // console.log(runs);
+
+              runs.forEach(run => {
+                let sqlCommands = run.reduce(function (sqlCommands, id) {
+                  let task = registry.get(id);
+                  task.incoming.filter(x => x.type=='bpmn:DataInputAssociation')
+                               .map(x => x.businessObject.sourceRef[0].sqlScript)
+                               .forEach(sql => {
+                                 if(sql && sqlCommands.indexOf(sql) == -1)
+                                    sqlCommands += sql + '\n\n';
+                                });
+                  let sql = task.businessObject.sqlScript;
+                  sqlCommands += sql + '\n\n';
+                  return sqlCommands;
+                }, "");
+                // console.log(sqlCommands + "\n\n\n\n\n\n\n\n");
+
+                self.sendLeaksWhenRequest(sqlCommands, processedLabels);
               });
+            }
+          }
+          else {
+              let sqlCommands = order.reduce(function (sqlCommands, id) {
+              let obj = registry.get(id);
+              if (obj.type == "bpmn:DataObjectReference" && !obj.incoming.length ||
+                obj.type == "bpmn:Task") {
+                let sql = obj.businessObject.sqlScript;
+                sqlCommands += sql + '\n\n';
+              }
+              return sqlCommands;
+            }, "");
+            
+            // console.log(sqlCommands);
+            // console.log(processedLabels);
+
+            self.sendLeaksWhenRequest(sqlCommands, processedLabels);
+          }
+
+          return Promise.all(self.promises).then(res => {
+            setTimeout(() => { $('#messageModal').modal('toggle'); }, 500);
           });
         });
       });
     }
+  }
+
+  sendLeaksWhenRequest(sqlCommands, processedLabels) {
+    let self = this;
+
+    self.promises.push(new Promise((resolve, reject) => {
+      $('#messageModal').modal();
+
+      let apiURL = config.leakswhen.host + config.leakswhen.report;
+      self.http.post(apiURL, {name: "tmp", targets: processedLabels.join(','), sql_script: sqlCommands})
+        .toPromise()
+        .then(
+          res => {
+            let files = res.json().files;
+            let legend = files.filter(x => x.indexOf('legend') != -1)[0];
+            let namePathMapping = {};
+            files.filter(x => x.indexOf('legend') == -1)
+                 .forEach(path => namePathMapping[path.split('/').pop()] = path);
+
+            self.http.get(config.leakswhen.host + legend)
+            .toPromise()
+            .then(res => {
+                let legendObject = res.json();
+
+                for (var key in legendObject) {
+                  let overlayInsert = ``;
+                  let counter = 0;
+                  
+                  let fileQuery = (index) => {
+                    self.http.get(config.leakswhen.host + namePathMapping[legendObject[key][index]])
+                      .toPromise()
+                      .then(res => {
+                          let response = (<any>res)._body;
+                          
+                          overlayInsert += `
+                            <div align="left" class="panel-heading">
+                              <b>` + key + '(' + counter + ')' + `</b>
+                            </div>
+                            <div class="panel-body" style="white-space: pre-wrap">` + response + `</div>`;
+                          
+                          if(counter == Object.keys(legendObject[key]).length - 1) {
+                            var overlayHtml = $(`
+                                <div class="code-dialog" id="` + key + `-analysis-results">
+                                  <div class="panel panel-default">`+ overlayInsert + `</div></div>`
+                              );
+                            Analyser.onAnalysisCompleted.emit({ node: { id: "Output" + key + counter, name: key }, overlayHtml: overlayHtml });
+                          }
+                          else {
+                            fileQuery(++counter);
+                          }
+                        },
+                        msg => {
+                          reject(msg);
+                        });
+                  };
+                  fileQuery(0);
+                }
+              },
+              msg => {
+                reject(msg);
+              });
+            
+            resolve();
+          },
+          err => {
+            $('#leaksWhenServerError').show();
+            resolve();
+          }
+        );
+    }));
   }
 
   ngOnInit() {
