@@ -382,7 +382,7 @@ export class EditorComponent implements OnInit {
           $('#messageModal').find('.modal-title').text("Leaks Report is building...");
           $('#messageModal').find('.modal-body').html(analysisHtml);
 
-          if(config.leakswhen_analysis_mode.multi_runs) {
+          if(config.leakswhen.multi_runs) {
             let startEvent = null;
             for(var i in registry._elements) {
               if(registry._elements[i].element.type == "bpmn:StartEvent") {
