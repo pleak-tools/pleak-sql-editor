@@ -2,10 +2,6 @@
     "backend": {
         "host": "http://localhost:8080/pleak-backend"
     },
-    "leakswhen": {
-        "host": "http://localhost:3000",
-        "report": "/upload"
-    },
     "frontend": {
         "host": "http://localhost:8000",
         "port": 8000,
@@ -23,7 +19,9 @@
     "sql_derivative_sensitivity_editor": {
         "folder": "pleak-sql-derivative-sensitivity-editor"
     },
-    "leakswhen_analysis_mode": {
+    "leakswhen": {
+        "host": "http://localhost:3000",
+        "report": "/upload",
         "multi_runs": false
     }
 }
