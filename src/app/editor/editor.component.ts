@@ -464,25 +464,25 @@ export class EditorComponent implements OnInit {
                 for (var key in legendObject) {
                   let overlayInsert = ``;
                   let counter = 0;
-                  
+                  let clojuredKey = key;
                   let fileQuery = (index) => {
-                    self.http.get(config.leakswhen.host + namePathMapping[legendObject[key][index]])
+                    self.http.get(config.leakswhen.host + namePathMapping[legendObject[clojuredKey][index]])
                       .toPromise()
                       .then(res => {
                           let response = (<any>res)._body;
                           
                           overlayInsert += `
                             <div align="left" class="panel-heading">
-                              <b>` + key + '(' + counter + ')' + `</b>
+                              <b>` + clojuredKey + '(' + counter + ')' + `</b>
                             </div>
                             <div class="panel-body" style="white-space: pre-wrap">` + response + `</div>`;
                           
-                          if(counter == Object.keys(legendObject[key]).length - 1) {
+                          if(counter == Object.keys(legendObject[clojuredKey]).length - 1) {
                             var overlayHtml = $(`
-                                <div class="code-dialog" id="` + key + `-analysis-results">
+                                <div class="code-dialog" id="` + clojuredKey + `-analysis-results">
                                   <div class="panel panel-default">`+ overlayInsert + `</div></div>`
                               );
-                            Analyser.onAnalysisCompleted.emit({ node: { id: "Output" + key + counter, name: key }, overlayHtml: overlayHtml });
+                            Analyser.onAnalysisCompleted.emit({ node: { id: "Output" + clojuredKey + counter, name: clojuredKey }, overlayHtml: overlayHtml });
                           }
                           else {
                             fileQuery(++counter);
