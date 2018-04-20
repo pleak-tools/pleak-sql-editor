@@ -460,6 +460,8 @@ export class EditorComponent implements OnInit {
             .toPromise()
             .then(res => {
                 let legendObject = res.json();
+                let orderTasks = [];
+                let currentProcessingTaskIndex = 0;
 
                 for (var key in legendObject) {
                   let overlayInsert = ``;
@@ -483,6 +485,9 @@ export class EditorComponent implements OnInit {
                                   <div class="panel panel-default">`+ overlayInsert + `</div></div>`
                               );
                             Analyser.onAnalysisCompleted.emit({ node: { id: "Output" + clojuredKey + counter, name: clojuredKey }, overlayHtml: overlayHtml });
+                            if(orderTasks[++currentProcessingTaskIndex]){
+                              orderTasks[currentProcessingTaskIndex](0);
+                            }
                           }
                           else {
                             fileQuery(++counter);
@@ -492,8 +497,9 @@ export class EditorComponent implements OnInit {
                           reject(msg);
                         });
                   };
-                  fileQuery(0);
+                  orderTasks.push(fileQuery);
                 }
+                orderTasks[currentProcessingTaskIndex](0);
               },
               msg => {
                 reject(msg);
