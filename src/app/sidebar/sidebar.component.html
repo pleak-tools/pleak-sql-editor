@@ -1,4 +1,10 @@
 <div class="container">
+
+    <div class="analysis-spinner" style="display:none">
+        <div class="double-bounce1-2"></div>
+        <div class="double-bounce2-2"></div>
+    </div>
+
     <div [hidden]="!isEditing" class="panel-section">
         <div class="panel panel-default">
             <div align="left" class="panel-heading">
@@ -24,7 +30,7 @@
     <div class="clearfix"></div>
     <div *ngIf="analysisSteps.length" class="panel-section">
         <div>
-            <h3 class="title">Analysis</h3>
+            <h3 class="title">Analysis results</h3>
         </div>
         <div class="panel-group" role="tablist" aria-multiselectable="true">
             <div class="panel panel-default" *ngFor="let result of analysisSteps">

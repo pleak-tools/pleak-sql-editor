@@ -190,7 +190,7 @@ let analyzeProcessingNode = (nodeId: string, eventBus: any, dataDefStatements: {
               errorInModel = true;
               $('#analyserInputError').show();
             } else {
-              console.log("Server error!");
+              alert("Server error!");
             }
           }
         );

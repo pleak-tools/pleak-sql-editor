@@ -11,6 +11,7 @@ declare var $: any;
 declare var CodeMirror: any;
 declare function require(name: string);
 
+
 let is = (element, type) => element.$instanceOf(type);
 
 var pg_parser = require("exports-loader?Module!pgparser/pg_query.js");
@@ -64,7 +65,7 @@ export class EditorComponent implements OnInit {
         self.file = JSON.parse((<any>success)._body);
         self.fileId = self.file.id;
         if (self.file.content.length === 0) {
-          console.log("File can't be found or opened!");
+          alert("File can't be found or opened!");
         }
         self.openDiagram(self.file.content);
         self.lastContent = self.file.content;
@@ -456,34 +457,49 @@ export class EditorComponent implements OnInit {
             files.filter(x => x.indexOf('legend') == -1)
                  .forEach(path => namePathMapping[path.split('/').pop()] = path);
 
-            self.http.get(config.leakswhen.host + legend)
+            //let url1 = config.leakswhen.host + legend.replace("leaks-when/", "");
+            let url1 = config.leakswhen.host + legend;
+            self.http.get(url1)
             .toPromise()
             .then(res => {
                 let legendObject = res.json();
                 let orderTasks = [];
                 let currentProcessingTaskIndex = 0;
 
+                let resultGraphsInfo = []
+
                 for (var key in legendObject) {
                   let overlayInsert = ``;
                   let counter = 0;
                   let clojuredKey = key;
                   let fileQuery = (index) => {
-                    self.http.get(config.leakswhen.host + namePathMapping[legendObject[clojuredKey][index]])
+                    //let url2 = config.leakswhen.host + namePathMapping[legendObject[clojuredKey][index]].replace("leaks-when/", "");
+                    let url2 = config.leakswhen.host + namePathMapping[legendObject[clojuredKey][index]];
+
+                    self.http.get(url2)
                       .toPromise()
                       .then(res => {
                           let response = (<any>res)._body;
+
+                          let urlParts = url2.split("/");
+                          let fileNameParts = url2.split("/")[urlParts.length-1].split(".")[0].split("_");
+                          let gid = fileNameParts[fileNameParts.length-1];
                           
                           overlayInsert += `
                             <div align="left" class="panel-heading">
                               <b>` + clojuredKey + '(' + counter + ')' + `</b>
                             </div>
-                            <div class="panel-body" style="white-space: pre-wrap">` + response + `</div>`;
-                          
+                            <div class="panel-body">
+                              <div>
+                                <a href="` + config.frontend.host + '/graph/' + parseInt(gid) + `" target="_blank">View graph</a>
+                              </div>
+                            </div>`;
+
                           if(counter == Object.keys(legendObject[clojuredKey]).length - 1) {
                             var overlayHtml = $(`
                                 <div class="code-dialog" id="` + clojuredKey + `-analysis-results">
                                   <div class="panel panel-default">`+ overlayInsert + `</div></div>`
-                              );
+                            );
                             Analyser.onAnalysisCompleted.emit({ node: { id: "Output" + clojuredKey + counter, name: clojuredKey }, overlayHtml: overlayHtml });
                             if(orderTasks[++currentProcessingTaskIndex]){
                               orderTasks[currentProcessingTaskIndex](0);
@@ -545,5 +561,6 @@ export class EditorComponent implements OnInit {
     Analyser.onAnalysisCompleted.subscribe(result => {
       this.sidebarComponent.emitTaskResult(result);
     });
+
   }
 }
