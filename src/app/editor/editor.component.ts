@@ -4,13 +4,12 @@ import { AuthService } from "../auth/auth.service";
 import { SqlBPMNModdle } from "./bpmn-sql-extension";
 import { Analyser } from "../analyser/SQLDFlowAnalizer";
 import { topologicalSorting, dataFlowAnalysis } from "../analyser/GraMSecAnalizer";
-import * as Viewer from 'bpmn-js/lib/NavigatedViewer';
 import { SidebarComponent } from '../sidebar/sidebar.component';
+import NavigatedViewer from 'bpmn-js/lib/NavigatedViewer';
 
 declare var $: any;
 declare var CodeMirror: any;
 declare function require(name: string);
-
 
 let is = (element, type) => element.$instanceOf(type);
 
@@ -39,7 +38,7 @@ export class EditorComponent implements OnInit {
   @Input() authenticated: Boolean;
   @ViewChild(SidebarComponent) sidebarComponent: SidebarComponent
 
-  private viewer: Viewer;
+  private viewer: NavigatedViewer;
   private modelId: Number = Number.parseInt(window.location.pathname.split('/')[2]);
   private saveFailed: Boolean = false;
   private lastContent: String = '';
@@ -86,7 +85,7 @@ export class EditorComponent implements OnInit {
   openDiagram(diagram: String) {
     var self = this;
     if (diagram && this.viewer == null) {
-      this.viewer = new Viewer({
+      this.viewer = new NavigatedViewer({
         container: '#canvas',
         keyboard: {
           bindTo: document
