@@ -8,15 +8,12 @@ declare var $: any;
   styleUrls: ['/sidebar.component.less']
 })
 export class SidebarComponent {
-  @Input() authenticated: Boolean;
+  @Input() canEdit: Boolean;
 
   public resultTable: Array<any> = [];
   public analysisSteps: Array<any> = [];
-  public isEditing: boolean = false;
+  public isEditing: Boolean = false;
 
-  isAuthenticated() {
-    return this.authenticated;
-  }
 
   showResults() {
     $('#messageModal').modal();

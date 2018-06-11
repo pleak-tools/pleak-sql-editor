@@ -28,18 +28,31 @@ export class EditorComponent implements OnInit {
   constructor(public http: Http, private authService: AuthService) {
       this.authService.authStatus.subscribe(status => {
         this.authenticated = status;
-        if (!status || !this.file) {
+        if (!status && !this.file) {
           this.getModel();
         }
       });
     this.getModel();
+
+    let pathname = window.location.pathname.split('/');
+
+    if (pathname[2] === 'viewer') {
+        this.modelId = pathname[3];
+        this.viwerType = 'public';
+    } else {
+        this.modelId = pathname[2];
+        this.viwerType = 'private';
+    }
   }
 
   @Input() authenticated: Boolean;
-  @ViewChild(SidebarComponent) sidebarComponent: SidebarComponent
+  @ViewChild(SidebarComponent) sidebarComponent: SidebarComponent;
 
   private viewer: NavigatedViewer;
-  private modelId: Number = Number.parseInt(window.location.pathname.split('/')[2]);
+
+  private modelId;
+  private viwerType;
+
   private saveFailed: Boolean = false;
   private lastContent: String = '';
   private codeMirror: any;
@@ -54,18 +67,28 @@ export class EditorComponent implements OnInit {
 
   // Load model
   getModel() {
-    var self = this;
+    const self = this;
     $('#canvas').html('');
     $('.buttons-container').off('click', '#save-diagram');
     $('.buttons-container').off('click', '#analyse-diagram');
     self.viewer = null;
-    this.http.get(config.backend.host + '/rest/directories/files/' + self.modelId, this.authService.loadRequestOptions()).subscribe(
+    this.http.get(config.backend.host + '/rest/directories/files/' + (this.viwerType === 'public' ? 'public/' : '') + this.modelId, this.authService.loadRequestOptions()).subscribe(
       success => {
         self.file = JSON.parse((<any>success)._body);
         self.fileId = self.file.id;
         if (self.file.content.length === 0) {
-          alert("File can't be found or opened!");
+          alert('File can\'t be found or opened!');
         }
+
+        this.codeMirror = CodeMirror.fromTextArea(document.getElementById('CodeEditor'), {
+            mode: 'text/x-mysql',
+            lineNumbers: true,
+            showCursorWhenSelecting: true,
+            lineWiseCopyCut: false,
+            readOnly: !self.canEdit()
+        });
+        this.codeMirror.setSize('100%', 220);
+
         self.openDiagram(self.file.content);
         self.lastContent = self.file.content;
         document.title = 'Pleak SQL-privacy editor - ' + self.file.title;
@@ -81,9 +104,24 @@ export class EditorComponent implements OnInit {
     );
   }
 
+  canEdit() {
+      let file = this.file;
+
+      if (!file) { return false; }
+
+      if (this.authService.user ? file.user.email === this.authService.user.email : false) { return true; }
+      for (let pIx = 0; pIx < file.permissions.length; pIx++) {
+          if (file.permissions[pIx].action.title === 'edit' &&
+          this.authService.user ? file.permissions[pIx].user.id === this.authService.user.email : false) {
+              return true;
+          }
+      }
+      return false;
+  }
+
   // Load diagram and add editor
   openDiagram(diagram: String) {
-    var self = this;
+    const self = this;
     if (diagram && this.viewer == null) {
       this.viewer = new NavigatedViewer({
         container: '#canvas',
@@ -217,7 +255,7 @@ export class EditorComponent implements OnInit {
         },
         (err: any, xml: string) => {
           if (err) {
-            console.log(err)
+            console.log(err);
           } else {
             self.file.content = xml;
             this.http.put(config.backend.host + '/rest/directories/files/' + self.fileId, self.file, this.authService.loadRequestOptions()).subscribe(
@@ -307,7 +345,7 @@ export class EditorComponent implements OnInit {
     var st = [startBusinessObj];
     var xorSplitStack = [];
     var marked = {};
-    
+
     while(st.length > 0) {
       var curr = st.pop();
       crun.push(curr);
@@ -316,7 +354,7 @@ export class EditorComponent implements OnInit {
       let out = curr.outgoing ? curr.outgoing.map(x => x.targetRef) : null;
 
       var isAllPredecessorsInRun = !inc || inc.reduce((acc, cur) => acc && !!crun.find(x => x==cur), true);
-      if(isAllPredecessorsInRun || curr.$type == 'bpmn:ExclusiveGateway' && out.length == 1 || 
+      if(isAllPredecessorsInRun || curr.$type == 'bpmn:ExclusiveGateway' && out.length == 1 ||
           curr.$type == 'bpmn:EndEvent') {
         if(curr.$type == 'bpmn:ExclusiveGateway' && inc.length == 1) {
           curr.stackImage = st.slice();
@@ -354,7 +392,7 @@ export class EditorComponent implements OnInit {
         }
       }
     }
-    
+
     return runs;
   }
 
@@ -424,7 +462,7 @@ export class EditorComponent implements OnInit {
               }
               return sqlCommands;
             }, "");
-            
+
             // console.log(sqlCommands);
             // console.log(processedLabels);
 
@@ -483,7 +521,7 @@ export class EditorComponent implements OnInit {
                           let urlParts = url2.split("/");
                           let fileNameParts = url2.split("/")[urlParts.length-1].split(".")[0].split("_");
                           let gid = fileNameParts[fileNameParts.length-1];
-                          
+
                           overlayInsert += `
                             <div align="left" class="panel-heading">
                               <b>` + clojuredKey + '(' + counter + ')' + `</b>
@@ -519,7 +557,7 @@ export class EditorComponent implements OnInit {
               msg => {
                 reject(msg);
               });
-            
+
             resolve();
           },
           err => {
@@ -549,13 +587,7 @@ export class EditorComponent implements OnInit {
         }
       }
     });
-    this.codeMirror = CodeMirror.fromTextArea(document.getElementById("CodeEditor"), {
-      mode: "text/x-mysql",
-      lineNumbers: true,
-      showCursorWhenSelecting: true,
-      lineWiseCopyCut: false
-    });
-    this.codeMirror.setSize("100%", 220);
+
 
     Analyser.onAnalysisCompleted.subscribe(result => {
       this.sidebarComponent.emitTaskResult(result);
