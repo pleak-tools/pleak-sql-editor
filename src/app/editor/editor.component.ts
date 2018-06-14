@@ -26,14 +26,6 @@ var config = require('./../../config.json');
 export class EditorComponent implements OnInit {
 
   constructor(public http: Http, private authService: AuthService) {
-      this.authService.authStatus.subscribe(status => {
-        this.authenticated = status;
-        if (!status && !this.file) {
-          this.getModel();
-        }
-      });
-    this.getModel();
-
     let pathname = window.location.pathname.split('/');
 
     if (pathname[2] === 'viewer') {
@@ -43,6 +35,15 @@ export class EditorComponent implements OnInit {
         this.modelId = pathname[2];
         this.viwerType = 'private';
     }
+
+    this.authService.authStatus.subscribe(status => {
+      this.authenticated = status;
+      if (!status && !this.file) {
+        this.getModel();
+      }
+    });
+    this.getModel();
+
   }
 
   @Input() authenticated: Boolean;
@@ -80,16 +81,13 @@ export class EditorComponent implements OnInit {
           alert('File can\'t be found or opened!');
         }
 
-        this.codeMirror = CodeMirror.fromTextArea(document.getElementById('CodeEditor'), {
-            mode: 'text/x-mysql',
-            lineNumbers: true,
-            showCursorWhenSelecting: true,
-            lineWiseCopyCut: false,
-            readOnly: !self.canEdit()
-        });
-        this.codeMirror.setSize('100%', 220);
+        if (this.viwerType === 'public' && this.isAuthenticated()) {
+            self.getPermissions();
+        } else {
+            self.initCodemirror();
+            self.openDiagram(self.file.content);
+        }
 
-        self.openDiagram(self.file.content);
         self.lastContent = self.file.content;
         document.title = 'Pleak SQL-privacy editor - ' + self.file.title;
         $('#fileName').text(this.file.title);
@@ -104,20 +102,47 @@ export class EditorComponent implements OnInit {
     );
   }
 
-  canEdit() {
-      let file = this.file;
-
-      if (!file) { return false; }
-
-      if (this.authService.user ? file.user.email === this.authService.user.email : false) { return true; }
-      for (let pIx = 0; pIx < file.permissions.length; pIx++) {
-          if (file.permissions[pIx].action.title === 'edit' &&
-          this.authService.user ? file.permissions[pIx].user.id === this.authService.user.email : false) {
-              return true;
-          }
-      }
-      return false;
+  initCodemirror() {
+      this.codeMirror = CodeMirror.fromTextArea(document.getElementById('CodeEditor'), {
+          mode: 'text/x-mysql',
+          lineNumbers: true,
+          showCursorWhenSelecting: true,
+          lineWiseCopyCut: false,
+          readOnly: !this.canEdit()
+      });
+      this.codeMirror.setSize('100%', 220);
   }
+
+  getPermissions() {
+      let self = this;
+      this.http.get(config.backend.host + '/rest/directories/files/' + this.fileId, this.authService.loadRequestOptions()).subscribe(
+          success => {
+              let response = JSON.parse((<any>success)._body);
+              self.file.permissions = response.permissions;
+              self.file.user = response.user;
+          },
+          () => {},
+          () => {
+              self.initCodemirror();
+              self.openDiagram(self.file.content);
+          }
+      );
+  }
+
+    canEdit() {
+        let file = this.file;
+
+        if (!file || !this.isAuthenticated()) { return false; }
+
+        if ((this.authService.user && file.user) ? file.user.email === this.authService.user.email : false) { return true; }
+        for (let pIx = 0; pIx < file.permissions.length; pIx++) {
+            if (file.permissions[pIx].action.title === 'edit' &&
+            this.authService.user ? file.permissions[pIx].user.id === this.authService.user.email : false) {
+                return true;
+            }
+        }
+        return false;
+    }
 
   // Load diagram and add editor
   openDiagram(diagram: String) {
