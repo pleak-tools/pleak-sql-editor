@@ -30,10 +30,10 @@ export class EditorComponent implements OnInit {
 
     if (pathname[2] === 'viewer') {
         this.modelId = pathname[3];
-        this.viwerType = 'public';
+        this.viewerType = 'public';
     } else {
         this.modelId = pathname[2];
-        this.viwerType = 'private';
+        this.viewerType = 'private';
     }
 
     this.authService.authStatus.subscribe(status => {
@@ -52,7 +52,7 @@ export class EditorComponent implements OnInit {
   private viewer: NavigatedViewer;
 
   private modelId;
-  private viwerType;
+  private viewerType;
 
   private saveFailed: Boolean = false;
   private lastContent: String = '';
@@ -73,7 +73,7 @@ export class EditorComponent implements OnInit {
     $('.buttons-container').off('click', '#save-diagram');
     $('.buttons-container').off('click', '#analyse-diagram');
     self.viewer = null;
-    this.http.get(config.backend.host + '/rest/directories/files/' + (this.viwerType === 'public' ? 'public/' : '') + this.modelId, this.authService.loadRequestOptions()).subscribe(
+    this.http.get(config.backend.host + '/rest/directories/files/' + (this.viewerType === 'public' ? 'public/' : '') + this.modelId, this.authService.loadRequestOptions()).subscribe(
       success => {
         self.file = JSON.parse((<any>success)._body);
         self.fileId = self.file.id;
@@ -81,7 +81,7 @@ export class EditorComponent implements OnInit {
           alert('File can\'t be found or opened!');
         }
 
-        if (this.viwerType === 'public' && this.isAuthenticated()) {
+        if (this.viewerType === 'public' && this.isAuthenticated()) {
             self.getPermissions();
         } else {
             self.initCodemirror();
