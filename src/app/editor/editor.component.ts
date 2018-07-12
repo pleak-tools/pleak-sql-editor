@@ -27,15 +27,13 @@ export class EditorComponent implements OnInit {
 
   constructor(public http: Http, private authService: AuthService) {
     let pathname = window.location.pathname.split('/');
-
     if (pathname[2] === 'viewer') {
-        this.modelId = pathname[3];
-        this.viewerType = 'public';
+      this.modelId = pathname[3];
+      this.viewerType = 'public';
     } else {
-        this.modelId = pathname[2];
-        this.viewerType = 'private';
+      this.modelId = pathname[2];
+      this.viewerType = 'private';
     }
-
     this.authService.authStatus.subscribe(status => {
       this.authenticated = status;
       if (typeof(status) === 'boolean') {
@@ -43,7 +41,6 @@ export class EditorComponent implements OnInit {
       }
     });
     this.getModel();
-
   }
 
   @Input() authenticated: Boolean;
@@ -80,14 +77,12 @@ export class EditorComponent implements OnInit {
         if (self.file.content.length === 0) {
           alert('File can\'t be found or opened!');
         }
-
         if (this.viewerType === 'public' && this.isAuthenticated()) {
-            self.getPermissions();
+          self.getPermissions();
         } else {
-            self.initCodemirror();
-            self.openDiagram(self.file.content);
+          self.initCodemirror();
+          self.openDiagram(self.file.content);
         }
-
         self.lastContent = self.file.content;
         document.title = 'Pleak SQL-privacy editor - ' + self.file.title;
         $('#fileName').text(this.file.title);
@@ -103,50 +98,48 @@ export class EditorComponent implements OnInit {
   }
 
   initCodemirror() {
-      if (this.codeMirror) {
-          this.codeMirror.toTextArea();
-      }
-      this.codeMirror = CodeMirror.fromTextArea(document.getElementById('CodeEditor'), {
-          mode: 'text/x-mysql',
-          lineNumbers: true,
-          showCursorWhenSelecting: true,
-          lineWiseCopyCut: false,
-          readOnly: !this.canEdit()
-      });
-      this.codeMirror.setSize('100%', 220);
+    if (this.codeMirror) {
+      this.codeMirror.toTextArea();
+    }
+    this.codeMirror = CodeMirror.fromTextArea(document.getElementById('CodeEditor'), {
+      mode: 'text/x-mysql',
+      lineNumbers: true,
+      showCursorWhenSelecting: true,
+      lineWiseCopyCut: false,
+      readOnly: !this.canEdit()
+    });
+    this.codeMirror.setSize('100%', 220);
   }
 
   getPermissions() {
-      let self = this;
-      this.http.get(config.backend.host + '/rest/directories/files/' + this.fileId, this.authService.loadRequestOptions()).subscribe(
-          success => {
-              let response = JSON.parse((<any>success)._body);
-              self.file.permissions = response.permissions;
-              self.file.user = response.user;
-              self.file.md5Hash = response.md5Hash;
-          },
-          () => {},
-          () => {
-              self.initCodemirror();
-              self.openDiagram(self.file.content);
-          }
-      );
+    let self = this;
+    this.http.get(config.backend.host + '/rest/directories/files/' + this.fileId, this.authService.loadRequestOptions()).subscribe(
+      success => {
+        let response = JSON.parse((<any>success)._body);
+        self.file.permissions = response.permissions;
+        self.file.user = response.user;
+        self.file.md5Hash = response.md5Hash;
+      },
+      () => {},
+      () => {
+        self.initCodemirror();
+        self.openDiagram(self.file.content);
+      }
+    );
   }
 
-    canEdit() {
-        let file = this.file;
-
-        if (!file || !this.isAuthenticated()) { return false; }
-
-        if ((this.authService.user && file.user) ? file.user.email === this.authService.user.email : false) { return true; }
-        for (let pIx = 0; pIx < file.permissions.length; pIx++) {
-            if (file.permissions[pIx].action.title === 'edit' &&
-            this.authService.user ? file.permissions[pIx].user.email === this.authService.user.email : false) {
-                return true;
-            }
+  canEdit() {
+    let file = this.file;
+    if (!file || !this.isAuthenticated()) { return false; }
+    if ((this.authService.user && file.user) ? file.user.email === this.authService.user.email : false) { return true; }
+      for (let pIx = 0; pIx < file.permissions.length; pIx++) {
+        if (file.permissions[pIx].action.title === 'edit' &&
+        this.authService.user ? file.permissions[pIx].user.email === this.authService.user.email : false) {
+          return true;
         }
-        return false;
-    }
+      }
+    return false;
+  }
 
   // Load diagram and add editor
   openDiagram(diagram: String) {
@@ -375,44 +368,41 @@ export class EditorComponent implements OnInit {
     var xorSplitStack = [];
     var marked = {};
 
-    while(st.length > 0) {
+    while (st.length > 0) {
       var curr = st.pop();
       crun.push(curr);
 
       let inc = curr.incoming ? curr.incoming.map(x => x.sourceRef) : null;
       let out = curr.outgoing ? curr.outgoing.map(x => x.targetRef) : null;
 
-      var isAllPredecessorsInRun = !inc || inc.reduce((acc, cur) => acc && !!crun.find(x => x==cur), true);
-      if(isAllPredecessorsInRun || curr.$type == 'bpmn:ExclusiveGateway' && out.length == 1 ||
+      var isAllPredecessorsInRun = !inc || inc.reduce((acc, cur) => acc && !!crun.find(x => x == cur), true);
+      if (isAllPredecessorsInRun || curr.$type == 'bpmn:ExclusiveGateway' && out.length == 1 ||
           curr.$type == 'bpmn:EndEvent') {
-        if(curr.$type == 'bpmn:ExclusiveGateway' && inc.length == 1) {
+        if (curr.$type == 'bpmn:ExclusiveGateway' && inc.length == 1) {
           curr.stackImage = st.slice();
           xorSplitStack.push(curr);
 
           marked[curr.id] = [out[0]];
           st.push(out[0]);
-        }
-        else {
-          if(curr.$type != 'bpmn:EndEvent') {
+        } else {
+          if (curr.$type != 'bpmn:EndEvent') {
             out.forEach(x => st.push(x));
-          }
-          else {
+          } else {
             runs.push(crun.slice());
-            while(xorSplitStack.length > 0) {
+            while (xorSplitStack.length > 0) {
               var top = xorSplitStack[xorSplitStack.length - 1];
               let xorOut = top.outgoing.map(x => x.targetRef);
-              if(!xorOut.reduce((acc, cur) => acc && !!marked[top.id].find(x => x==cur), true)) {
+              if (!xorOut.reduce((acc, cur) => acc && !!marked[top.id].find(x => x == cur), true)) {
                 crun = crun.slice(0, crun.findIndex(x => x==top) + 1);
 
-                var unmarked = xorOut.filter(x => !marked[top.id].find(y => y==x));
+                var unmarked = xorOut.filter(x => !marked[top.id].find(y => y == x));
                 marked[top.id].push(unmarked[0]);
 
                 // not to loose possible parallel tasks
                 st = top.stackImage;
                 st.push(unmarked[0]);
                 break;
-              }
-              else {
+              } else {
                 marked[top.id] = [];
                 xorSplitStack.pop();
               }
@@ -429,10 +419,9 @@ export class EditorComponent implements OnInit {
 
   buildSqlInTopologicalOrder() {
     let self = this;
-    if(!self.selectedDataObjects.length) {
+    if (!self.selectedDataObjects.length) {
       $('#leaksWhenInputError').show();
-    }
-    else {
+    } else {
       this.viewer.saveXML({ format: true }, (err: any, xml: string) => {
         this.viewer.get("moddle").fromXML(xml, (err: any, definitions: any) => {
           var element = definitions.diagrams[0].plane.bpmnElement;
@@ -449,16 +438,16 @@ export class EditorComponent implements OnInit {
           $('#messageModal').find('.modal-title').text("Leaks Report is building...");
           $('#messageModal').find('.modal-body').html(analysisHtml);
 
-          if(config.leakswhen.multi_runs) {
+          if (config.leakswhen.multi_runs) {
             let startEvent = null;
-            for(var i in registry._elements) {
-              if(registry._elements[i].element.type == "bpmn:StartEvent") {
+            for (var i in registry._elements) {
+              if (registry._elements[i].element.type == "bpmn:StartEvent") {
                 startEvent = registry._elements[i].element.businessObject;
                 break;
               }
             }
 
-            if(!!startEvent) {
+            if (!!startEvent) {
               let runs = self.buildRuns(startEvent).map(x => x.filter(y => y.$type == 'bpmn:Task').map(y => y.id));
               // console.log(runs);
 
@@ -480,8 +469,7 @@ export class EditorComponent implements OnInit {
                 self.sendLeaksWhenRequest(sqlCommands, processedLabels);
               });
             }
-          }
-          else {
+          } else {
               let sqlCommands = order.reduce(function (sqlCommands, id) {
               let obj = registry.get(id);
               if (obj.type == "bpmn:DataObjectReference" && !obj.incoming.length ||
@@ -561,17 +549,16 @@ export class EditorComponent implements OnInit {
                               </div>
                             </div>`;
 
-                          if(counter == Object.keys(legendObject[clojuredKey]).length - 1) {
+                          if (counter == Object.keys(legendObject[clojuredKey]).length - 1) {
                             var overlayHtml = $(`
                                 <div class="code-dialog" id="` + clojuredKey + `-analysis-results">
                                   <div class="panel panel-default">`+ overlayInsert + `</div></div>`
                             );
                             Analyser.onAnalysisCompleted.emit({ node: { id: "Output" + clojuredKey + counter, name: clojuredKey }, overlayHtml: overlayHtml });
-                            if(orderTasks[++currentProcessingTaskIndex]){
+                            if (orderTasks[++currentProcessingTaskIndex]){
                               orderTasks[currentProcessingTaskIndex](0);
                             }
-                          }
-                          else {
+                          } else {
                             fileQuery(++counter);
                           }
                         },
@@ -616,7 +603,6 @@ export class EditorComponent implements OnInit {
         }
       }
     });
-
 
     Analyser.onAnalysisCompleted.subscribe(result => {
       this.sidebarComponent.emitTaskResult(result);
