@@ -141,7 +141,7 @@ export class EditorComponent implements OnInit {
         if ((this.authService.user && file.user) ? file.user.email === this.authService.user.email : false) { return true; }
         for (let pIx = 0; pIx < file.permissions.length; pIx++) {
             if (file.permissions[pIx].action.title === 'edit' &&
-            this.authService.user ? file.permissions[pIx].user.id === this.authService.user.email : false) {
+            this.authService.user ? file.permissions[pIx].user.email === this.authService.user.email : false) {
                 return true;
             }
         }
