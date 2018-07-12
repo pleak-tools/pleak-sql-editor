@@ -103,6 +103,9 @@ export class EditorComponent implements OnInit {
   }
 
   initCodemirror() {
+      if (this.codeMirror) {
+          this.codeMirror.toTextArea();
+      }
       this.codeMirror = CodeMirror.fromTextArea(document.getElementById('CodeEditor'), {
           mode: 'text/x-mysql',
           lineNumbers: true,
