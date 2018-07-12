@@ -12,21 +12,21 @@
             </a>
           </li>
         </ul>
-        <ul class="buttons" *ngIf="isAuthenticated() && canEdit()">
+        <ul class="buttons" *ngIf="canEdit()">
           <li>
             <a id="save-diagram"title="save BPMN diagram" href="#">
               <span class="glyphicon glyphicon-floppy-disk"></span> Save diagram
             </a>
           </li>
         </ul>
-        <ul class="buttons analyze" *ngIf="isAuthenticated()">
+        <ul class="buttons analyze">
           <li>
             <a id="analyse-diagram" title="Analyze PA-BPMN diagram" href="#" class="active">
               <span class="glyphicon glyphicon-equalizer"></span> Analyze Sensitivities
             </a>
           </li>
         </ul>
-        <ul class="buttons analyze" *ngIf="isAuthenticated()">
+        <ul class="buttons analyze">
           <li>
             <a id="leaks-report" title="Generate leaks report" href="#" class="active">
               <span class="glyphicon glyphicon-list-alt"></span> LeaksWhen Report

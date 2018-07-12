@@ -38,7 +38,7 @@ export class EditorComponent implements OnInit {
 
     this.authService.authStatus.subscribe(status => {
       this.authenticated = status;
-      if (!status && !this.file) {
+      if (typeof(status) === 'boolean') {
         this.getModel();
       }
     });
@@ -120,6 +120,7 @@ export class EditorComponent implements OnInit {
               let response = JSON.parse((<any>success)._body);
               self.file.permissions = response.permissions;
               self.file.user = response.user;
+              self.file.md5Hash = response.md5Hash;
           },
           () => {},
           () => {
