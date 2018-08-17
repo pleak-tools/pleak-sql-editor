@@ -32,6 +32,7 @@
     <div class="clearfix"></div>
     <div *ngIf="analysisSteps.length" class="panel-section">
         <div>
+            <button class="btn btn-default pull-right" type="button" (click)="clear()">X</button>
             <h3 class="title">Analysis results</h3>
         </div>
         <div class="panel-group" role="tablist" aria-multiselectable="true">
