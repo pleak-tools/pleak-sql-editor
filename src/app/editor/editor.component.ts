@@ -47,17 +47,22 @@ export class EditorComponent implements OnInit {
   @ViewChild(SidebarComponent) sidebarComponent: SidebarComponent;
 
   private viewer: NavigatedViewer;
+  private eventBus;
+  private overlays;
+  private canvas;
 
   private modelId;
   private viewerType;
 
-  private saveFailed: Boolean = false;
   private lastContent: String = '';
   private codeMirror: any;
   private fileId: Number = null;
   private file: any;
   private lastModified: Number = null;
   private selectedDataObjects: Array<string> = [];
+
+  private elementBeingEdited: String = null;
+  private elementOldValue: String = "";
 
   isAuthenticated() {
     return this.authenticated;
@@ -92,7 +97,6 @@ export class EditorComponent implements OnInit {
         self.fileId = null;
         self.file = null;
         self.lastContent = '';
-        self.saveFailed = false;
       }
     );
   }
@@ -141,6 +145,78 @@ export class EditorComponent implements OnInit {
     return false;
   }
 
+  loadSQLScript(element) {
+    let self = this;
+
+    if (self.elementBeingEdited !== null) {
+      self.canvas.removeMarker(self.elementBeingEdited, 'selected');
+    }
+    self.canvas.addMarker(element.id, 'selected');
+    self.elementBeingEdited = element.id;
+
+    let sqlQuery;
+    if (element.sqlScript == null) {
+      sqlQuery = "";
+    } else {
+      sqlQuery = element.sqlScript;
+    }
+
+    if (element.name) {
+      $('.elementTitle').text(element.name);
+    } else {
+      $('.elementTitle').text('untitled');
+    }
+
+    self.sidebarComponent.isEditing = true;
+
+    $('#SaveEditing').off('click');
+    $('#SaveEditing').on('click', function () {
+      self.saveSQLScript(element);
+    });
+
+    $('#CancelEditing').off('click');
+    $('#CancelEditing').on('click', function () {
+      self.closeSQLScriptPanel(element);
+    });
+
+    $('textarea#CodeEditor').val(sqlQuery);
+    self.codeMirror.setValue(sqlQuery);
+    setTimeout(function () {
+      self.codeMirror.refresh();
+    }, 10);
+    self.elementOldValue = self.codeMirror.getValue();
+  }
+
+  closeSQLScriptPanel(element) {
+    let self = this;
+    if (element.sqlScript != self.codeMirror.getValue()) {
+      if (confirm('You have some unsaved changes. Would you like to revert these changes?')) {
+        self.sidebarComponent.isEditing = false;
+        self.elementBeingEdited = null;
+        self.elementOldValue = "";
+        self.canvas.removeMarker(element.id, 'selected');
+      } else {
+        self.canvas.addMarker(self.elementBeingEdited, 'selected');
+        return false;
+      }
+    } else {
+      self.sidebarComponent.isEditing = false;
+      self.elementBeingEdited = null;
+      self.elementOldValue = "";
+      self.canvas.removeMarker(element.id, 'selected');
+    }
+  }
+
+  saveSQLScript(element) {
+    let self = this;
+    element.sqlScript = self.codeMirror.getValue();
+    self.updateModelContentVariable();
+    self.sidebarComponent.isEditing = false;
+    self.elementBeingEdited = null;
+    self.elementOldValue = "";
+    self.canvas.removeMarker(element.id, 'selected');
+  }
+
   // Load diagram and add editor
   openDiagram(diagram: String) {
     const self = this;
@@ -154,64 +230,44 @@ export class EditorComponent implements OnInit {
           sqlExt: SqlBPMNModdle
         }
       });
+      this.eventBus = this.viewer.get('eventBus');
+      this.overlays = this.viewer.get('overlays');
+      this.canvas = this.viewer.get('canvas');
 
       this.viewer.importXML(diagram, () => {
-        let eventBus = this.viewer.get('eventBus');
-        let overlays = this.viewer.get('overlays');
-
-        eventBus.on('element.click', function (e) {
+        self.eventBus.on('element.click', function (e) {
           // User can select intermediate and sync data objects for leaks report
           if (is(e.element.businessObject, 'bpmn:DataObjectReference') && !!e.element.incoming.length) {
-            let canvas = self.viewer.get('canvas');
             if (!e.element.businessObject.selectedForReport) {
               self.selectedDataObjects.push(e.element.businessObject.name);
               e.element.businessObject.selectedForReport = true;
-              canvas.addMarker(e.element.id, 'highlight-input-selected');
-            }
-            else {
+              self.canvas.addMarker(e.element.id, 'highlight-input-selected');
+            } else {
               let index = self.selectedDataObjects.findIndex(x => x == e.element.businessObject.name);
               self.selectedDataObjects.splice(index, 1);
               e.element.businessObject.selectedForReport = false;
-              canvas.removeMarker(e.element.id, 'highlight-input-selected');
+              self.canvas.removeMarker(e.element.id, 'highlight-input-selected');
             }
-          }
-          else {
-            if ((is(e.element.businessObject, 'bpmn:DataObjectReference') ||
-              is(e.element.businessObject, 'bpmn:Task')) && !$(document).find("[data-element-id='" + e.element.id + "']").hasClass('highlight-input')) {
-
-              let task = e.element.businessObject;
-              let sqlQuery;
-              if (task.sqlScript == null) {
-                sqlQuery = "";
-              } else {
-                sqlQuery = task.sqlScript;
-              }
-
-              $('#SaveEditing').on('click', function () {
-                task.sqlScript = self.codeMirror.getValue();
-                self.updateModelContentVariable();
-                self.sidebarComponent.isEditing = false;
-                $('#SaveEditing').off('click');
-              });
-
-              $(document).mouseup(function (ee) {
-                var container = $('#canvas');
-                if (container && container.has(ee.target).length) {
-                  self.sidebarComponent.isEditing = false;
-                  $('#SaveEditing').off('click');
+          } else {
+            if ((is(e.element.businessObject, 'bpmn:DataObjectReference') || is(e.element.businessObject, 'bpmn:Task')) && !$(document).find("[data-element-id='" + e.element.id + "']").hasClass('highlight-input')) {
+              let selectedElement = e.element.businessObject;
+              if (self.elementBeingEdited !== null && self.elementBeingEdited === selectedElement.id && self.elementOldValue != self.codeMirror.getValue()) {
+                self.canvas.addMarker(self.elementBeingEdited, 'selected');
+                return false;
+              } else if (self.elementBeingEdited !== null && self.elementBeingEdited !== selectedElement.id && self.elementOldValue != self.codeMirror.getValue()) {
+                if (confirm('You have some unsaved changes. Would you like to revert these changes?')) {
+                  self.loadSQLScript(selectedElement);
+                } else {
+                  self.canvas.addMarker(self.elementBeingEdited, 'selected');
+                  self.canvas.removeMarker(e.element.id, 'selected');
+                  return false;
                 }
-              });
-
-              self.sidebarComponent.isEditing = true;
-
-              $('textarea#CodeEditor').val(sqlQuery);
-              self.codeMirror.setValue(sqlQuery);
-              setTimeout(function () {
-                self.codeMirror.refresh();
-              }, 10);
+              } else {
+                self.loadSQLScript(selectedElement);
+              }
             }
             else {
-              overlays.remove({ element: e.element });
+              self.overlays.remove({ element: e.element });
             }
           }
         });
@@ -282,7 +338,6 @@ export class EditorComponent implements OnInit {
             self.file.content = xml;
             this.http.put(config.backend.host + '/rest/directories/files/' + self.fileId, self.file, this.authService.loadRequestOptions()).subscribe(
               success => {
-                // console.log(success)
                 if (success.status === 200 || success.status === 201) {
                   var data = JSON.parse((<any>success)._body);
                   $('#fileSaveSuccess').show();
@@ -298,9 +353,7 @@ export class EditorComponent implements OnInit {
                   self.file.md5Hash = data.md5Hash;
                   self.lastContent = self.file.content;
                   self.fileId = data.id;
-                  self.saveFailed = false;
                 } else if (success.status === 401) {
-                  self.saveFailed = true;
                   $('#loginModal').modal();
                 }
               },
@@ -449,7 +502,6 @@ export class EditorComponent implements OnInit {
 
             if (!!startEvent) {
               let runs = self.buildRuns(startEvent).map(x => x.filter(y => y.$type == 'bpmn:Task').map(y => y.id));
-              // console.log(runs);
 
               runs.forEach(run => {
                 let sqlCommands = run.reduce(function (sqlCommands, id) {
@@ -464,7 +516,6 @@ export class EditorComponent implements OnInit {
                   sqlCommands += sql + '\n\n';
                   return sqlCommands;
                 }, "");
-                // console.log(sqlCommands + "\n\n\n\n\n\n\n\n");
 
                 self.sendLeaksWhenRequest(sqlCommands, processedLabels);
               });
@@ -479,9 +530,6 @@ export class EditorComponent implements OnInit {
               }
               return sqlCommands;
             }, "");
-
-            // console.log(sqlCommands);
-            // console.log(processedLabels);
 
             self.sendLeaksWhenRequest(sqlCommands, processedLabels);
           }
