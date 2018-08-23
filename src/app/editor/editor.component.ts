@@ -189,7 +189,7 @@ export class EditorComponent implements OnInit {
 
   closeSQLScriptPanel(element) {
     let self = this;
-    if (element.sqlScript != self.codeMirror.getValue()) {
+    if ((typeof element.sqlScript === "undefined" && self.codeMirror.getValue().length > 0) || (element.sqlScript && element.sqlScript != self.codeMirror.getValue())) {
       if (confirm('You have some unsaved changes. Would you like to revert these changes?')) {
         self.sidebarComponent.isEditing = false;
         self.elementBeingEdited = null;
@@ -316,7 +316,7 @@ export class EditorComponent implements OnInit {
       });
 
       $(window).bind('beforeunload', (e) => {
-        if (this.file.content != this.lastContent) {
+        if (self.file.content != self.lastContent || (self.elementBeingEdited !== null && self.elementOldValue != self.codeMirror.getValue())) {
           return 'Are you sure you want to close this tab? Unsaved progress will be lost.';
         }
       });
@@ -408,7 +408,9 @@ export class EditorComponent implements OnInit {
       (err: any, xml: string) => {
         if (xml) {
           this.file.content = xml;
-          $('#save-diagram').addClass('active');
+          if (this.file.content != this.lastContent) {
+            $('#save-diagram').addClass('active');
+          }
         }
       }
     );
