@@ -8,7 +8,8 @@
     <div [hidden]="!isEditing" class="panel-section">
         <div class="panel panel-default">
             <div align="left" class="panel-heading">
-                <span *ngIf="canEdit"><b><span class="elementTitle"></span></b></span>
+                <button class="btn btn-default pull-right" type="button" id="CancelEditing">X</button>
+                <span *ngIf="canEdit"><b><h4 class="elementTitle"></h4></b></span>
             </div>
             <div class="panel-body codemirror-container">
                 <textarea id="CodeEditor" style="display: none; width: 200px;"></textarea>
@@ -16,8 +17,6 @@
         </div>
 
         <button *ngIf="canEdit" class="btn btn-success" id="SaveEditing" (click)="clear()">Save</button>
-
-        <button class="btn btn-default" id="CancelEditing">Close</button>
     </div>
 
     <div *ngIf="resultTable.length" class="panel-section">
