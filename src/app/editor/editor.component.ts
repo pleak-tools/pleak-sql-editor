@@ -385,8 +385,11 @@ export class EditorComponent implements OnInit {
       if (element.$type === "bpmn:Process") {
         this.processBPMNProcess(element);
       } else {
-        for (let participant of element.participants)
-          this.processBPMNProcess(participant.processRef);
+        for (let participant of element.participants) {
+          if (participant.processRef) {
+            this.processBPMNProcess(participant.processRef);
+          }
+        }
       }
     }
   }
