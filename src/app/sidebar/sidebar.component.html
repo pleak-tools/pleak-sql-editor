@@ -7,9 +7,9 @@
 
     <div [hidden]="!isEditing" class="panel-section">
         <div class="panel panel-default">
-            <div align="left" class="panel-heading">
+            <div class="panel-heading text-left">
                 <button class="btn btn-default pull-right" type="button" id="CancelEditing">X</button>
-                <span *ngIf="canEdit"><b><h4 class="elementTitle"></h4></b></span>
+                <b><h4 class="elementTitle"></h4></b>
             </div>
             <div class="panel-body codemirror-container">
                 <textarea id="CodeEditor" style="display: none; width: 200px;"></textarea>

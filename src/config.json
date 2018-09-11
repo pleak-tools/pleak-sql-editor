@@ -23,5 +23,8 @@
         "host": "http://localhost:3000",
         "report": "/upload",
         "multi_runs": false
+    },
+    "policy_editor": {
+        "folder": "pleak-policy-editor"
     }
 }
