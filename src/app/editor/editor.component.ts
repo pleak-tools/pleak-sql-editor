@@ -512,7 +512,8 @@ RA
       petri[outputObj].out.push(inputObj);
     }
 
-    console.log(petri);
+    // Object.keys(petri).forEach(k => petri["id"] = k);
+    // console.log(JSON.stringify(Object.values(petri)));
     return petri;
   }
 
@@ -563,32 +564,46 @@ RA
       }
     }
 
-    var str2 = this.to_ll_net(petri);
-    console.log(str2);
-    return;
+    for(var el in petri) {
+      if(petri[el].type == "place"){
+        var isInputFound = false;
+        for(var el2 in petri) {
+          if(petri[el2].out.findIndex(x => x==el) != -1){
+            isInputFound = true;
+            break;
+          }
+        }
+
+        petri[el].isInputFound = isInputFound;
+      }
+    }
+
+    // var str2 = this.to_ll_net(petri);
+    // console.log(str2);
+    // return;
 
     // Building in dot format
 
-    // var str = "digraph G { rankdir=LR; ";
-    // for(var el in petri) {
-    //   if(petri[el].type == "transition"){
-    //     str += el + ' [shape=box,label="' + (petri[el].label ? petri[el].label : el) + '"]; ';
-    //   }
-    //   else {
-    //     str += el + ' [label="'+ (petri[el].label ? petri[el].label : el) + '"]; ';
-    //   }
-    // }
+    var str = "digraph G { rankdir=LR; ";
+    for(var el in petri) {
+      if(petri[el].type == "transition"){
+        str += el + ' [shape=box,label="' + (petri[el].label ? petri[el].label : el) + '"]; ';
+      }
+      else {
+        str += el + ' [label="'+ (petri[el].label ? petri[el].label : el) + '"]; ';
+      }
+    }
 
-    // for(var el in petri) {
-    //   petri[el].out.forEach(x => {
-    //     str += el + " -> " + x + "; ";
-    //   });
-    // }
+    for(var el in petri) {
+      petri[el].out.forEach(x => {
+        str += el + " -> " + x + "; ";
+      });
+    }
 
-    // str += " }";
+    str += " }";
 
-    // str = str.replace(/[^\x20-\x7E]/g, '');
-    // console.log(str);
+    str = str.replace(/[^\x20-\x7E]/g, '');
+    console.log(str);
   }
 
   buildPetriNet(registry, startBusinessObj, petri, maxPlaceNumberObj) {
@@ -824,62 +839,70 @@ RA
               for(var j = 0; j < startEvents.length; j++) {
                 petri = self.buildPetriNet(registry, startEvents[j], petri, maxPlaceNumberObj);
               }
-
-              console.log(petri);
+              
               this.buildGraph(petri);
 
-              let runs = [];//self.buildPetriNet(registry, startEvent).map(x => x.filter(y => y.$type == 'bpmn:Task').map(y => y.id));
-              // console.log(runs);
-
-              runs.forEach(run => {
-                let sqlCommands = run.reduce(function (sqlCommands, id) {
-                  let task = registry.get(id);
-                  task.incoming.filter(x => x.type=='bpmn:DataInputAssociation')
-                               .map(x => x.businessObject.sourceRef[0].sqlScript)
-                               .forEach(sql => {
-                                 if(sql && sqlCommands.indexOf(sql) == -1)
-                                    sqlCommands += sql + '\n\n';
-                                });
-                  let sql = task.businessObject.sqlScript;
-                  sqlCommands += sql + '\n\n';
-                  return sqlCommands;
-                }, "");
-                // console.log(sqlCommands + "\n\n\n\n\n\n\n\n");
-
-                // self.sendLeaksWhenRequest(sqlCommands, processedLabels);
+              let matcher = {};
+              Object.keys(petri).forEach(k => {
+                petri[k]["id"] = k;
+                
+                for(var i in registry._elements) {
+                  let obj = registry.get(k);
+                  if(!!obj && obj.businessObject.sqlScript) {
+                    matcher[k] = obj.businessObject.sqlScript;
+                  }
+                }
               });
+              let adjustedPetri = Object.values(petri);
+              // console.log(adjustedPetri);
+
+              let serverPetriFileName = self.file.id + "_" + self.file.title.substring(0, self.file.title.length - 5);
+              self.sendPreparationRequest(serverPetriFileName, JSON.stringify(adjustedPetri), processedLabels, matcher);
             }
           }
-          else {
-            //   let sqlCommands = order.reduce(function (sqlCommands, id) {
-            //   let obj = registry.get(id);
-            //   if (obj.type == "bpmn:DataObjectReference" && !obj.incoming.length ||
-            //     obj.type == "bpmn:Task") {
-            //     let sql = obj.businessObject.sqlScript;
-            //     sqlCommands += sql + '\n\n';
-            //   }
-            //   return sqlCommands;
-            // }, "");
-            
-            // console.log(sqlCommands);
-            // console.log(processedLabels);
 
-            // self.sendLeaksWhenRequest(sqlCommands, processedLabels);
-          }
-
-          return Promise.all(self.promises).then(res => {
-            setTimeout(() => { $('#messageModal').modal('toggle'); }, 500);
-          });
+          $('#messageModal').modal();
+          setTimeout(() => { 
+            Promise.all(self.promises).then(res => {
+              setTimeout(() => { $('#messageModal').modal('toggle'); }, 500);
+            });
+          }, 500);
         });
       });
     }
+  }
+
+  sendPreparationRequest(diagramId, petri, processedLabels, matcher) {
+    let self = this;
+
+    let apiURL = config.leakswhen.host + config.leakswhen.compute;
+      self.http.post(apiURL, {diagram_id: diagramId, petri: petri})
+        .toPromise()
+        .then(
+          res => {
+            let runs = res.json().runs;
+            console.log(runs);
+
+            // Matching ids from result and sql scripts
+            let sqlCommands = "";
+            runs.forEach(run => {
+              for(let i = 0; i < run.length; i++) {
+                sqlCommands += matcher[run[i]] ? matcher[run[i]] + "\n" : "";
+              }
+              self.sendLeaksWhenRequest(sqlCommands, processedLabels);
+            });
+          },
+          err => {
+            $('#leaksWhenServerError').show();
+          }
+        );
   }
 
   sendLeaksWhenRequest(sqlCommands, processedLabels) {
     let self = this;
 
     self.promises.push(new Promise((resolve, reject) => {
-      $('#messageModal').modal();
+      // $('#messageModal').modal();
 
       let apiURL = config.leakswhen.host + config.leakswhen.report;
       self.http.post(apiURL, {name: "tmp", targets: processedLabels.join(','), sql_script: sqlCommands})
