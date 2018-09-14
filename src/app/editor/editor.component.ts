@@ -620,7 +620,11 @@ RA
 
       if(curr.outgoing && curr.$type != "bpmn:DataObjectReference"){
         curr.outgoing.forEach(x => {
-          var name = x.petriPlace ? x.petriPlace : "p" + maxPlaceNumberObj.maxPlaceNumber++;
+          var name = curr.id;
+          if(!is(curr, 'bpmn:StartEvent')) {
+            name = x.petriPlace ? x.petriPlace : "p" + maxPlaceNumberObj.maxPlaceNumber++;
+          }
+          
           x.petriPlace = name;
 
           if(!petri[name]) {
@@ -687,7 +691,7 @@ RA
     // Data Objects handling
     for(var i in registry._elements) {
       var node = registry._elements[i].element;
-      if(node.type == "bpmn:Task" && petri[node.id]) {
+      if(is(node.businessObject, 'bpmn:Task') && petri[node.id]) {
         petri[node.id].label = node.businessObject.name;
 
         if(node.businessObject.dataInputAssociations && node.businessObject.dataInputAssociations.length) {
@@ -723,8 +727,16 @@ RA
         var target = node.businessObject.targetRef;
 
         // New place for message flow
-        var newId = "p" + maxPlaceNumberObj.maxPlaceNumber++;
-        petri[newId] = {type: "place", out: [target.id], label: newId}
+        var newId = "";
+        // In case of message flow to start event in another lane
+        // we don't need a new place, because start event is already a place
+        if(is(target, 'bpmn:StartEvent')) {
+          newId = target.id;
+        }
+        else {
+          newId = "p" + maxPlaceNumberObj.maxPlaceNumber++;
+          petri[newId] = {type: "place", out: [target.id], label: newId}
+        }
 
         if(!petri[source.id]) {
           petri[source.id] = {type: "transition", out: [newId], label: source.name}
@@ -854,7 +866,8 @@ RA
                 }
               });
               let adjustedPetri = Object.values(petri);
-              // console.log(adjustedPetri);
+              console.log(adjustedPetri);
+              console.log(JSON.stringify(adjustedPetri));
 
               let serverPetriFileName = self.file.id + "_" + self.file.title.substring(0, self.file.title.length - 5);
               self.sendPreparationRequest(serverPetriFileName, JSON.stringify(adjustedPetri), processedLabels, matcher);
