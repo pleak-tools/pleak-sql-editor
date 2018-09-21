@@ -606,6 +606,28 @@ RA
     console.log(str);
   }
 
+  // To refresh the state of diagram and be able to run analyser again
+  removePetriMarks(){
+    let registry = this.viewer.get('elementRegistry');
+    for(var i in registry._elements) {
+      var node = registry._elements[i].element;
+      if(node['petriPlace']) {
+        delete node['petriPlace'];
+      }
+      if(node['processedPetri']) {
+        delete node['processedPetri'];
+      }
+      if(!!node.businessObject) {
+        if(node.businessObject['petriPlace']) {
+          delete node.businessObject['petriPlace'];
+        }
+        if(node.businessObject['processedPetri']) {
+          delete node.businessObject['processedPetri'];
+        }
+      }
+    }
+  }
+
   buildPetriNet(registry, startBusinessObj, petri, maxPlaceNumberObj) {
     var crun = [];
     var st = [startBusinessObj];
@@ -625,6 +647,10 @@ RA
             name = x.petriPlace ? x.petriPlace : "p" + maxPlaceNumberObj.maxPlaceNumber++;
           }
           
+          if(is(x.targetRef, 'bpmn:EndEvent')) {
+            name = x.targetRef.id;
+          }
+
           x.petriPlace = name;
 
           if(!petri[name]) {
@@ -869,11 +895,14 @@ RA
               console.log(adjustedPetri);
               console.log(JSON.stringify(adjustedPetri));
 
+              self.removePetriMarks();
+
               let serverPetriFileName = self.file.id + "_" + self.file.title.substring(0, self.file.title.length - 5);
               self.sendPreparationRequest(serverPetriFileName, JSON.stringify(adjustedPetri), processedLabels, matcher);
             }
           }
 
+          
           $('#messageModal').modal();
           setTimeout(() => { 
             Promise.all(self.promises).then(res => {
@@ -898,7 +927,9 @@ RA
 
             // Matching ids from result and sql scripts
             let sqlCommands = "";
-            runs.forEach(run => {
+            runs.filter(run => {
+              return run.reduce((acc, cur) => {return acc && cur.substring('EndEvent') != -1}, true);
+            }).forEach(run => {
               for(let i = 0; i < run.length; i++) {
                 sqlCommands += matcher[run[i]] ? matcher[run[i]] + "\n" : "";
               }
