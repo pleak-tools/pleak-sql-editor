@@ -26,12 +26,12 @@ var config = require('./../../config.json');
 export class EditorComponent implements OnInit {
 
   constructor(public http: Http, private authService: AuthService) {
-      this.authService.authStatus.subscribe(status => {
-        this.authenticated = status;
-        if (!status || !this.file) {
-          this.getModel();
-        }
-      });
+    this.authService.authStatus.subscribe(status => {
+      this.authenticated = status;
+      if (!status || !this.file) {
+        this.getModel();
+      }
+    });
     this.getModel();
   }
 
@@ -306,14 +306,14 @@ export class EditorComponent implements OnInit {
     var i = 1; // index for places
     var j = 1; // index for transitions
     var str = "PEP\nPetriBox\nFORMAT_N2\nPL\n";
-    for(var el in petri) {
-      if(petri[el].type == "place"){
+    for (var el in petri) {
+      if (petri[el].type == "place") {
         petri[el].index = i++;
         str += '"' + el + '"';
 
         var isInputFound = false;
-        for(var el2 in petri) {
-          if(petri[el2].out.findIndex(x => x==el) != -1){
+        for (var el2 in petri) {
+          if (petri[el2].out.findIndex(x => x == el) != -1) {
             isInputFound = true;
             break;
           }
@@ -322,7 +322,7 @@ export class EditorComponent implements OnInit {
         petri[el].isInputFound = isInputFound;
 
         // Add 1 token for start events or source data objects
-        if(!isInputFound) {
+        if (!isInputFound) {
           str += "M1";
         }
 
@@ -332,8 +332,8 @@ export class EditorComponent implements OnInit {
 
     str += "TR\n";
 
-    for(var el in petri) {
-      if(petri[el].type == "transition"){
+    for (var el in petri) {
+      if (petri[el].type == "transition") {
         petri[el].index = j++;
         str += '"' + el + '"\n';
       }
@@ -341,8 +341,8 @@ export class EditorComponent implements OnInit {
 
     str += "TP\n";
 
-    for(var el in petri) {
-      if(petri[el].type == "transition") {
+    for (var el in petri) {
+      if (petri[el].type == "transition") {
         petri[el].out.forEach(x => {
           str += petri[el].index + "<" + petri[x].index + "\n";
         });
@@ -351,8 +351,8 @@ export class EditorComponent implements OnInit {
 
     str += "PT\n";
 
-    for(var el in petri) {
-      if(petri[el].type == "place" && (!el.includes("DataObject") || el.includes("DataObject") && petri[el].isInputFound)) {
+    for (var el in petri) {
+      if (petri[el].type == "place" && (!el.includes("DataObject") || el.includes("DataObject") && petri[el].isInputFound)) {
         petri[el].out.forEach(x => {
           str += petri[el].index + ">" + petri[x].index + "\n";
         });
@@ -361,8 +361,8 @@ export class EditorComponent implements OnInit {
 
     str += "RA\n";
 
-    for(var el in petri) {
-      if(petri[el].type == "place" && el.includes("DataObject") && !petri[el].isInputFound) {
+    for (var el in petri) {
+      if (petri[el].type == "place" && el.includes("DataObject") && !petri[el].isInputFound) {
         petri[el].out.forEach(x => {
           str += petri[x].index + "<" + petri[el].index + "\n";
         });
@@ -438,35 +438,35 @@ RA
     console.log(lines);
 
     var curr = null;
-    while((curr = lines.shift()) != "PL"){};
+    while ((curr = lines.shift()) != "PL") { };
 
     // Places
-    while((curr = lines.shift()) != "TR") {
+    while ((curr = lines.shift()) != "TR") {
       var parts = curr.split('"');
       var llIndex = parseInt(parts[0]);
       var objectId = parts[1];
-      petri[objectId] = {type: "place", out: [], ll_index: llIndex};
+      petri[objectId] = { type: "place", out: [], ll_index: llIndex };
     }
-    
+
     // Transitions
-    while((curr = lines.shift()) != "TP") {
+    while ((curr = lines.shift()) != "TP") {
       var parts = curr.split('"');
       var llIndex = parseInt(parts[0]);
       var objectId = parts[1];
-      petri[objectId] = {type: "transition", out: [], ll_index: llIndex};
+      petri[objectId] = { type: "transition", out: [], ll_index: llIndex };
     }
 
     // Transition -> Place
-    while((curr = lines.shift()) != "PT") {
+    while ((curr = lines.shift()) != "PT") {
       var parts = curr.split('<');
       var inIndex = parseInt(parts[0]);
       var outIndex = parts[1];
 
-      for(var el in petri) {
-        if(petri[el].ll_index == inIndex){
+      for (var el in petri) {
+        if (petri[el].ll_index == inIndex) {
           var inputObj = el;
         }
-        if(petri[el].ll_index == outIndex){
+        if (petri[el].ll_index == outIndex) {
           var outputObj = el;
         }
       }
@@ -475,16 +475,16 @@ RA
     }
 
     // Place -> Transition
-    while((curr = lines.shift()) != "RA") {
+    while ((curr = lines.shift()) != "RA") {
       var parts = curr.split('>');
       var inIndex = parseInt(parts[0]);
       var outIndex = parts[1];
 
-      for(var el in petri) {
-        if(petri[el].ll_index == inIndex){
+      for (var el in petri) {
+        if (petri[el].ll_index == inIndex) {
           var inputObj = el;
         }
-        if(petri[el].ll_index == outIndex){
+        if (petri[el].ll_index == outIndex) {
           var outputObj = el;
         }
       }
@@ -493,17 +493,17 @@ RA
     }
 
     // Read arcs
-    while(lines != "") {
+    while (lines != "") {
       curr = lines.shift();
       var parts = curr.split('<');
       var inIndex = parseInt(parts[0]);
       var outIndex = parts[1];
 
-      for(var el in petri) {
-        if(petri[el].ll_index == inIndex){
+      for (var el in petri) {
+        if (petri[el].ll_index == inIndex) {
           var inputObj = el;
         }
-        if(petri[el].ll_index == outIndex){
+        if (petri[el].ll_index == outIndex) {
           var outputObj = el;
         }
       }
@@ -523,33 +523,33 @@ RA
       return self.indexOf(value) === index;
     }
 
-    for(var el in petri) {
+    for (var el in petri) {
       petri[el].out = petri[el].out.filter(onlyUnique);
     }
 
     // Removing redundant nodes before/after xor gateway
-    for(var el in petri) {
-      if(el.includes("ExclusiveGateway")) {
+    for (var el in petri) {
+      if (el.includes("ExclusiveGateway")) {
         var copies = 0;
 
-        if(petri[el].out.length > 1) {
+        if (petri[el].out.length > 1) {
 
           var preceeding = Object.values(petri).find(x => !!x["out"].find(z => z == el));
           preceeding["out"] = [];
-          for(var i = 0; i < petri[el].out.length; i++){
+          for (var i = 0; i < petri[el].out.length; i++) {
             copies++;
             var copy = el + i;
             preceeding["out"].push(copy);
-            petri[copy] = {type: petri[el].type, out: [petri[el].out[i]]};
+            petri[copy] = { type: petri[el].type, out: [petri[el].out[i]] };
           }
         }
         else {
           var preceedings = Object.values(petri).filter(x => !!x["out"].find(z => z == el));
-          for(var i = 0; i < preceedings.length; i++){
+          for (var i = 0; i < preceedings.length; i++) {
             copies++;
             var copy = el + i;
             preceedings[i]["out"] = [copy];
-            petri[copy] = {type: petri[el].type, out: [petri[el].out[0]]};
+            petri[copy] = { type: petri[el].type, out: [petri[el].out[0]] };
           }
         }
 
@@ -564,11 +564,11 @@ RA
       }
     }
 
-    for(var el in petri) {
-      if(petri[el].type == "place"){
+    for (var el in petri) {
+      if (petri[el].type == "place") {
         var isInputFound = false;
-        for(var el2 in petri) {
-          if(petri[el2].out.findIndex(x => x==el) != -1){
+        for (var el2 in petri) {
+          if (petri[el2].out.findIndex(x => x == el) != -1) {
             isInputFound = true;
             break;
           }
@@ -585,16 +585,16 @@ RA
     // Building in dot format
 
     var str = "digraph G { rankdir=LR; ";
-    for(var el in petri) {
-      if(petri[el].type == "transition"){
+    for (var el in petri) {
+      if (petri[el].type == "transition") {
         str += el + ' [shape=box,label="' + (petri[el].label ? petri[el].label : el) + '"]; ';
       }
       else {
-        str += el + ' [label="'+ (petri[el].label ? petri[el].label : el) + '"]; ';
+        str += el + ' [label="' + (petri[el].label ? petri[el].label : el) + '"]; ';
       }
     }
 
-    for(var el in petri) {
+    for (var el in petri) {
       petri[el].out.forEach(x => {
         str += el + " -> " + x + "; ";
       });
@@ -607,22 +607,22 @@ RA
   }
 
   // To refresh the state of diagram and be able to run analyser again
-  removePetriMarks(){
+  removePetriMarks() {
     let registry = this.viewer.get('elementRegistry');
-    for(var i in registry._elements) {
+    for (var i in registry._elements) {
       var node = registry._elements[i].element;
-      if(node['petriPlace']) {
+      if (node['petriPlace']) {
         delete node['petriPlace'];
       }
-      if(node['processedPetri']) {
-        delete node['processedPetri'];
+      if (node['isProcessed']) {
+        delete node['isProcessed'];
       }
-      if(!!node.businessObject) {
-        if(node.businessObject['petriPlace']) {
+      if (!!node.businessObject) {
+        if (node.businessObject['petriPlace']) {
           delete node.businessObject['petriPlace'];
         }
-        if(node.businessObject['processedPetri']) {
-          delete node.businessObject['processedPetri'];
+        if (node.businessObject['isProcessed']) {
+          delete node.businessObject['isProcessed'];
         }
       }
     }
@@ -633,46 +633,46 @@ RA
     var st = [startBusinessObj];
     var xorSplitStack = [];
 
-    while(st.length > 0) {
+    while (st.length > 0) {
       var curr = st.pop();
       crun.push(curr);
 
       let inc = curr.incoming ? curr.incoming.map(x => x.sourceRef) : null;
       let out = curr.outgoing ? curr.outgoing.map(x => x.targetRef) : null;
 
-      if(curr.outgoing && curr.$type != "bpmn:DataObjectReference"){
+      if (curr.outgoing && curr.$type != "bpmn:DataObjectReference") {
         curr.outgoing.forEach(x => {
           var name = curr.id;
-          if(!is(curr, 'bpmn:StartEvent')) {
+          if (!is(curr, 'bpmn:StartEvent')) {
             name = x.petriPlace ? x.petriPlace : "p" + maxPlaceNumberObj.maxPlaceNumber++;
           }
-          
-          if(is(x.targetRef, 'bpmn:EndEvent')) {
+
+          if (is(x.targetRef, 'bpmn:EndEvent')) {
             name = x.targetRef.id;
           }
 
           x.petriPlace = name;
 
-          if(!petri[name]) {
-            petri[name] = {out: [], type: "place"};
+          if (!petri[name]) {
+            petri[name] = { out: [], type: "place" };
           }
         });
       }
 
-      if(curr.$type == "bpmn:DataObjectReference") {
+      if (curr.$type == "bpmn:DataObjectReference") {
         petri[curr.id] = {
           out: out.length ? out.map(x => x.id) : [],
           type: "place"
         };
       }
 
-      if(curr.outgoing && curr.incoming && !curr.processedPetri) {
+      if (curr.outgoing && curr.incoming && !curr.isProcessed) {
         var ident = curr.id;
-        if(curr.$type == "bpmn:ParallelGateway") {
+        if (curr.$type == "bpmn:ParallelGateway") {
           ident = ident.replace("Exclusive", "Parallel");
         }
 
-        if(!petri[ident]) {
+        if (!petri[ident]) {
           petri[ident] = {
             out: curr.outgoing.map(x => x.petriPlace),
             type: "transition"
@@ -683,47 +683,47 @@ RA
         }
 
         curr.incoming.forEach(x => {
-          if(x.petriPlace && !petri[x.petriPlace].out.find(z => z == ident)) {
+          if (x.petriPlace && !petri[x.petriPlace].out.find(z => z == ident)) {
             petri[x.petriPlace].out.push(ident);
           }
         });
-        
-        curr.processedPetri = curr.incoming.reduce((acc, cur) => {
+
+        curr.isProcessed = curr.incoming.reduce((acc, cur) => {
           return acc && !!cur.petriPlace;
         }, true);
       }
 
-      var isAllPredecessorsInRun = !inc || inc.reduce((acc, cur) => acc && !!crun.find(x => x==cur), true);
-      if(isAllPredecessorsInRun || curr.$type == 'bpmn:ExclusiveGateway' && out.length == 1 ||
-          curr.$type == 'bpmn:EndEvent') {
-        if(!!curr.stackImage) {
+      var isAllPredecessorsInRun = !inc || inc.reduce((acc, cur) => acc && !!crun.find(x => x == cur), true);
+      if (isAllPredecessorsInRun || curr.$type == 'bpmn:ExclusiveGateway' && out.length == 1 ||
+        curr.$type == 'bpmn:EndEvent') {
+        if (!!curr.stackImage) {
           // Cycle check
           continue;
         }
-        if(curr.$type == 'bpmn:ExclusiveGateway' && inc.length == 1) {
+        if (curr.$type == 'bpmn:ExclusiveGateway' && inc.length == 1) {
           curr.stackImage = st.slice();
           xorSplitStack.push(curr);
           // st.push(out[0]);
           out.forEach(x => st.push(x));
         }
         else {
-          if(curr.$type != 'bpmn:EndEvent') {
+          if (curr.$type != 'bpmn:EndEvent') {
             out.forEach(x => st.push(x));
           }
         }
       }
     }
-    
+
     // Data Objects handling
-    for(var i in registry._elements) {
+    for (var i in registry._elements) {
       var node = registry._elements[i].element;
-      if(is(node.businessObject, 'bpmn:Task') && petri[node.id]) {
+      if (is(node.businessObject, 'bpmn:Task') && petri[node.id]) {
         petri[node.id].label = node.businessObject.name;
 
-        if(node.businessObject.dataInputAssociations && node.businessObject.dataInputAssociations.length) {
+        if (node.businessObject.dataInputAssociations && node.businessObject.dataInputAssociations.length) {
           node.businessObject.dataInputAssociations.forEach(x => {
-            if(!petri[x.sourceRef[0].id]) {
-              petri[x.sourceRef[0].id] = {type: "place", out: [node.id], label: x.sourceRef[0].name}
+            if (!petri[x.sourceRef[0].id]) {
+              petri[x.sourceRef[0].id] = { type: "place", out: [node.id], label: x.sourceRef[0].name }
             }
             else {
               petri[x.sourceRef[0].id].out.push(node.id);
@@ -733,22 +733,22 @@ RA
           });
         }
 
-        if(node.businessObject.dataOutputAssociations && node.businessObject.dataOutputAssociations.length) {
+        if (node.businessObject.dataOutputAssociations && node.businessObject.dataOutputAssociations.length) {
           node.businessObject.dataOutputAssociations.forEach(x => {
-            if(petri[node.id].out.findIndex(y => y == x.targetRef.id) == -1)
+            if (petri[node.id].out.findIndex(y => y == x.targetRef.id) == -1)
               petri[node.id].out.push(x.targetRef.id);
-            if(!petri[x.targetRef.id]) {
-              petri[x.targetRef.id] = {type: "place", out: [], label: x.targetRef.name}
+            if (!petri[x.targetRef.id]) {
+              petri[x.targetRef.id] = { type: "place", out: [], label: x.targetRef.name }
             }
           });
         }
       }
     }
-    
+
     // Handling message flow
-    for(var i in registry._elements) {
+    for (var i in registry._elements) {
       var node = registry._elements[i].element;
-      if(node.type == "bpmn:MessageFlow" && !node.isProcessed) {
+      if (node.type == "bpmn:MessageFlow" && !node.isProcessed) {
         var source = node.businessObject.sourceRef;
         var target = node.businessObject.targetRef;
 
@@ -756,16 +756,16 @@ RA
         var newId = "";
         // In case of message flow to start event in another lane
         // we don't need a new place, because start event is already a place
-        if(is(target, 'bpmn:StartEvent')) {
+        if (is(target, 'bpmn:StartEvent')) {
           newId = target.id;
         }
         else {
           newId = "p" + maxPlaceNumberObj.maxPlaceNumber++;
-          petri[newId] = {type: "place", out: [target.id], label: newId}
+          petri[newId] = { type: "place", out: [target.id], label: newId }
         }
 
-        if(!petri[source.id]) {
-          petri[source.id] = {type: "transition", out: [newId], label: source.name}
+        if (!petri[source.id]) {
+          petri[source.id] = { type: "transition", out: [newId], label: source.name }
         }
         else {
           petri[source.id].out.push(newId);
@@ -784,18 +784,18 @@ RA
     var st = [startBusinessObj];
     var xorSplitStack = [];
     var marked = {};
-    
-    while(st.length > 0) {
+
+    while (st.length > 0) {
       var curr = st.pop();
       crun.push(curr);
 
       let inc = curr.incoming ? curr.incoming.map(x => x.sourceRef) : null;
       let out = curr.outgoing ? curr.outgoing.map(x => x.targetRef) : null;
 
-      var isAllPredecessorsInRun = !inc || inc.reduce((acc, cur) => acc && !!crun.find(x => x==cur), true);
-      if(isAllPredecessorsInRun || curr.$type == 'bpmn:ExclusiveGateway' && out.length == 1 || 
-          curr.$type == 'bpmn:EndEvent') {
-        if(curr.$type == 'bpmn:ExclusiveGateway' && inc.length == 1) {
+      var isAllPredecessorsInRun = !inc || inc.reduce((acc, cur) => acc && !!crun.find(x => x == cur), true);
+      if (isAllPredecessorsInRun || curr.$type == 'bpmn:ExclusiveGateway' && out.length == 1 ||
+        curr.$type == 'bpmn:EndEvent') {
+        if (curr.$type == 'bpmn:ExclusiveGateway' && inc.length == 1) {
           curr.stackImage = st.slice();
           xorSplitStack.push(curr);
 
@@ -803,18 +803,18 @@ RA
           st.push(out[0]);
         }
         else {
-          if(curr.$type != 'bpmn:EndEvent') {
+          if (curr.$type != 'bpmn:EndEvent') {
             out.forEach(x => st.push(x));
           }
           else {
             runs.push(crun.slice());
-            while(xorSplitStack.length > 0) {
+            while (xorSplitStack.length > 0) {
               var top = xorSplitStack[xorSplitStack.length - 1];
               let xorOut = top.outgoing.map(x => x.targetRef);
-              if(!xorOut.reduce((acc, cur) => acc && !!marked[top.id].find(x => x==cur), true)) {
-                crun = crun.slice(0, crun.findIndex(x => x==top) + 1);
+              if (!xorOut.reduce((acc, cur) => acc && !!marked[top.id].find(x => x == cur), true)) {
+                crun = crun.slice(0, crun.findIndex(x => x == top) + 1);
 
-                var unmarked = xorOut.filter(x => !marked[top.id].find(y => y==x));
+                var unmarked = xorOut.filter(x => !marked[top.id].find(y => y == x));
                 marked[top.id].push(unmarked[0]);
 
                 // not to loose possible parallel tasks
@@ -831,7 +831,7 @@ RA
         }
       }
     }
-    
+
     return runs;
   }
 
@@ -839,7 +839,7 @@ RA
 
   buildSqlInTopologicalOrder() {
     let self = this;
-    if(!self.selectedDataObjects.length) {
+    if (!self.selectedDataObjects.length) {
       $('#leaksWhenInputError').show();
     }
     else {
@@ -850,8 +850,8 @@ RA
           // let info = dataFlowAnalysis(element, registry);
           // let [dataFlowEdges, invDataFlowEdges, sources] = [info.dataFlowEdges, info.invDataFlowEdges, info.sources];
           // let order = topologicalSorting(dataFlowEdges, invDataFlowEdges, sources);
-          
-          let processedLabels = self.selectedDataObjects[0] 
+
+          let processedLabels = self.selectedDataObjects[0]
             ? self.selectedDataObjects.map(x => x.split(" ").map(word => word.toLowerCase()).join("_"))
             : self.selectedDataObjects;
 
@@ -862,31 +862,33 @@ RA
           $('#messageModal').find('.modal-title').text("Leaks Report is building...");
           $('#messageModal').find('.modal-body').html(analysisHtml);
 
-          if(config.leakswhen.multi_runs) {
+          let serverResponsePromises = [];
+
+          if (config.leakswhen.multi_runs) {
             let startEvents = [];
-            for(var i in registry._elements) {
-              if(registry._elements[i].element.type == "bpmn:StartEvent") {
+            for (var i in registry._elements) {
+              if (registry._elements[i].element.type == "bpmn:StartEvent") {
                 startEvents.push(registry._elements[i].element.businessObject);
               }
             }
 
-            if(!!startEvents) {
+            if (!!startEvents) {
               let petri = {};
-              let maxPlaceNumberObj = {maxPlaceNumber: 0};
+              let maxPlaceNumberObj = { maxPlaceNumber: 0 };
               // For multiple lanes we have multiple start events
-              for(var j = 0; j < startEvents.length; j++) {
+              for (var j = 0; j < startEvents.length; j++) {
                 petri = self.buildPetriNet(registry, startEvents[j], petri, maxPlaceNumberObj);
               }
-              
+
               this.buildGraph(petri);
 
               let matcher = {};
               Object.keys(petri).forEach(k => {
                 petri[k]["id"] = k;
-                
-                for(var i in registry._elements) {
+
+                for (var i in registry._elements) {
                   let obj = registry.get(k);
-                  if(!!obj && obj.businessObject.sqlScript) {
+                  if (!!obj && obj.businessObject.sqlScript) {
                     matcher[k] = obj.businessObject.sqlScript;
                   }
                 }
@@ -898,14 +900,14 @@ RA
               self.removePetriMarks();
 
               let serverPetriFileName = self.file.id + "_" + self.file.title.substring(0, self.file.title.length - 5);
-              self.sendPreparationRequest(serverPetriFileName, JSON.stringify(adjustedPetri), processedLabels, matcher);
+              self.sendPreparationRequest(serverPetriFileName, JSON.stringify(adjustedPetri), processedLabels, matcher, serverResponsePromises);
             }
           }
 
-          
+
           $('#messageModal').modal();
-          setTimeout(() => { 
-            Promise.all(self.promises).then(res => {
+          setTimeout(() => {
+            Promise.all(serverResponsePromises).then(res => {
               setTimeout(() => { $('#messageModal').modal('toggle'); }, 500);
             });
           }, 500);
@@ -913,43 +915,41 @@ RA
       });
     }
   }
-
-  sendPreparationRequest(diagramId, petri, processedLabels, matcher) {
+  
+  sendPreparationRequest(diagramId, petri, processedLabels, matcher, promises) {
     let self = this;
-
     let apiURL = config.leakswhen.host + config.leakswhen.compute;
-      self.http.post(apiURL, {diagram_id: diagramId, petri: petri})
-        .toPromise()
-        .then(
-          res => {
-            let runs = res.json().runs;
-            console.log(runs);
 
-            // Matching ids from result and sql scripts
-            let sqlCommands = "";
-            runs.filter(run => {
-              return run.reduce((acc, cur) => {return acc && cur.substring('EndEvent') != -1}, true);
-            }).forEach(run => {
-              for(let i = 0; i < run.length; i++) {
-                sqlCommands += matcher[run[i]] ? matcher[run[i]] + "\n" : "";
-              }
-              self.sendLeaksWhenRequest(sqlCommands, processedLabels);
-            });
-          },
-          err => {
-            $('#leaksWhenServerError').show();
-          }
-        );
+    self.http.post(apiURL, { diagram_id: diagramId, petri: petri })
+      .toPromise()
+      .then(
+        res => {
+          let runs = res.json().runs;
+          console.log(runs);
+
+          // Matching ids from result and sql scripts
+          let sqlCommands = "";
+          runs.filter(run => {
+            return run.reduce((acc, cur) => { return acc && cur.substring('EndEvent') != -1 }, true);
+          }).forEach(run => {
+            for (let i = 0; i < run.length; i++) {
+              sqlCommands += matcher[run[i]] ? matcher[run[i]] + "\n" : "";
+            }
+            self.sendLeaksWhenRequest(sqlCommands, processedLabels, promises);
+          });
+        },
+        err => {
+          $('#leaksWhenServerError').show();
+        }
+      );
   }
 
-  sendLeaksWhenRequest(sqlCommands, processedLabels) {
+  sendLeaksWhenRequest(sqlCommands, processedLabels, promises) {
     let self = this;
 
-    self.promises.push(new Promise((resolve, reject) => {
-      // $('#messageModal').modal();
-
+    promises.push(new Promise((resolve, reject) => {
       let apiURL = config.leakswhen.host + config.leakswhen.report;
-      self.http.post(apiURL, {name: "tmp", targets: processedLabels.join(','), sql_script: sqlCommands})
+      self.http.post(apiURL, { name: "tmp", targets: processedLabels.join(','), sql_script: sqlCommands })
         .toPromise()
         .then(
           res => {
@@ -957,11 +957,11 @@ RA
             let legend = files.filter(x => x.indexOf('legend') != -1)[0];
             let namePathMapping = {};
             files.filter(x => x.indexOf('legend') == -1)
-                 .forEach(path => namePathMapping[path.split('/').pop()] = path);
+              .forEach(path => namePathMapping[path.split('/').pop()] = path);
 
             self.http.get(config.leakswhen.host + legend)
-            .toPromise()
-            .then(res => {
+              .toPromise()
+              .then(res => {
                 let legendObject = res.json();
                 let orderTasks = [];
                 let currentProcessingTaskIndex = 0;
@@ -974,28 +974,28 @@ RA
                     self.http.get(config.leakswhen.host + namePathMapping[legendObject[clojuredKey][index]])
                       .toPromise()
                       .then(res => {
-                          let response = (<any>res)._body;
-                          
-                          overlayInsert += `
+                        let response = (<any>res)._body;
+
+                        overlayInsert += `
                             <div align="left" class="panel-heading">
                               <b>` + clojuredKey + '(' + counter + ')' + `</b>
                             </div>
                             <div class="panel-body" style="white-space: pre-wrap">` + response + `</div>`;
-                          
-                          if(counter == Object.keys(legendObject[clojuredKey]).length - 1) {
-                            var overlayHtml = $(`
+
+                        if (counter == Object.keys(legendObject[clojuredKey]).length - 1) {
+                          var overlayHtml = $(`
                                 <div class="code-dialog" id="` + clojuredKey + `-analysis-results">
                                   <div class="panel panel-default">`+ overlayInsert + `</div></div>`
-                              );
-                            Analyser.onAnalysisCompleted.emit({ node: { id: "Output" + clojuredKey + counter, name: clojuredKey }, overlayHtml: overlayHtml });
-                            if(orderTasks[++currentProcessingTaskIndex]){
-                              orderTasks[currentProcessingTaskIndex](0);
-                            }
+                          );
+                          Analyser.onAnalysisCompleted.emit({ node: { id: "Output" + clojuredKey + counter, name: clojuredKey }, overlayHtml: overlayHtml });
+                          if (orderTasks[++currentProcessingTaskIndex]) {
+                            orderTasks[currentProcessingTaskIndex](0);
                           }
-                          else {
-                            fileQuery(++counter);
-                          }
-                        },
+                        }
+                        else {
+                          fileQuery(++counter);
+                        }
+                      },
                         msg => {
                           reject(msg);
                         });
@@ -1004,10 +1004,10 @@ RA
                 }
                 orderTasks[currentProcessingTaskIndex](0);
               },
-              msg => {
-                reject(msg);
-              });
-            
+                msg => {
+                  reject(msg);
+                });
+
             resolve();
           },
           err => {
@@ -1015,9 +1015,10 @@ RA
             resolve();
           }
         );
+        resolve(self.stat++);
     }));
   }
-
+  private stat = 4;
   ngOnInit() {
     window.addEventListener('storage', (e) => {
       if (e.storageArea === localStorage) {
