@@ -65,8 +65,6 @@ let analyzeProcessingNode = (nodeId: string, eventBus: any, dataDefStatements: {
         outputCreateStatement += ');';
         outputCreateStatement = outputCreateStatement.replace(/\r?\n|\r/g, '');
 
-        let inputCreateStatements = invDataFlowEdges[nodeId].map((inputData: string) => dataDefStatements[inputData]);
-
         var obj_schema = [];
         for (var i = 0, len = invDataFlowEdges[nodeId].length; i < len; i++) {
           var parseTree = pg_parser.parse(dataDefStatements[invDataFlowEdges[nodeId][i]].replace(/\r?\n|\r/g, ' '));
@@ -190,7 +188,7 @@ let analyzeProcessingNode = (nodeId: string, eventBus: any, dataDefStatements: {
               errorInModel = true;
               $('#analyserInputError').show();
             } else {
-              console.log("Server error!");
+              alert("Server error!");
             }
           }
         );

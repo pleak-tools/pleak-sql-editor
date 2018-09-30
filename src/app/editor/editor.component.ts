@@ -4,8 +4,8 @@ import { AuthService } from "../auth/auth.service";
 import { SqlBPMNModdle } from "./bpmn-sql-extension";
 import { Analyser } from "../analyser/SQLDFlowAnalizer";
 import { topologicalSorting, dataFlowAnalysis } from "../analyser/GraMSecAnalizer";
-import * as Viewer from 'bpmn-js/lib/NavigatedViewer';
 import { SidebarComponent } from '../sidebar/sidebar.component';
+import NavigatedViewer from 'bpmn-js/lib/NavigatedViewer';
 
 declare var $: any;
 declare var CodeMirror: any;
@@ -26,9 +26,17 @@ var config = require('./../../config.json');
 export class EditorComponent implements OnInit {
 
   constructor(public http: Http, private authService: AuthService) {
+    let pathname = window.location.pathname.split('/');
+    if (pathname[2] === 'viewer') {
+      this.modelId = pathname[3];
+      this.viewerType = 'public';
+    } else {
+      this.modelId = pathname[2];
+      this.viewerType = 'private';
+    }
     this.authService.authStatus.subscribe(status => {
       this.authenticated = status;
-      if (!status || !this.file) {
+      if (typeof(status) === 'boolean') {
         this.getModel();
       }
     });
@@ -36,11 +44,16 @@ export class EditorComponent implements OnInit {
   }
 
   @Input() authenticated: Boolean;
-  @ViewChild(SidebarComponent) sidebarComponent: SidebarComponent
+  @ViewChild(SidebarComponent) sidebarComponent: SidebarComponent;
 
-  private viewer: Viewer;
-  private modelId: Number = Number.parseInt(window.location.pathname.split('/')[2]);
-  private saveFailed: Boolean = false;
+  private viewer: NavigatedViewer;
+  private eventBus;
+  private overlays;
+  private canvas;
+
+  private modelId;
+  private viewerType;
+
   private lastContent: String = '';
   private codeMirror: any;
   private fileId: Number = null;
@@ -48,25 +61,33 @@ export class EditorComponent implements OnInit {
   private lastModified: Number = null;
   private selectedDataObjects: Array<string> = [];
 
+  private elementBeingEdited: String = null;
+  private elementOldValue: String = "";
+
   isAuthenticated() {
     return this.authenticated;
   }
 
   // Load model
   getModel() {
-    var self = this;
+    const self = this;
     $('#canvas').html('');
     $('.buttons-container').off('click', '#save-diagram');
     $('.buttons-container').off('click', '#analyse-diagram');
     self.viewer = null;
-    this.http.get(config.backend.host + '/rest/directories/files/' + self.modelId, this.authService.loadRequestOptions()).subscribe(
+    this.http.get(config.backend.host + '/rest/directories/files/' + (this.viewerType === 'public' ? 'public/' : '') + this.modelId, this.authService.loadRequestOptions()).subscribe(
       success => {
         self.file = JSON.parse((<any>success)._body);
         self.fileId = self.file.id;
         if (self.file.content.length === 0) {
-          console.log("File can't be found or opened!");
+          alert('File can\'t be found or opened!');
         }
-        self.openDiagram(self.file.content);
+        if (this.viewerType === 'public' && this.isAuthenticated()) {
+          self.getPermissions();
+        } else {
+          self.initCodemirror();
+          self.openDiagram(self.file.content);
+        }
         self.lastContent = self.file.content;
         document.title = 'Pleak SQL-privacy editor - ' + self.file.title;
         $('#fileName').text(this.file.title);
@@ -76,16 +97,131 @@ export class EditorComponent implements OnInit {
         self.fileId = null;
         self.file = null;
         self.lastContent = '';
-        self.saveFailed = false;
       }
     );
   }
 
+  initCodemirror() {
+    if (this.codeMirror) {
+      this.codeMirror.toTextArea();
+    }
+    this.codeMirror = CodeMirror.fromTextArea(document.getElementById('CodeEditor'), {
+      mode: 'text/x-mysql',
+      lineNumbers: true,
+      showCursorWhenSelecting: true,
+      lineWiseCopyCut: false,
+      readOnly: !this.canEdit()
+    });
+    this.codeMirror.setSize('100%', 220);
+  }
+
+  getPermissions() {
+    let self = this;
+    this.http.get(config.backend.host + '/rest/directories/files/' + this.fileId, this.authService.loadRequestOptions()).subscribe(
+      success => {
+        let response = JSON.parse((<any>success)._body);
+        self.file.permissions = response.permissions;
+        self.file.user = response.user;
+        self.file.md5Hash = response.md5Hash;
+      },
+      () => {},
+      () => {
+        self.initCodemirror();
+        self.openDiagram(self.file.content);
+      }
+    );
+  }
+
+  canEdit() {
+    let file = this.file;
+    if (!file || !this.isAuthenticated()) { return false; }
+    if ((this.authService.user && file.user) ? file.user.email === this.authService.user.email : false) { return true; }
+      for (let pIx = 0; pIx < file.permissions.length; pIx++) {
+        if (file.permissions[pIx].action.title === 'edit' &&
+        this.authService.user ? file.permissions[pIx].user.email === this.authService.user.email : false) {
+          return true;
+        }
+      }
+    return false;
+  }
+
+  loadSQLScript(element) {
+    let self = this;
+
+    if (self.elementBeingEdited !== null) {
+      self.canvas.removeMarker(self.elementBeingEdited, 'selected');
+    }
+    self.canvas.addMarker(element.id, 'selected');
+    self.elementBeingEdited = element.id;
+
+    let sqlQuery;
+    if (element.sqlScript == null) {
+      sqlQuery = "";
+    } else {
+      sqlQuery = element.sqlScript;
+    }
+
+    if (element.name) {
+      $('.elementTitle').text(element.name);
+    } else {
+      $('.elementTitle').text('untitled');
+    }
+
+    self.sidebarComponent.isEditing = true;
+
+    $('#SaveEditing').off('click');
+    $('#SaveEditing').on('click', function () {
+      self.saveSQLScript(element);
+    });
+
+    $('#CancelEditing').off('click');
+    $('#CancelEditing').on('click', function () {
+      self.closeSQLScriptPanel(element);
+    });
+
+    $('textarea#CodeEditor').val(sqlQuery);
+    self.codeMirror.setValue(sqlQuery);
+    setTimeout(function () {
+      self.codeMirror.refresh();
+    }, 10);
+    self.elementOldValue = self.codeMirror.getValue();
+  }
+
+  closeSQLScriptPanel(element) {
+    let self = this;
+    if ((typeof element.sqlScript === "undefined" && self.codeMirror.getValue().length > 0) || (element.sqlScript && element.sqlScript != self.codeMirror.getValue())) {
+      if (confirm('You have some unsaved changes. Would you like to revert these changes?')) {
+        self.sidebarComponent.isEditing = false;
+        self.elementBeingEdited = null;
+        self.elementOldValue = "";
+        self.canvas.removeMarker(element.id, 'selected');
+      } else {
+        self.canvas.addMarker(self.elementBeingEdited, 'selected');
+        return false;
+      }
+    } else {
+      self.sidebarComponent.isEditing = false;
+      self.elementBeingEdited = null;
+      self.elementOldValue = "";
+      self.canvas.removeMarker(element.id, 'selected');
+    }
+  }
+
+  saveSQLScript(element) {
+    let self = this;
+    element.sqlScript = self.codeMirror.getValue();
+    self.updateModelContentVariable();
+    self.sidebarComponent.isEditing = false;
+    self.elementBeingEdited = null;
+    self.elementOldValue = "";
+    self.canvas.removeMarker(element.id, 'selected');
+  }
+
   // Load diagram and add editor
   openDiagram(diagram: String) {
-    var self = this;
+    const self = this;
     if (diagram && this.viewer == null) {
-      this.viewer = new Viewer({
+      this.viewer = new NavigatedViewer({
         container: '#canvas',
         keyboard: {
           bindTo: document
@@ -94,64 +230,44 @@ export class EditorComponent implements OnInit {
           sqlExt: SqlBPMNModdle
         }
       });
+      this.eventBus = this.viewer.get('eventBus');
+      this.overlays = this.viewer.get('overlays');
+      this.canvas = this.viewer.get('canvas');
 
       this.viewer.importXML(diagram, () => {
-        let eventBus = this.viewer.get('eventBus');
-        let overlays = this.viewer.get('overlays');
-
-        eventBus.on('element.click', function (e) {
+        self.eventBus.on('element.click', function (e) {
           // User can select intermediate and sync data objects for leaks report
           if (is(e.element.businessObject, 'bpmn:DataObjectReference') && !!e.element.incoming.length) {
-            let canvas = self.viewer.get('canvas');
             if (!e.element.businessObject.selectedForReport) {
               self.selectedDataObjects.push(e.element.businessObject.name);
               e.element.businessObject.selectedForReport = true;
-              canvas.addMarker(e.element.id, 'highlight-input-selected');
-            }
-            else {
+              self.canvas.addMarker(e.element.id, 'highlight-input-selected');
+            } else {
               let index = self.selectedDataObjects.findIndex(x => x == e.element.businessObject.name);
               self.selectedDataObjects.splice(index, 1);
               e.element.businessObject.selectedForReport = false;
-              canvas.removeMarker(e.element.id, 'highlight-input-selected');
+              self.canvas.removeMarker(e.element.id, 'highlight-input-selected');
             }
-          }
-          else {
-            if ((is(e.element.businessObject, 'bpmn:DataObjectReference') ||
-              is(e.element.businessObject, 'bpmn:Task')) && !$(document).find("[data-element-id='" + e.element.id + "']").hasClass('highlight-input')) {
-
-              let task = e.element.businessObject;
-              let sqlQuery;
-              if (task.sqlScript == null) {
-                sqlQuery = "";
-              } else {
-                sqlQuery = task.sqlScript;
-              }
-
-              $('#SaveEditing').on('click', function () {
-                task.sqlScript = self.codeMirror.getValue();
-                self.updateModelContentVariable();
-                self.sidebarComponent.isEditing = false;
-                $('#SaveEditing').off('click');
-              });
-
-              $(document).mouseup(function (ee) {
-                var container = $('#canvas');
-                if (container && container.has(ee.target).length) {
-                  self.sidebarComponent.isEditing = false;
-                  $('#SaveEditing').off('click');
+          } else {
+            if ((is(e.element.businessObject, 'bpmn:DataObjectReference') || is(e.element.businessObject, 'bpmn:Task')) && !$(document).find("[data-element-id='" + e.element.id + "']").hasClass('highlight-input')) {
+              let selectedElement = e.element.businessObject;
+              if (self.elementBeingEdited !== null && self.elementBeingEdited === selectedElement.id && self.elementOldValue != self.codeMirror.getValue()) {
+                self.canvas.addMarker(self.elementBeingEdited, 'selected');
+                return false;
+              } else if (self.elementBeingEdited !== null && self.elementBeingEdited !== selectedElement.id && self.elementOldValue != self.codeMirror.getValue()) {
+                if (confirm('You have some unsaved changes. Would you like to revert these changes?')) {
+                  self.loadSQLScript(selectedElement);
+                } else {
+                  self.canvas.addMarker(self.elementBeingEdited, 'selected');
+                  self.canvas.removeMarker(e.element.id, 'selected');
+                  return false;
                 }
-              });
-
-              self.sidebarComponent.isEditing = true;
-
-              $('textarea#CodeEditor').val(sqlQuery);
-              self.codeMirror.setValue(sqlQuery);
-              setTimeout(function () {
-                self.codeMirror.refresh();
-              }, 10);
+              } else {
+                self.loadSQLScript(selectedElement);
+              }
             }
             else {
-              overlays.remove({ element: e.element });
+              self.overlays.remove({ element: e.element });
             }
           }
         });
@@ -200,7 +316,7 @@ export class EditorComponent implements OnInit {
       });
 
       $(window).bind('beforeunload', (e) => {
-        if (this.file.content != this.lastContent) {
+        if (self.file.content != self.lastContent || (self.elementBeingEdited !== null && self.elementOldValue != self.codeMirror.getValue())) {
           return 'Are you sure you want to close this tab? Unsaved progress will be lost.';
         }
       });
@@ -217,12 +333,11 @@ export class EditorComponent implements OnInit {
         },
         (err: any, xml: string) => {
           if (err) {
-            console.log(err)
+            console.log(err);
           } else {
             self.file.content = xml;
             this.http.put(config.backend.host + '/rest/directories/files/' + self.fileId, self.file, this.authService.loadRequestOptions()).subscribe(
               success => {
-                // console.log(success)
                 if (success.status === 200 || success.status === 201) {
                   var data = JSON.parse((<any>success)._body);
                   $('#fileSaveSuccess').show();
@@ -238,9 +353,7 @@ export class EditorComponent implements OnInit {
                   self.file.md5Hash = data.md5Hash;
                   self.lastContent = self.file.content;
                   self.fileId = data.id;
-                  self.saveFailed = false;
                 } else if (success.status === 401) {
-                  self.saveFailed = true;
                   $('#loginModal').modal();
                 }
               },
@@ -272,8 +385,11 @@ export class EditorComponent implements OnInit {
       if (element.$type === "bpmn:Process") {
         this.processBPMNProcess(element);
       } else {
-        for (let participant of element.participants)
-          this.processBPMNProcess(participant.processRef);
+        for (let participant of element.participants) {
+          if (participant.processRef) {
+            this.processBPMNProcess(participant.processRef);
+          }
+        }
       }
     }
   }
@@ -295,7 +411,9 @@ export class EditorComponent implements OnInit {
       (err: any, xml: string) => {
         if (xml) {
           this.file.content = xml;
-          $('#save-diagram').addClass('active');
+          if (this.file.content != this.lastContent) {
+            $('#save-diagram').addClass('active');
+          }
         }
       }
     );
@@ -805,8 +923,7 @@ RA
         else {
           if (curr.$type != 'bpmn:EndEvent') {
             out.forEach(x => st.push(x));
-          }
-          else {
+          } else {
             runs.push(crun.slice());
             while (xorSplitStack.length > 0) {
               var top = xorSplitStack[xorSplitStack.length - 1];
@@ -821,8 +938,7 @@ RA
                 st = top.stackImage;
                 st.push(unmarked[0]);
                 break;
-              }
-              else {
+              } else {
                 marked[top.id] = [];
                 xorSplitStack.pop();
               }
@@ -841,8 +957,7 @@ RA
     let self = this;
     if (!self.selectedDataObjects.length) {
       $('#leaksWhenInputError').show();
-    }
-    else {
+    } else {
       this.viewer.saveXML({ format: true }, (err: any, xml: string) => {
         this.viewer.get("moddle").fromXML(xml, (err: any, definitions: any) => {
           var element = definitions.diagrams[0].plane.bpmnElement;
@@ -966,35 +1081,47 @@ RA
                 let orderTasks = [];
                 let currentProcessingTaskIndex = 0;
 
+                let resultGraphsInfo = []
+
                 for (var key in legendObject) {
                   let overlayInsert = ``;
                   let counter = 0;
                   let clojuredKey = key;
                   let fileQuery = (index) => {
-                    self.http.get(config.leakswhen.host + namePathMapping[legendObject[clojuredKey][index]])
+                    //let url2 = config.leakswhen.host + namePathMapping[legendObject[clojuredKey][index]].replace("leaks-when/", "");
+                    let url2 = config.leakswhen.host + namePathMapping[legendObject[clojuredKey][index]];
+
+                    self.http.get(url2)
                       .toPromise()
                       .then(res => {
-                        let response = (<any>res)._body;
+                          let response = (<any>res)._body;
 
-                        overlayInsert += `
+                          let urlParts = url2.split("/");
+                          let fileNameParts = url2.split("/")[urlParts.length-1].split(".")[0].split("_");
+                          let gid = fileNameParts[fileNameParts.length-1];
+
+                          overlayInsert += `
                             <div align="left" class="panel-heading">
                               <b>` + clojuredKey + '(' + counter + ')' + `</b>
                             </div>
-                            <div class="panel-body" style="white-space: pre-wrap">` + response + `</div>`;
+                            <div class="panel-body">
+                              <div>
+                                <a href="` + config.frontend.host + '/graph/' + parseInt(gid) + `" target="_blank">View graph</a>
+                              </div>
+                            </div>`;
 
-                        if (counter == Object.keys(legendObject[clojuredKey]).length - 1) {
-                          var overlayHtml = $(`
-                                <div class="code-dialog" id="` + clojuredKey + `-analysis-results">
-                                  <div class="panel panel-default">`+ overlayInsert + `</div></div>`
-                          );
-                          Analyser.onAnalysisCompleted.emit({ node: { id: "Output" + clojuredKey + counter, name: clojuredKey }, overlayHtml: overlayHtml });
-                          if (orderTasks[++currentProcessingTaskIndex]) {
-                            orderTasks[currentProcessingTaskIndex](0);
-                          }
-                        }
-                        else {
-                          fileQuery(++counter);
-                        }
+                            if (counter == Object.keys(legendObject[clojuredKey]).length - 1) {
+                              var overlayHtml = $(`
+                                  <div class="code-dialog" id="` + clojuredKey + `-analysis-results">
+                                    <div class="panel panel-default">`+ overlayInsert + `</div></div>`
+                              );
+                              Analyser.onAnalysisCompleted.emit({ node: { id: "Output" + clojuredKey + counter, name: clojuredKey }, overlayHtml: overlayHtml });
+                              if (orderTasks[++currentProcessingTaskIndex]){
+                                orderTasks[currentProcessingTaskIndex](0);
+                              }
+                            } else {
+                              fileQuery(++counter);
+                            }
                       },
                         msg => {
                           reject(msg);
@@ -1004,9 +1131,9 @@ RA
                 }
                 orderTasks[currentProcessingTaskIndex](0);
               },
-                msg => {
-                  reject(msg);
-                });
+              msg => {
+                reject(msg);
+              });
 
             resolve();
           },
@@ -1038,16 +1165,10 @@ RA
         }
       }
     });
-    this.codeMirror = CodeMirror.fromTextArea(document.getElementById("CodeEditor"), {
-      mode: "text/x-mysql",
-      lineNumbers: true,
-      showCursorWhenSelecting: true,
-      lineWiseCopyCut: false
-    });
-    this.codeMirror.setSize("100%", 220);
 
     Analyser.onAnalysisCompleted.subscribe(result => {
       this.sidebarComponent.emitTaskResult(result);
     });
+
   }
 }

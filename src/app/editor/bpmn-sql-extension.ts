@@ -268,5 +268,18 @@ export const SqlBPMNModdle = {
         }
       ]
     },
+    {
+      name: "PolicyProcess",
+      extends: [
+        "bpmn:Process"
+      ],
+      properties: [
+        {
+          "name": "policyInfo",
+          "isAttr": false,
+          "type": "String"
+        }
+      ]
+    }
   ]
 };
