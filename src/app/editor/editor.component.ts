@@ -249,7 +249,7 @@ export class EditorComponent implements OnInit {
               self.canvas.removeMarker(e.element.id, 'highlight-input-selected');
             }
           } else {
-            if ((is(e.element.businessObject, 'bpmn:DataObjectReference') || is(e.element.businessObject, 'bpmn:Task')) && !$(document).find("[data-element-id='" + e.element.id + "']").hasClass('highlight-input')) {
+            if ((is(e.element.businessObject, 'bpmn:DataObjectReference') || is(e.element.businessObject, 'bpmn:Task') || is(e.element.businessObject, 'bpmn:StartEvent')) && !$(document).find("[data-element-id='" + e.element.id + "']").hasClass('highlight-input')) {
               let selectedElement = e.element.businessObject;
               if (self.elementBeingEdited !== null && self.elementBeingEdited === selectedElement.id && self.elementOldValue != self.codeMirror.getValue()) {
                 self.canvas.addMarker(self.elementBeingEdited, 'selected');
@@ -1022,9 +1022,7 @@ RA
 
           $('#messageModal').modal();
           setTimeout(() => {
-            Promise.all(serverResponsePromises).then(res => {
-              setTimeout(() => { $('#messageModal').modal('toggle'); }, 500);
-            });
+            Promise.all(serverResponsePromises);
           }, 500);
         });
       });
@@ -1118,6 +1116,9 @@ RA
                               Analyser.onAnalysisCompleted.emit({ node: { id: "Output" + clojuredKey + counter, name: clojuredKey }, overlayHtml: overlayHtml });
                               if (orderTasks[++currentProcessingTaskIndex]){
                                 orderTasks[currentProcessingTaskIndex](0);
+                              }
+                              else {
+                                $('#messageModal').modal('toggle');
                               }
                             } else {
                               fileQuery(++counter);
