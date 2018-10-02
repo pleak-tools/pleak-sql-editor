@@ -46,6 +46,8 @@ export class EditorComponent implements OnInit {
   @Input() authenticated: Boolean;
   @ViewChild(SidebarComponent) sidebarComponent: SidebarComponent;
 
+  private loaded: boolean = false;
+
   private viewer: NavigatedViewer;
   private eventBus;
   private overlays;
@@ -66,6 +68,10 @@ export class EditorComponent implements OnInit {
 
   isAuthenticated() {
     return this.authenticated;
+  }
+
+  isLoaded() {
+    return this.loaded;
   }
 
   // Load model
@@ -271,6 +277,7 @@ export class EditorComponent implements OnInit {
             }
           }
         });
+        this.loaded = true;
       });
 
       $('.buttons-container').on('click', '.buttons a', (e) => {

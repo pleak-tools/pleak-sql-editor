@@ -24,5 +24,11 @@
         "report": "/upload",
         "compute": "/compute",
         "multi_runs": true
+    },
+    "guessing_advantage_editor": {
+        "folder": "pleak-guessing-advantage-editor"
+    },
+    "combined_sensitivity_editor": {
+        "folder": "pleak-combined-sensitivity-editor"
     }
 }
