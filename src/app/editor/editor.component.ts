@@ -313,7 +313,7 @@ export class EditorComponent implements OnInit {
           e.preventDefault();
           e.stopPropagation();
           this.sidebarComponent.clear();
-          this.bpmnLeaksWhen();
+          this.sendBpmnLeaksWhenRequest();
       });
 
       $(window).on('keydown', (e) => {
@@ -393,46 +393,28 @@ export class EditorComponent implements OnInit {
     });
   }
 
-  bpmnLeaksWhen() {
+  private bpmnLeaksWhen(response) {
       const $modal = $('#bpmnLeaksWhenModal');
 
-      const response = {
-          "inputs": [
-              "D42_photos_with_matches_photoID.v",
-              "D72_photoID_photo_URI.v",
-              "D71_photo_database.v",
-              "D2_privacy_policy.v"
-          ],
-          "outputs": [
-              {
-                  "leaked_D42.v": [
-                      {"always": null},
-                      {"never": null},
-                      {"never": null},
-                      {"never": null}
-                  ]
-              },
-              {
-                  "result.v": [
-                      {"if": "filter_sanitize_photo is passed"},
-                      {"if": "filter_sanitize_photo is passed"},
-                      {"if": "filter_sanitize_photo is passed"},
-                      {"if": "filter_sanitize_photo is passed"}
-                  ]
-              }
-          ]
-      };
+      $modal.find('.modal-body').html(
+      `<table>
+          <thead>
+          
+          </thead>
+          <tbody>
 
-      $modal.modal();
+          </tbody>
+        </table>`
+      );
 
-      $modal.find('table thead tr').html(function () {
+      $modal.find('table thead').html(function () {
           let output = `<th></th>`;
 
           response.inputs.forEach(function (item) {
               output += `<th><div><span>${item}</span></div></th>`;
           });
 
-          return output;
+          return `<tr>${output}</tr>`;
       });
 
       $modal.find('table tbody').html(function () {
@@ -672,32 +654,26 @@ export class EditorComponent implements OnInit {
     }
   }
 
-  sendLeaksWhenRequest2() {
-    let self = this;
+  sendBpmnLeaksWhenRequest() {
     let analysisHtml = `<div class="spinner">
                 <div class="double-bounce1"></div>
                 <div class="double-bounce2"></div>
               </div>`;
-          $('#messageModal').find('.modal-title').text("BPMN Leaks Report is building...");
-          $('#messageModal').find('.modal-body').html(analysisHtml);
-          $('#messageModal').modal('toggle');
+          $('#bpmnLeaksWhenModal').find('.modal-title').text("BPMN Leaks Report is building...");
+          $('#bpmnLeaksWhenModal').find('.modal-body').html(analysisHtml);
+          $('#bpmnLeaksWhenModal').modal();
     this.http.post(config.backend.host + '/rest/sql-privacy/analyze-leaks-when', {model: this.file.content}, this.authService.loadRequestOptions()).subscribe(
       success => {
-        let response = JSON.parse((<any>success)._body);
-        self.showLeaksWhenRequest2Results(response.result);
+        const response = JSON.parse((<any>success)._body);
+        this.bpmnLeaksWhen(response.result);
       },
       () => {
         alert("error!?");
-        $('#messageModal').modal('toggle');
+        $('#bpmnLeaksWhenModal').modal('toggle');
       }
     );
 
   }
-
-  showLeaksWhenRequest2Results(results) {
-    $('#messageModal').find('.modal-body').html(results);
-  }
-
   sendLeaksWhenRequest(sqlCommands, processedLabels) {
     let self = this;
 
