@@ -27,6 +27,20 @@ To make it available for the pleak-sql-editor, execute:
 
 You can find more information from the [SQL analysis tool repository](https://github.com/pleak-tools/pleak-sql-analysis).
 
+And set up the [Leaks-when analysis tool](https://github.com/pleak-tools/pleak-leaks-when-analysis), using wrapper at [https://github.com/pleak-tools/pleak-leaks-when-ast-transformation](https://github.com/pleak-tools/pleak-leaks-when-ast-transformation).
+
+Install:
+
+1) Docker-CE, instructions in [https://docs.docker.com/](https://docs.docker.com)
+
+To build, execute:
+
+`docker build -t pleaktools/leakswhen .`
+
+To make it available for the pleak-sql-editor, execute:
+
+`docker run --rm -it -p 3000:3000 pleaktools/leakswhen`
+
 ## Build
 
 To build the editor you need: NodeJS with npm installed.

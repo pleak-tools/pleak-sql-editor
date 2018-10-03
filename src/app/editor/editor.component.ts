@@ -46,6 +46,8 @@ export class EditorComponent implements OnInit {
   @Input() authenticated: Boolean;
   @ViewChild(SidebarComponent) sidebarComponent: SidebarComponent;
 
+  private loaded: boolean = false;
+
   private viewer: NavigatedViewer;
   private eventBus;
   private overlays;
@@ -66,6 +68,10 @@ export class EditorComponent implements OnInit {
 
   isAuthenticated() {
     return this.authenticated;
+  }
+
+  isLoaded() {
+    return this.loaded;
   }
 
   // Load model
@@ -271,6 +277,7 @@ export class EditorComponent implements OnInit {
             }
           }
         });
+        this.loaded = true;
       });
 
       $('.buttons-container').on('click', '.buttons a', (e) => {
@@ -663,6 +670,32 @@ export class EditorComponent implements OnInit {
         });
       });
     }
+  }
+
+  sendLeaksWhenRequest2() {
+    let self = this;
+    let analysisHtml = `<div class="spinner">
+                <div class="double-bounce1"></div>
+                <div class="double-bounce2"></div>
+              </div>`;
+          $('#messageModal').find('.modal-title').text("BPMN Leaks Report is building...");
+          $('#messageModal').find('.modal-body').html(analysisHtml);
+          $('#messageModal').modal('toggle');
+    this.http.post(config.backend.host + '/rest/sql-privacy/analyze-leaks-when', {model: this.file.content}, this.authService.loadRequestOptions()).subscribe(
+      success => {
+        let response = JSON.parse((<any>success)._body);
+        self.showLeaksWhenRequest2Results(response.result);
+      },
+      () => {
+        alert("error!?");
+        $('#messageModal').modal('toggle');
+      }
+    );
+
+  }
+
+  showLeaksWhenRequest2Results(results) {
+    $('#messageModal').find('.modal-body').html(results);
   }
 
   sendLeaksWhenRequest(sqlCommands, processedLabels) {

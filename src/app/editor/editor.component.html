@@ -15,18 +15,18 @@
         <ul class="buttons" *ngIf="canEdit()">
           <li>
             <a id="save-diagram"title="save BPMN diagram" href="#">
-              <span class="glyphicon glyphicon-floppy-disk"></span> Save diagram
+              <span class="glyphicon glyphicon-floppy-disk"></span> Save
             </a>
           </li>
         </ul>
-        <ul class="buttons analyze">
+        <ul class="buttons analyze" *ngIf="isLoaded()">
           <li>
             <a id="analyse-diagram" title="Analyze PA-BPMN diagram" href="#" class="active">
               <span class="glyphicon glyphicon-equalizer"></span> Analyze Sensitivities
             </a>
           </li>
         </ul>
-        <ul class="buttons analyze">
+        <ul class="buttons analyze" *ngIf="isLoaded()">
           <li>
             <a id="leaks-report" title="Generate leaks report" href="#" class="active">
               <span class="glyphicon glyphicon-list-alt"></span> SQL LeaksWhen
@@ -161,8 +161,17 @@
           <br>
           <ul class="buttons">
             <li>
-              <a class="active" href="/policy-editor/{{viewerType == 'public' ? 'viewer/' : ''}}{{modelId}}">
-                <span class="glyphicon glyphicon-transfer"></span> Policy Analyzer
+              <a class="active" href="/guessing-advantage-editor/{{viewerType == 'public' ? 'viewer/' : ''}}{{modelId}}">
+                <span class="glyphicon glyphicon-transfer"></span> Guessing Advantage Analyzer
+              </a>
+            </li>
+          </ul>
+          <br>
+          <br>
+          <ul class="buttons">
+            <li>
+              <a class="active" href="/combined-sensitivity-editor/{{viewerType == 'public' ? 'viewer/' : ''}}{{modelId}}">
+                <span class="glyphicon glyphicon-transfer"></span> Combined Sensitivity Analyzer
               </a>
             </li>
           </ul>
