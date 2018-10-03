@@ -328,3 +328,52 @@ tr.inlined-matrix:first-child td.inlined-matrix, td.inlined-matrix:first-child {
 .highlight-specific-error.djs-connection > .djs-visual > :nth-child(1) {
   stroke: red!important;
 }
+
+
+#bpmnLeaksWhenModal {
+
+  table {
+    margin-top: 100px;
+    .highlighted {
+      color: #20567a;
+      text-decoration: underline;
+    }
+    tbody {
+      td, th {
+        text-align: center;
+        padding: 5px 5px;
+        border: 1px solid #ccc;
+        &.always{
+          background-color: #ff8585;
+        }
+        &.never{
+          background-color: #baff85;
+        }
+        &.if{
+          background-color: #ffce85;
+        }
+      }
+      td:hover {
+        font-weight: bold;
+      }
+    }
+    thead th {
+      /* Something you can count on */
+      height: 140px;
+      width: 65px;
+      white-space: nowrap;
+      & > div {
+        transform:
+          /* Magic Numbers */
+                translate(51px, 51px)
+                rotate(315deg);
+        width: 30px;
+      }
+      > div > span {
+        border-bottom: 1px solid #ccc;
+        padding: 5px 10px;
+      }
+    }
+  }
+
+}

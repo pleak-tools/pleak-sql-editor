@@ -302,6 +302,13 @@ export class EditorComponent implements OnInit {
         this.buildSqlInTopologicalOrder();
       });
 
+      $('.buttons-container').on('click', '#bpmn-leaks-report', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          this.sidebarComponent.clear();
+          this.bpmnLeaksWhen();
+      });
+
       $(window).on('keydown', (e) => {
         if (e.ctrlKey || e.metaKey) {
           switch (String.fromCharCode(e.which).toLowerCase()) {
@@ -377,6 +384,117 @@ export class EditorComponent implements OnInit {
         }
       });
     });
+  }
+
+  bpmnLeaksWhen() {
+      const $modal = $('#bpmnLeaksWhenModal');
+
+      const response = {
+          "inputs": [
+              "D42_photos_with_matches_photoID.v",
+              "D72_photoID_photo_URI.v",
+              "D71_photo_database.v",
+              "D2_privacy_policy.v"
+          ],
+          "outputs": [
+              {
+                  "leaked_D42.v": [
+                      {"always": null},
+                      {"never": null},
+                      {"never": null},
+                      {"never": null}
+                  ]
+              },
+              {
+                  "result.v": [
+                      {"if": "filter_sanitize_photo is passed"},
+                      {"if": "filter_sanitize_photo is passed"},
+                      {"if": "filter_sanitize_photo is passed"},
+                      {"if": "filter_sanitize_photo is passed"}
+                  ]
+              }
+          ]
+      };
+
+      $modal.modal();
+
+      $modal.find('table thead tr').html(function () {
+          let output = `<th></th>`;
+
+          response.inputs.forEach(function (item) {
+              output += `<th><div><span>${item}</span></div></th>`;
+          });
+
+          return output;
+      });
+
+      $modal.find('table tbody').html(function () {
+          let output = '';
+
+          response.outputs.forEach(function (item, key) {
+              const realKey = Object.keys(item)[0];
+              const realItem = item[realKey];
+              output += `<tr><th>${realKey}</th>`;
+
+              realItem.forEach(function (rowValue) {
+                  const realValue = Object.keys(rowValue)[0];
+                  if (realValue === 'if') {
+                      output += `<td class="${realValue}" data-toggle="tooltip" data-container="body" title="${rowValue[realValue]}">${realValue}</td>`;
+                  } else {
+                      output += `<td class="${realValue}">${realValue}</td>`;
+                  }
+              });
+
+              output += '</tr>';
+          });
+
+          return output;
+      });
+
+      $modal.find('table tbody td').hover(
+          function () {
+              const $output = $(this).closest('table').find('thead th').eq($(this).index());
+              const $input = $('th:first', $(this).parents('tr'));
+
+              $output.addClass('highlighted');
+              $input.addClass('highlighted');
+          }, function () {
+              const $output = $(this).closest('table').find('thead th').eq($(this).index());
+              const $input = $('th:first', $(this).parents('tr'));
+
+              $output.removeClass('highlighted');
+              $input.removeClass('highlighted');
+          });
+
+      $modal.find('.modal-header').on('mousedown', function (event) {
+          const startX = event.pageX;
+          const startY = event.pageY;
+
+          const $modalheader = $(this);
+          const $modalContainer = $modalheader.closest('.modal-dialog');
+
+          const modalX = parseInt($modalContainer.css('transform').split(',')[4]);
+          const modalY = parseInt($modalContainer.css('transform').split(',')[5]);
+
+          $modalheader.css('cursor', 'move');
+          $modal.css('opacity', 0.3);
+
+          const moveFunction = function (event) {
+              const diffX = event.pageX - startX;
+              const diffY = event.pageY - startY;
+
+              $modalContainer.css('transform', `translate(${diffX + modalX}px, ${diffY + modalY}px)`);
+              console.log('move');
+          };
+
+          $(document).on('mousemove', moveFunction);
+          $(document).on('mouseup', function () {
+              $(document).off('mousemove', moveFunction);
+              $modal.css('opacity', 1);
+          });
+      });
+
+      $('[data-toggle="tooltip"]', $modal).tooltip();
   }
 
   postLoad(definitions: any) {
