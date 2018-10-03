@@ -15,7 +15,7 @@
         <ul class="buttons" *ngIf="canEdit()">
           <li>
             <a id="save-diagram"title="save BPMN diagram" href="#">
-              <span class="glyphicon glyphicon-floppy-disk"></span> Save diagram
+              <span class="glyphicon glyphicon-floppy-disk"></span> Save
             </a>
           </li>
         </ul>
@@ -29,7 +29,14 @@
         <ul class="buttons analyze" *ngIf="isLoaded()">
           <li>
             <a id="leaks-report" title="Generate leaks report" href="#" class="active">
-              <span class="glyphicon glyphicon-list-alt"></span> LeaksWhen Report
+              <span class="glyphicon glyphicon-list-alt"></span> LeaksWhen
+            </a>
+          </li>
+        </ul>
+        <ul class="buttons analyze" *ngIf="isLoaded()">
+          <li>
+            <a id="leaks-report2" title="Generate leaks report 2" href="#" class="active">
+              <span class="glyphicon glyphicon-list-alt"></span> BPMN LeaksWhen
             </a>
           </li>
         </ul>
