@@ -407,6 +407,8 @@ export class EditorComponent implements OnInit {
         </table>`
       );
 
+      $modal.find('.modal-title').text("BPMN LeaksWhen Report");
+
       $modal.find('table thead').html(function () {
           let output = `<th></th>`;
 
@@ -600,7 +602,7 @@ export class EditorComponent implements OnInit {
                 <div class="double-bounce1"></div>
                 <div class="double-bounce2"></div>
               </div>`;
-          $('#messageModal').find('.modal-title').text("Leaks Report is building...");
+          $('#messageModal').find('.modal-title').text("Analysis in progress...");
           $('#messageModal').find('.modal-body').html(analysisHtml);
 
           if (config.leakswhen.multi_runs) {
@@ -655,24 +657,35 @@ export class EditorComponent implements OnInit {
   }
 
   sendBpmnLeaksWhenRequest() {
-    let analysisHtml = `<div class="spinner">
-                <div class="double-bounce1"></div>
-                <div class="double-bounce2"></div>
-              </div>`;
-          $('#bpmnLeaksWhenModal').find('.modal-title').text("BPMN Leaks Report is building...");
-          $('#bpmnLeaksWhenModal').find('.modal-body').html(analysisHtml);
-          $('#bpmnLeaksWhenModal').modal();
-    this.http.post(config.backend.host + '/rest/sql-privacy/analyze-leaks-when', {model: this.file.content}, this.authService.loadRequestOptions()).subscribe(
-      success => {
-        const response = JSON.parse((<any>success)._body);
-        this.bpmnLeaksWhen(response.result);
+    let analysisHtml = `
+      <div class="spinner">
+        <div class="double-bounce1"></div>
+        <div class="double-bounce2"></div>
+      </div>`;
+    $('#bpmnLeaksWhenModal').find('.modal-title').text("Analysis in progress...");
+    $('#bpmnLeaksWhenModal').find('.modal-body').html(analysisHtml);
+    $('#bpmnLeaksWhenModal').modal();
+    this.viewer.saveXML(
+      {
+        format: true
       },
-      () => {
-        alert("error!?");
-        $('#bpmnLeaksWhenModal').modal('toggle');
-      }
-    );
-
+      (err: any, xml: string) => {
+        if (err) {
+          console.log(err);
+          $('#bpmnLeaksWhenModal').modal('toggle');
+        } else {
+          this.http.post(config.backend.host + '/rest/sql-privacy/analyze-leaks-when', {model: xml}, this.authService.loadRequestOptions()).subscribe(
+            success => {
+              const response = JSON.parse((<any>success)._body);
+              this.bpmnLeaksWhen(JSON.parse(response.result));
+            },
+            () => {
+              console.log("analysis failed");
+              $('#bpmnLeaksWhenModal').modal('toggle');
+            }
+          );
+        }
+      });
   }
   sendLeaksWhenRequest(sqlCommands, processedLabels) {
     let self = this;
