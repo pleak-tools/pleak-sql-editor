@@ -662,7 +662,7 @@ RA
   from_ll_net(ll_net) {
     var petri = {};
     var lines = ll_net.split('\n');
-    console.log(lines);
+    // console.log(lines);
 
     var curr = null;
     while ((curr = lines.shift()) != "PL") { };
@@ -830,7 +830,7 @@ RA
     str += " }";
 
     str = str.replace(/[^\x20-\x7E]/g, '');
-    console.log(str);
+    // console.log(str);
   }
 
   // To refresh the state of diagram and be able to run analyser again
@@ -1118,8 +1118,8 @@ RA
                 }
               });
               let adjustedPetri = Object.values(petri);
-              console.log(adjustedPetri);
-              console.log(JSON.stringify(adjustedPetri));
+              // console.log(adjustedPetri);
+              // console.log(JSON.stringify(adjustedPetri));
 
               self.removePetriMarks();
 
@@ -1179,7 +1179,7 @@ RA
       .then(
         res => {
           let runs = res.json().runs;
-          console.log(runs);
+          // console.log(runs);
 
           // Matching ids from result and sql scripts
           let sqlCommands = "";
@@ -1201,6 +1201,7 @@ RA
   sendLeaksWhenRequest(sqlCommands, processedLabels, promises) {
     let self = this;
 
+    let filesAreReady = false;
     promises.push(new Promise((resolve, reject) => {
       let apiURL = config.leakswhen.host + config.leakswhen.report;
       self.http.post(apiURL, { name: "tmp", targets: processedLabels.join(','), sql_script: sqlCommands })
@@ -1259,7 +1260,10 @@ RA
                                 orderTasks[currentProcessingTaskIndex](0);
                               }
                               else {
-                                $('#messageModal').modal('toggle');
+                                if(!filesAreReady) {
+                                  filesAreReady = true;
+                                  $('#messageModal').modal('toggle');
+                                }
                               }
                             } else {
                               fileQuery(++counter);
