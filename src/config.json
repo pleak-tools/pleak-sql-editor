@@ -22,7 +22,8 @@
     "leakswhen": {
         "host": "http://localhost:3000",
         "report": "/upload",
-        "multi_runs": false
+        "compute": "/compute",
+        "multi_runs": true
     },
     "guessing_advantage_editor": {
         "folder": "pleak-guessing-advantage-editor"
