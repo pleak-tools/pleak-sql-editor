@@ -844,12 +844,18 @@ RA
       if (node['isProcessed']) {
         delete node['isProcessed'];
       }
+      if (node['stackImage']) {
+        delete node['stackImage'];
+      }
       if (!!node.businessObject) {
         if (node.businessObject['petriPlace']) {
           delete node.businessObject['petriPlace'];
         }
         if (node.businessObject['isProcessed']) {
           delete node.businessObject['isProcessed'];
+        }
+        if (node.businessObject['stackImage']) {
+          delete node.businessObject['stackImage'];
         }
       }
     }
@@ -949,23 +955,26 @@ RA
 
         if (node.businessObject.dataInputAssociations && node.businessObject.dataInputAssociations.length) {
           node.businessObject.dataInputAssociations.forEach(x => {
-            if (!petri[x.sourceRef[0].id]) {
-              petri[x.sourceRef[0].id] = { type: "place", out: [node.id], label: x.sourceRef[0].name }
+            // We attach initial data objects with 'create' statements to the first
+            // task of current lane and ignore if there are multiple output associations
+            // because of petri net logic
+            if(!!x.sourceRef[0].sqlScript && x.sourceRef[0].$parent.id == startBusinessObj.$parent.id) {
+              let startEventOut = startBusinessObj.outgoing ? startBusinessObj.outgoing.map(x => x.targetRef) : null;
+              if(!!startEventOut) {
+                petri[x.sourceRef[0].id] = { type: "place", out: [startEventOut[0].id], label: x.sourceRef[0].name }
+              }
             }
-            else {
-              petri[x.sourceRef[0].id].out.push(node.id);
-            }
-            // if(petri[node.id].out.findIndex(y => y == x.sourceRef[0].id) == -1)
-            //   petri[node.id].out.push(x.sourceRef[0].id);
           });
         }
 
         if (node.businessObject.dataOutputAssociations && node.businessObject.dataOutputAssociations.length) {
           node.businessObject.dataOutputAssociations.forEach(x => {
-            if (petri[node.id].out.findIndex(y => y == x.targetRef.id) == -1)
-              petri[node.id].out.push(x.targetRef.id);
-            if (!petri[x.targetRef.id]) {
-              petri[x.targetRef.id] = { type: "place", out: [], label: x.targetRef.name }
+            if(!!x.targetRef.sqlScript) {
+              if (petri[node.id].out.findIndex(y => y == x.targetRef.id) == -1)
+                petri[node.id].out.push(x.targetRef.id);
+              if (!petri[x.targetRef.id]) {
+                petri[x.targetRef.id] = { type: "place", out: [], label: x.targetRef.name }
+              }
             }
           });
         }
@@ -1124,15 +1133,15 @@ RA
               self.removePetriMarks();
 
               let serverPetriFileName = self.file.id + "_" + self.file.title.substring(0, self.file.title.length - 5);
-              self.sendPreparationRequest(serverPetriFileName, JSON.stringify(adjustedPetri), processedLabels, matcher, serverResponsePromises);
+              $('#messageModal').modal('show');
+              self.sendPreparationRequest(serverPetriFileName, JSON.stringify(adjustedPetri), processedLabels, matcher, serverResponsePromises)
+              .then(res => $('#messageModal').modal('hide'),
+                    err => {
+                      $('#messageModal').modal('hide');
+                      $('#leaksWhenServerError').show();
+                    });
             }
           }
-
-
-          $('#messageModal').modal();
-          setTimeout(() => {
-            Promise.all(serverResponsePromises);
-          }, 500);
         });
       });
     }
@@ -1170,128 +1179,98 @@ RA
       });
   }
  
-  sendPreparationRequest(diagramId, petri, processedLabels, matcher, promises) {
+  sendPreparationRequest(diagramId, petri, processedLabels, matcher, promiseChain) {
     let self = this;
     let apiURL = config.leakswhen.host + config.leakswhen.compute;
 
-    self.http.post(apiURL, { diagram_id: diagramId, petri: petri })
+    return self.http.post(apiURL, { diagram_id: diagramId, petri: petri })
       .toPromise()
       .then(
         res => {
           let runs = res.json().runs;
-          // console.log(runs);
-
-          // Matching ids from result and sql scripts
-          let sqlCommands = "";
-          runs.filter(run => {
-            return run.reduce((acc, cur) => { return acc && cur.substring('EndEvent') != -1 }, true);
-          }).forEach(run => {
-            for (let i = 0; i < run.length; i++) {
-              sqlCommands += matcher[run[i]] ? matcher[run[i]] + "\n" : "";
-            }
-            self.sendLeaksWhenRequest(sqlCommands, processedLabels, promises);
+          console.log(runs);
+          
+          runs = runs.filter(run => {
+            return run.reduce((acc, cur) => { return acc || cur.includes('EndEvent') }, false);
           });
-        },
-        err => {
-          $('#leaksWhenServerError').show();
-        }
-      );
+
+          return runs.reduce((acc, run, index) => acc.then(res => {
+            let sqlCommands = run.reduce((acc, id) => acc + (matcher[id] ? matcher[id] + '\n' :''), '');
+
+            return self.sendLeaksWhenRequest(sqlCommands, processedLabels, promiseChain, index);
+          }), Promise.resolve());
+        });
   }
 
-  sendLeaksWhenRequest(sqlCommands, processedLabels, promises) {
+  sendLeaksWhenRequest(sqlCommands, processedLabels, promises, runNumber) {
     let self = this;
-
-    let filesAreReady = false;
-    promises.push(new Promise((resolve, reject) => {
+    
       let apiURL = config.leakswhen.host + config.leakswhen.report;
-      self.http.post(apiURL, { name: "tmp", targets: processedLabels.join(','), sql_script: sqlCommands })
+      return self.http.post(apiURL, { model: "tmp" /*+ runNumber*/, targets: processedLabels.join(','), sql_script: sqlCommands })
         .toPromise()
         .then(
           res => {
             let files = res.json().files;
+            
             let legend = files.filter(x => x.indexOf('legend') != -1)[0];
             let namePathMapping = {};
             files.filter(x => x.indexOf('legend') == -1)
               .forEach(path => namePathMapping[path.split('/').pop()] = path);
 
-            self.http.get(config.leakswhen.host + legend)
+            return self.http.get(config.leakswhen.host + legend)
               .toPromise()
               .then(res => {
                 let legendObject = res.json();
-                let orderTasks = [];
-                let currentProcessingTaskIndex = 0;
 
-                let resultGraphsInfo = []
-
-                for (var key in legendObject) {
-                  let overlayInsert = ``;
-                  let counter = 0;
+                return Object.keys(legendObject).reduce((acc, key) => acc.then(res => {
                   let clojuredKey = key;
-                  let fileQuery = (index) => {
-                    //let url2 = config.leakswhen.host + namePathMapping[legendObject[clojuredKey][index]].replace("leaks-when/", "");
-                    let url2 = config.leakswhen.host + namePathMapping[legendObject[clojuredKey][index]];
 
-                    self.http.get(url2)
-                      .toPromise()
-                      .then(res => {
-                          let response = (<any>res)._body;
+                  return legendObject[clojuredKey].reduce((acc, fileName, fileIndex) => acc.then(resOverlayInsert => {
+                    let url2 = config.leakswhen.host + namePathMapping[fileName];
+                    let overlayInsert = fileIndex > 0 ? resOverlayInsert : ``;
 
-                          let urlParts = url2.split("/");
-                          let fileNameParts = url2.split("/")[urlParts.length-1].split(".")[0].split("_");
-                          let gid = fileNameParts[fileNameParts.length-1];
-
-                          overlayInsert += `
-                            <div align="left" class="panel-heading">
-                              <b>` + clojuredKey + '(' + counter + ')' + `</b>
-                            </div>
-                            <div class="panel-body">
-                              <div>
-                                <a href="` + config.frontend.host + '/graph/' + parseInt(gid) + `" target="_blank">View graph</a>
-                              </div>
-                            </div>`;
-
-                            if (counter == Object.keys(legendObject[clojuredKey]).length - 1) {
-                              var overlayHtml = $(`
-                                  <div class="code-dialog" id="` + clojuredKey + `-analysis-results">
-                                    <div class="panel panel-default">`+ overlayInsert + `</div></div>`
-                              );
-                              Analyser.onAnalysisCompleted.emit({ node: { id: "Output" + clojuredKey + counter, name: clojuredKey }, overlayHtml: overlayHtml });
-                              if (orderTasks[++currentProcessingTaskIndex]){
-                                orderTasks[currentProcessingTaskIndex](0);
-                              }
-                              else {
-                                if(!filesAreReady) {
-                                  filesAreReady = true;
-                                  $('#messageModal').modal('toggle');
-                                }
-                              }
-                            } else {
-                              fileQuery(++counter);
-                            }
-                      },
-                        msg => {
-                          reject(msg);
-                        });
-                  };
-                  orderTasks.push(fileQuery);
-                }
-                orderTasks[currentProcessingTaskIndex](0);
-              },
-              msg => {
-                reject(msg);
+                    return self.sendLegendFileRequest(url2, overlayInsert, clojuredKey, legendObject, fileIndex);
+                  }), Promise.resolve());
+                }), Promise.resolve());
               });
-
-            resolve();
-          },
-          err => {
-            $('#leaksWhenServerError').show();
-            resolve();
           }
         );
-        resolve(self.stat++);
-    }));
   }
-  private stat = 4;
+  
+  sendLegendFileRequest (url2, overlayInsert, clojuredKey, legendObject, fileCounter) {
+    let self = this;
+
+    return self.http.get(url2)
+      .toPromise()
+      .then(res => {
+          let response = (<any>res)._body;
+
+          let urlParts = url2.split("/");
+          let fileNameParts = url2.split("/")[urlParts.length-1].split(".")[0].split("_");
+          let gid = fileNameParts[fileNameParts.length-1];
+
+          overlayInsert += `
+            <div align="left" class="panel-heading">
+              <b>` + clojuredKey + '(' + fileCounter + ')' + `</b>
+            </div>
+            <div class="panel-body">
+              <div>
+                <a href="` + config.frontend.host + '/graph/' + parseInt(gid) + `" target="_blank">View graph</a>
+              </div>
+            </div>`;
+
+          if (fileCounter == legendObject[clojuredKey].length - 1) {
+            var overlayHtml = $(`
+                <div class="code-dialog" id="` + clojuredKey + `-analysis-results">
+                  <div class="panel panel-default">`+ overlayInsert + `</div></div>`
+            );
+            Analyser.onAnalysisCompleted.emit({ node: { id: "Output" + clojuredKey + fileCounter, name: clojuredKey }, overlayHtml: overlayHtml });
+          }
+
+          return overlayInsert;
+      });
+  };
+
   ngOnInit() {
     window.addEventListener('storage', (e) => {
       if (e.storageArea === localStorage) {
