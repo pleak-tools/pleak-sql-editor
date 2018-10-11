@@ -84,7 +84,7 @@ let analyzeProcessingNode = (nodeId: string, eventBus: any, dataDefStatements: {
 
         $('#messageModal').find('.modal-title').text("Analysis in progress...");
         $('#messageModal').find('.modal-body').html(analysisHtml);
-        $('#messageModal').modal();
+        $('#messageModal').modal('show');
 
         http.post(config.backend.host + '/rest/sql-privacy/analyse', { schema: obj_schema, query: obj_query }, authService.loadRequestOptions()).subscribe(
           success => {
@@ -205,7 +205,7 @@ let analyzeProcessingNode = (nodeId: string, eventBus: any, dataDefStatements: {
 
   } else {
     setTimeout(() => {
-      $('#messageModal').modal('toggle');
+      $('#messageModal').modal('hide');
     }, 1000);
 
     Analyser.onAnalysisCompleted.emit({ node: node, overlayHtml: `<div class="code-error">${result.error.message}</div>` });

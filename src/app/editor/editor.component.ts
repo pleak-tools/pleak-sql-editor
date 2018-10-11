@@ -1129,7 +1129,7 @@ RA
           }
 
 
-          $('#messageModal').modal();
+          $('#messageModal').modal('show');
           setTimeout(() => {
             Promise.all(serverResponsePromises);
           }, 500);
@@ -1262,7 +1262,7 @@ RA
                               else {
                                 if(!filesAreReady) {
                                   filesAreReady = true;
-                                  $('#messageModal').modal('toggle');
+                                  $('#messageModal').modal('hide');
                                 }
                               }
                             } else {
