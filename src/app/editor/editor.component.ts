@@ -3,7 +3,6 @@ import { Http } from '@angular/http';
 import { AuthService } from "../auth/auth.service";
 import { SqlBPMNModdle } from "./bpmn-sql-extension";
 import { Analyser } from "../analyser/SQLDFlowAnalizer";
-import { topologicalSorting, dataFlowAnalysis } from "../analyser/GraMSecAnalizer";
 import { SidebarComponent } from '../sidebar/sidebar.component';
 import NavigatedViewer from 'bpmn-js/lib/NavigatedViewer';
 
@@ -475,7 +474,7 @@ export class EditorComponent implements OnInit {
               const diffY = event.pageY - startY;
 
               $modalContainer.css('transform', `translate(${diffX + modalX}px, ${diffY + modalY}px)`);
-              console.log('move');
+              // console.log('move');
           };
 
           $(document).on('mousemove', moveFunction);
@@ -1188,7 +1187,7 @@ RA
       .then(
         res => {
           let runs = res.json().runs;
-          console.log(runs);
+          // console.log(runs);
           
           runs = runs.filter(run => {
             return run.reduce((acc, cur) => { return acc || cur.includes('EndEvent') }, false);
@@ -1217,7 +1216,9 @@ RA
             files.filter(x => x.indexOf('legend') == -1)
               .forEach(path => namePathMapping[path.split('/').pop()] = path);
 
-            return self.http.get(config.leakswhen.host + legend)
+            //let url1 = config.leakswhen.host + legend.replace("leaks-when/", "");
+            let url1 = config.leakswhen.host + legend;
+            return self.http.get(url1)
               .toPromise()
               .then(res => {
                 let legendObject = res.json();
@@ -1226,6 +1227,7 @@ RA
                   let clojuredKey = key;
 
                   return legendObject[clojuredKey].reduce((acc, fileName, fileIndex) => acc.then(resOverlayInsert => {
+                    //let url2 = config.leakswhen.host + namePathMapping[fileName].replace("leaks-when/", "");
                     let url2 = config.leakswhen.host + namePathMapping[fileName];
                     let overlayInsert = fileIndex > 0 ? resOverlayInsert : ``;
 
