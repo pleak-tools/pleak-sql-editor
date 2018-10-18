@@ -210,7 +210,8 @@ export const SqlBPMNModdle = {
     {
       name: "SQLDataObjectReference",
       extends: [
-        "bpmn:DataObjectReference"
+        "bpmn:DataObjectReference",
+        "bpmn:DataStoreReference",
       ],
       properties: [
         {
@@ -241,7 +242,8 @@ export const SqlBPMNModdle = {
     {
       name: "StereotypeDataObjectReference",
       extends: [
-        "bpmn:DataObjectReference"
+        "bpmn:DataObjectReference",
+        "bpmn:DataStoreReference"
       ],
       properties: [
         {
@@ -259,7 +261,8 @@ export const SqlBPMNModdle = {
     {
       name: "SQLDerivativeSensitivityDataObjectReference",
       extends: [
-        "bpmn:DataObjectReference"
+        "bpmn:DataObjectReference",
+        "bpmn:DataStoreReference"
       ],
       properties: [
         {
