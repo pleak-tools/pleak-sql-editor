@@ -1,7 +1,7 @@
 import { Component, OnInit, Input, ViewChild } from '@angular/core';
 import { Http } from '@angular/http';
 import { AuthService } from "../auth/auth.service";
-import { SqlBPMNModdle } from "./bpmn-sql-extension";
+import { SqlBPMNModdle } from "./bpmn-labels-extension";
 import { Analyser } from "../analyser/SQLDFlowAnalizer";
 import { SidebarComponent } from '../sidebar/sidebar.component';
 import NavigatedViewer from 'bpmn-js/lib/NavigatedViewer';
@@ -398,10 +398,8 @@ export class EditorComponent implements OnInit {
       $modal.find('.modal-body').html(
       `<table>
           <thead>
-          
           </thead>
           <tbody>
-
           </tbody>
         </table>`
       );
@@ -1177,7 +1175,7 @@ RA
         }
       });
   }
- 
+
   sendPreparationRequest(diagramId, petri, processedLabels, matcher, promiseChain) {
     let self = this;
     let apiURL = config.leakswhen.host + config.leakswhen.compute;
@@ -1188,7 +1186,7 @@ RA
         res => {
           let runs = res.json().runs;
           // console.log(runs);
-          
+
           runs = runs.filter(run => {
             return run.reduce((acc, cur) => { return acc || cur.includes('EndEvent') }, false);
           });
@@ -1203,14 +1201,14 @@ RA
 
   sendLeaksWhenRequest(sqlCommands, processedLabels, promises, runNumber) {
     let self = this;
-    
+
       let apiURL = config.leakswhen.host + config.leakswhen.report;
       return self.http.post(apiURL, { model: "tmp" /*+ runNumber*/, targets: processedLabels.join(','), sql_script: sqlCommands })
         .toPromise()
         .then(
           res => {
             let files = res.json().files;
-            
+
             let legend = files.filter(x => x.indexOf('legend') != -1)[0];
             let namePathMapping = {};
             files.filter(x => x.indexOf('legend') == -1)
@@ -1238,7 +1236,7 @@ RA
           }
         );
   }
-  
+
   sendLegendFileRequest (url2, overlayInsert, clojuredKey, legendObject, fileCounter) {
     let self = this;
 
