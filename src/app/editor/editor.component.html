@@ -33,6 +33,13 @@
             </a>
           </li>
         </ul>
+        <ul class="buttons analyze" *ngIf="isLoaded()">
+          <li>
+            <a id="sql-policies" title="Show all policies" href="#" class="active">
+              <span class="glyphicon glyphicon-list-alt"></span> Policies
+            </a>
+          </li>
+        </ul>
         <ul class="buttons analyze">
           <li>
             <a id="bpmn-leaks-report" title="Generate leaks report" href="#" class="active">

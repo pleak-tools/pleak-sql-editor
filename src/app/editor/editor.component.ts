@@ -61,9 +61,9 @@ export class EditorComponent implements OnInit {
   private file: any;
   private lastModified: Number = null;
   private selectedDataObjects: Array<string> = [];
-
-  private elementBeingEdited: String = null;
-  private elementOldValue: String = "";
+  
+  private policies: Array<any> = [];
+  private roles: Array<any> = [];
 
   isAuthenticated() {
     return this.authenticated;
@@ -150,76 +150,26 @@ export class EditorComponent implements OnInit {
     return false;
   }
 
-  loadSQLScript(element) {
-    let self = this;
-
-    if (self.elementBeingEdited !== null) {
-      self.canvas.removeMarker(self.elementBeingEdited, 'selected');
-    }
-    self.canvas.addMarker(element.id, 'selected');
-    self.elementBeingEdited = element.id;
-
-    let sqlQuery;
-    if (element.sqlScript == null) {
-      sqlQuery = "";
-    } else {
-      sqlQuery = element.sqlScript;
-    }
-
-    if (element.name) {
-      $('.elementTitle').text(element.name);
-    } else {
-      $('.elementTitle').text('untitled');
-    }
-
-    self.sidebarComponent.isEditing = true;
-
-    $('#SaveEditing').off('click');
-    $('#SaveEditing').on('click', function () {
-      self.saveSQLScript(element);
-    });
-
-    $('#CancelEditing').off('click');
-    $('#CancelEditing').on('click', function () {
-      self.closeSQLScriptPanel(element);
-    });
-
-    $('textarea#CodeEditor').val(sqlQuery);
-    self.codeMirror.setValue(sqlQuery);
-    setTimeout(function () {
-      self.codeMirror.refresh();
-    }, 10);
-    self.elementOldValue = self.codeMirror.getValue();
-  }
-
-  closeSQLScriptPanel(element) {
-    let self = this;
-    if ((typeof element.sqlScript === "undefined" && self.codeMirror.getValue().length > 0) || (element.sqlScript && element.sqlScript != self.codeMirror.getValue())) {
-      if (confirm('You have some unsaved changes. Would you like to revert these changes?')) {
-        self.sidebarComponent.isEditing = false;
-        self.elementBeingEdited = null;
-        self.elementOldValue = "";
-        self.canvas.removeMarker(element.id, 'selected');
-      } else {
-        self.canvas.addMarker(self.elementBeingEdited, 'selected');
-        return false;
-      }
-    } else {
-      self.sidebarComponent.isEditing = false;
-      self.elementBeingEdited = null;
-      self.elementOldValue = "";
-      self.canvas.removeMarker(element.id, 'selected');
-    }
-  }
-
   saveSQLScript(element) {
     let self = this;
     element.sqlScript = self.codeMirror.getValue();
+
+    let registry = this.viewer.get('elementRegistry');
+    for (var i in registry._elements) {
+      if (registry._elements[i].element.type == "bpmn:Process" || registry._elements[i].element.type == "bpmn:Collaboration") {
+        let policiesJsonStr = JSON.stringify(self.policies);
+        registry._elements[i].element.businessObject.policiesJsonStr = policiesJsonStr;
+        break;
+      }
+    }
+
     self.updateModelContentVariable();
     self.sidebarComponent.isEditing = false;
-    self.elementBeingEdited = null;
-    self.elementOldValue = "";
-    self.canvas.removeMarker(element.id, 'selected');
+    self.sidebarComponent.elementBeingEdited = null;
+    self.sidebarComponent.elementOldValue = "";
+
+    if(element && element.id)
+      self.canvas.removeMarker(element.id, 'selected');
   }
 
   // Load diagram and add editor
@@ -238,8 +188,22 @@ export class EditorComponent implements OnInit {
       this.eventBus = this.viewer.get('eventBus');
       this.overlays = this.viewer.get('overlays');
       this.canvas = this.viewer.get('canvas');
+      setTimeout(() => {
+        self.sidebarComponent.init(self.canvas, self.codeMirror);
+      }, 100);
+      
+      self.sidebarComponent.save.subscribe((element) => self.saveSQLScript(element));
 
       this.viewer.importXML(diagram, () => {
+        let registry = this.viewer.get('elementRegistry');
+        for (var i in registry._elements) {
+          if (registry._elements[i].element.type == "bpmn:Process" || registry._elements[i].element.type == "bpmn:Collaboration") {
+            if(registry._elements[i].element.businessObject.policiesJsonStr)
+              self.policies = JSON.parse(registry._elements[i].element.businessObject.policiesJsonStr);
+            break;
+          }
+        }
+
         self.eventBus.on('element.click', function (e) {
           // User can select intermediate and sync data objects for leaks report
           if (is(e.element.businessObject, 'bpmn:DataObjectReference') && !!e.element.incoming.length) {
@@ -256,23 +220,23 @@ export class EditorComponent implements OnInit {
           } else {
             if ((is(e.element.businessObject, 'bpmn:DataObjectReference') || is(e.element.businessObject, 'bpmn:Task') || is(e.element.businessObject, 'bpmn:StartEvent')) && !$(document).find("[data-element-id='" + e.element.id + "']").hasClass('highlight-input')) {
               let selectedElement = e.element.businessObject;
-              if (self.elementBeingEdited !== null && self.elementBeingEdited === selectedElement.id && self.elementOldValue != self.codeMirror.getValue()) {
-                self.canvas.addMarker(self.elementBeingEdited, 'selected');
+              if (self.sidebarComponent.elementBeingEdited !== null && self.sidebarComponent.elementBeingEdited === selectedElement.id && self.sidebarComponent.elementOldValue != self.codeMirror.getValue()) {
+                self.canvas.addMarker(self.sidebarComponent.elementBeingEdited, 'selected');
                 return false;
-              } else if (self.elementBeingEdited !== null && self.elementBeingEdited !== selectedElement.id && self.elementOldValue != self.codeMirror.getValue()) {
+              } else if (self.sidebarComponent.elementBeingEdited !== null && self.sidebarComponent.elementBeingEdited !== selectedElement.id && self.sidebarComponent.elementOldValue != self.codeMirror.getValue()) {
                 if (confirm('You have some unsaved changes. Would you like to revert these changes?')) {
-                  self.loadSQLScript(selectedElement);
+                  self.sidebarComponent.loadSQLScript(selectedElement);
                 } else {
-                  self.canvas.addMarker(self.elementBeingEdited, 'selected');
+                  self.canvas.addMarker(self.sidebarComponent.elementBeingEdited, 'selected');
                   self.canvas.removeMarker(e.element.id, 'selected');
                   return false;
                 }
               } else {
-                self.loadSQLScript(selectedElement);
+                self.sidebarComponent.loadSQLScript(selectedElement);
               }
             }
             else {
-              self.overlays.remove({ element: e.element });
+                self.overlays.remove({ element: e.element });
             }
           }
         });
@@ -308,6 +272,15 @@ export class EditorComponent implements OnInit {
         this.buildSqlInTopologicalOrder();
       });
 
+      $('.buttons-container').on('click', '#sql-policies', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        this.sidebarComponent.clear();
+        self.roles = self.extractRoles();
+        this.sidebarComponent.emitPoliciesAndRoles(self.policies, self.roles);
+      });
+
       $('.buttons-container').on('click', '#bpmn-leaks-report', (e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -329,11 +302,30 @@ export class EditorComponent implements OnInit {
       });
 
       $(window).bind('beforeunload', (e) => {
-        if (self.file.content != self.lastContent || (self.elementBeingEdited !== null && self.elementOldValue != self.codeMirror.getValue())) {
+        if (self.file.content != self.lastContent || (self.sidebarComponent.elementBeingEdited !== null && self.sidebarComponent.elementOldValue != self.codeMirror.getValue())) {
           return 'Are you sure you want to close this tab? Unsaved progress will be lost.';
         }
       });
     }
+  }
+
+  extractRoles() {
+    let self = this;
+    let registry = this.viewer.get('elementRegistry');
+    let laneRoles = [];
+    let processRole = $('#fileName')[0].innerText.replace('.bpmn', '');
+    let reg = new RegExp(/^[A-Za-z ]+$/);
+
+    // First we try to find BPMN lanes
+    // If not any, then we take process name as the only role
+    for (var i in registry._elements) {
+      if (registry._elements[i].element.type == "bpmn:Participant") {
+        laneRoles.push(registry._elements[i].element.businessObject.name);
+        // laneRoles.push(reg.exec(registry._elements[i].element.businessObject.name)[0]);
+      }
+    }
+
+    return laneRoles.length ? laneRoles : [processRole];
   }
 
   // Save model
