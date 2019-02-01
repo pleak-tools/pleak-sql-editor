@@ -54,15 +54,16 @@ export class EditorComponent implements OnInit {
 
   private modelId;
   private viewerType;
+  private menuSelector;
 
   private lastContent: String = '';
   private codeMirror: any;
   private fileId: Number = null;
   private file: any;
   private lastModified: Number = null;
-  private selectedDataObjects: Array<string> = [];
-  
-  private policies: Array<any> = [];
+  private selectedDataObjects: Array<any> = [];
+  private taskDtoOrdering = {};
+
   private roles: Array<any> = [];
 
   isAuthenticated() {
@@ -150,26 +151,20 @@ export class EditorComponent implements OnInit {
     return false;
   }
 
-  saveSQLScript(element) {
+  saveSQLScript(e) {
     let self = this;
-    element.sqlScript = self.codeMirror.getValue();
-
-    let registry = this.viewer.get('elementRegistry');
-    for (var i in registry._elements) {
-      if (registry._elements[i].element.type == "bpmn:Process" || registry._elements[i].element.type == "bpmn:Collaboration") {
-        let policiesJsonStr = JSON.stringify(self.policies);
-        registry._elements[i].element.businessObject.policiesJsonStr = policiesJsonStr;
-        break;
-      }
-    }
+    if(!e.type)
+      e.element.sqlScript = self.codeMirror.getValue();
+    else
+      e.element.policyScript = self.codeMirror.getValue();
 
     self.updateModelContentVariable();
     self.sidebarComponent.isEditing = false;
     self.sidebarComponent.elementBeingEdited = null;
     self.sidebarComponent.elementOldValue = "";
 
-    if(element && element.id)
-      self.canvas.removeMarker(element.id, 'selected');
+    if(e.element && e.element.id)
+      self.canvas.removeMarker(e.element.id, 'selected');
   }
 
   // Load diagram and add editor
@@ -192,47 +187,34 @@ export class EditorComponent implements OnInit {
         self.sidebarComponent.init(self.canvas, self.codeMirror);
       }, 100);
       
-      self.sidebarComponent.save.subscribe((element) => self.saveSQLScript(element));
+      self.sidebarComponent.save.subscribe(({element, type}) => self.saveSQLScript({element, type}));
 
       this.viewer.importXML(diagram, () => {
-        let registry = this.viewer.get('elementRegistry');
-        for (var i in registry._elements) {
-          if (registry._elements[i].element.type == "bpmn:Process" || registry._elements[i].element.type == "bpmn:Collaboration") {
-            if(registry._elements[i].element.businessObject.policiesJsonStr)
-              self.policies = JSON.parse(registry._elements[i].element.businessObject.policiesJsonStr);
-            break;
-          }
-        }
-
         self.eventBus.on('element.click', function (e) {
           // User can select intermediate and sync data objects for leaks report
-          if (is(e.element.businessObject, 'bpmn:DataObjectReference') && !!e.element.incoming.length) {
-            if (!e.element.businessObject.selectedForReport) {
-              self.selectedDataObjects.push(e.element.businessObject.name);
-              e.element.businessObject.selectedForReport = true;
-              self.canvas.addMarker(e.element.id, 'highlight-input-selected');
-            } else {
-              let index = self.selectedDataObjects.findIndex(x => x == e.element.businessObject.name);
-              self.selectedDataObjects.splice(index, 1);
-              e.element.businessObject.selectedForReport = false;
-              self.canvas.removeMarker(e.element.id, 'highlight-input-selected');
-            }
+          if (is(e.element.businessObject, 'bpmn:DataObjectReference') || is(e.element.businessObject, 'bpmn:Participant')) {
+            self.showMenu(e);
           } else {
-            if ((is(e.element.businessObject, 'bpmn:DataObjectReference') || is(e.element.businessObject, 'bpmn:Task') || is(e.element.businessObject, 'bpmn:StartEvent')) && !$(document).find("[data-element-id='" + e.element.id + "']").hasClass('highlight-input')) {
+            if(self.menuSelector){
+              self.overlays.remove({ id: self.menuSelector });
+              self.menuSelector = null;
+            }
+
+            if ((is(e.element.businessObject, 'bpmn:Task') || is(e.element.businessObject, 'bpmn:StartEvent')) && !$(document).find("[data-element-id='" + e.element.id + "']").hasClass('highlight-input')) {
               let selectedElement = e.element.businessObject;
               if (self.sidebarComponent.elementBeingEdited !== null && self.sidebarComponent.elementBeingEdited === selectedElement.id && self.sidebarComponent.elementOldValue != self.codeMirror.getValue()) {
                 self.canvas.addMarker(self.sidebarComponent.elementBeingEdited, 'selected');
                 return false;
               } else if (self.sidebarComponent.elementBeingEdited !== null && self.sidebarComponent.elementBeingEdited !== selectedElement.id && self.sidebarComponent.elementOldValue != self.codeMirror.getValue()) {
                 if (confirm('You have some unsaved changes. Would you like to revert these changes?')) {
-                  self.sidebarComponent.loadSQLScript(selectedElement);
+                  self.sidebarComponent.loadSQLScript(selectedElement, 0);
                 } else {
                   self.canvas.addMarker(self.sidebarComponent.elementBeingEdited, 'selected');
                   self.canvas.removeMarker(e.element.id, 'selected');
                   return false;
                 }
               } else {
-                self.sidebarComponent.loadSQLScript(selectedElement);
+                self.sidebarComponent.loadSQLScript(selectedElement, 0);
               }
             }
             else {
@@ -271,16 +253,7 @@ export class EditorComponent implements OnInit {
         this.sidebarComponent.clear();
         this.buildSqlInTopologicalOrder();
       });
-
-      $('.buttons-container').on('click', '#sql-policies', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-
-        this.sidebarComponent.clear();
-        self.roles = self.extractRoles();
-        this.sidebarComponent.emitPoliciesAndRoles(self.policies, self.roles);
-      });
-
+            
       $('.buttons-container').on('click', '#bpmn-leaks-report', (e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -307,6 +280,93 @@ export class EditorComponent implements OnInit {
         }
       });
     }
+  }
+
+  showMenu(e) {
+    let element = e.element;
+    let self = this;
+    let overlayHtml = `
+      <div class="panel panel-default stereotype-editor" id="` + element.businessObject.id + `-stereotype-selector" style="height: 150px">
+        <div class="stereotype-editor-close-link" style="float: right; color: darkgray; cursor: pointer">X</div>
+        <div class="stereotype-selector-main-menu">
+          <div style="margin-bottom:10px; min-width: 130px">
+            <b>SQL Menu</b>
+          </div>
+          <table class="table table-hover stereotypes-table">
+            <tbody>
+              <tr>
+                <td class="link-row" id="select-button" style="cursor: pointer">` + (element.businessObject.selectedForReport ? "Deselect" : "Select") + `</td>
+              </tr>
+              <tr>
+                <td class="link-row" id="sql-script-button" style="cursor: pointer">Edit SQL Script</td>
+              </tr>
+              <tr>
+                <td class="link-row" id="policy-button" style="cursor: pointer">Edit policy</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+
+    if(!!element.incoming.length) {
+      // disable
+    }
+
+    overlayHtml = $(overlayHtml);
+
+    if(self.menuSelector) {
+      self.overlays.remove({ id: self.menuSelector });
+    }
+
+    $(overlayHtml).on('click', '.stereotype-editor-close-link', (e) => {
+      self.overlays.remove({ id: self.menuSelector });
+      self.menuSelector = null;
+    });
+
+    $(overlayHtml).on('click', '#select-button', (e) => {
+      if (!element.businessObject.selectedForReport) {
+        self.selectedDataObjects.push(element.businessObject);
+        element.businessObject.selectedForReport = true;
+        self.canvas.addMarker(element.id, 'highlight-input-selected');
+        $("#select-button").text("Deselect");
+      } else {
+        let index = self.selectedDataObjects.findIndex(x => x == element.businessObject);
+        self.selectedDataObjects.splice(index, 1);
+        element.businessObject.selectedForReport = false;
+        self.canvas.removeMarker(element.id, 'highlight-input-selected');
+        $("#select-button").text("Select");
+      }
+      self.overlays.remove({ id: self.menuSelector });
+      self.menuSelector = null;
+    });
+
+    $(overlayHtml).on('click', '#policy-button', (e) => {
+        this.sidebarComponent.clear();
+        self.roles = self.extractRoles();
+        self.sidebarComponent.loadSQLScript(element.businessObject, 1, self.roles);
+    });
+
+    $(overlayHtml).on('click', '#sql-script-button', (e) => {
+      this.sidebarComponent.clear();
+      self.sidebarComponent.loadSQLScript(element.businessObject, 0);
+    });
+
+    let registry = this.viewer.get('elementRegistry');
+    let overlayPosition = !is(element.businessObject, 'bpmn:Participant') 
+      ? {right: 0, bottom: 0} 
+      // : {top: e.originalEvent.clientX - element.x, left: e.originalEvent.clientY - element.y};
+      : {top: 5, left: 40};
+
+    let menuOverlay = this.overlays.add(registry.get(element.businessObject.id), {
+      position: overlayPosition,
+      show: {
+        minZoom: 0,
+        maxZoom: 5.0
+      },
+      html: overlayHtml
+    });
+    self.menuSelector = menuOverlay;
   }
 
   extractRoles() {
@@ -851,6 +911,7 @@ RA
   }
 
   buildPetriNet(registry, startBusinessObj, petri, maxPlaceNumberObj) {
+    let self = this;
     var crun = [];
     var st = [startBusinessObj];
     var xorSplitStack = [];
@@ -940,6 +1001,7 @@ RA
     for (var i in registry._elements) {
       var node = registry._elements[i].element;
       if (is(node.businessObject, 'bpmn:Task') && petri[node.id]) {
+        self.taskDtoOrdering[node.id] = [];
         petri[node.id].label = node.businessObject.name;
 
         if (node.businessObject.dataInputAssociations && node.businessObject.dataInputAssociations.length) {
@@ -965,6 +1027,8 @@ RA
                 petri[x.targetRef.id] = { type: "place", out: [], label: x.targetRef.name }
               }
             }
+
+            self.taskDtoOrdering[node.id].push(x.targetRef.id);
           });
         }
       }
@@ -1074,7 +1138,7 @@ RA
           // let order = topologicalSorting(dataFlowEdges, invDataFlowEdges, sources);
 
           let processedLabels = self.selectedDataObjects[0]
-            ? self.selectedDataObjects.map(x => x.split(" ").map(word => word.toLowerCase()).join("_"))
+            ? self.selectedDataObjects.map(x => x.name.split(" ").map(word => word.toLowerCase()).join("_"))
             : self.selectedDataObjects;
 
           let analysisHtml = `<div class="spinner">
@@ -1122,8 +1186,10 @@ RA
               self.removePetriMarks();
 
               let serverPetriFileName = self.file.id + "_" + self.file.title.substring(0, self.file.title.length - 5);
+              let participants = self.buildPolicies();
+              
               $('#messageModal').modal('show');
-              self.sendPreparationRequest(serverPetriFileName, JSON.stringify(adjustedPetri), processedLabels, matcher, serverResponsePromises)
+              self.sendPreparationRequest(serverPetriFileName, JSON.stringify(adjustedPetri), processedLabels, matcher, participants, serverResponsePromises)
               .then(res => $('#messageModal').modal('hide'),
                     err => {
                       $('#messageModal').modal('hide');
@@ -1134,6 +1200,33 @@ RA
         });
       });
     }
+  }
+
+  buildPolicies() {
+    let self = this;
+    let registry = this.viewer.get('elementRegistry');
+    let participants = [];
+
+    for (var i in registry._elements) {
+      if (registry._elements[i].element.type == "bpmn:Participant") {
+        let curPart = registry._elements[i].element;
+        participants.push({name: curPart.id, policies: []});
+        if(curPart.businessObject.policyScript){
+          participants[participants.length - 1].policies.push({name: 'laneScript', script: curPart.businessObject.policyScript});
+        }
+
+        for (var j = 0; j < curPart.children.length; j++) {
+          if (curPart.children[j].type == "bpmn:DataObjectReference" && curPart.children[j].businessObject) {
+            participants[participants.length - 1].policies.push({
+              name: curPart.children[j].businessObject.id, 
+              script: (curPart.children[j].businessObject.policyScript ? curPart.children[j].businessObject.policyScript : "")
+            });
+          }
+        }
+      }
+    }
+
+    return participants;
   }
 
   sendBpmnLeaksWhenRequest() {
@@ -1168,7 +1261,7 @@ RA
       });
   }
 
-  sendPreparationRequest(diagramId, petri, processedLabels, matcher, promiseChain) {
+  sendPreparationRequest(diagramId, petri, processedLabels, matcher, participants, promiseChain) {
     let self = this;
     let apiURL = config.leakswhen.host + config.leakswhen.compute;
 
@@ -1185,17 +1278,43 @@ RA
 
           return runs.reduce((acc, run, index) => acc.then(res => {
             let sqlCommands = run.reduce((acc, id) => acc + (matcher[id] ? matcher[id] + '\n' :''), '');
+            let currentOutputDto = self.selectedDataObjects[0];
+            // We select participant that contains selected data object
+            let currentParticipant = participants.filter(x => !!x.policies.find(p => p.name == currentOutputDto.id))[0];
+            let orderedDtos = {};
+            let currentOrderingIndex = 0;
 
-            return self.sendLeaksWhenRequest(sqlCommands, processedLabels, promiseChain, index);
+            // We should take policies only from those data objects that topologically preceed selected one
+            for(let i = 0; i < run.length; i++) {
+              if(run[i].indexOf('Task') != -1) {
+                for(let j = 0; j < self.taskDtoOrdering[run[i]].length; j++) {
+                  if(run.indexOf(self.taskDtoOrdering[run[i]][j]) == -1){
+                    orderedDtos[self.taskDtoOrdering[run[i]][j]] = currentOrderingIndex;
+                  }
+                }
+              }
+              else {
+                orderedDtos[run[i]] = currentOrderingIndex;
+              }
+              currentOrderingIndex++;
+            }
+
+            // return rolesPolicies.reduce((acc, policy, index) => acc.then(res => {
+              // console.log(policy);
+              let indexOfOutputDto = orderedDtos[currentOutputDto.id];
+              let requestPolicies = currentParticipant.policies.filter(x => (orderedDtos[x.name] <= indexOfOutputDto || x.name == 'laneScript') && !!x.script);
+
+              return self.sendLeaksWhenRequest(sqlCommands, processedLabels, requestPolicies.map(x => x.script), promiseChain, index);
+            // }), Promise.resolve());
           }), Promise.resolve());
         });
   }
 
-  sendLeaksWhenRequest(sqlCommands, processedLabels, promises, runNumber) {
+  sendLeaksWhenRequest(sqlCommands, processedLabels, policy, promises, runNumber) {
     let self = this;
 
       let apiURL = config.leakswhen.host + config.leakswhen.report;
-      return self.http.post(apiURL, { model: "tmp" /*+ runNumber*/, targets: processedLabels.join(','), sql_script: sqlCommands })
+      return self.http.post(apiURL, { model: "tmp" /*+ runNumber*/, targets: processedLabels.join(','), sql_script: sqlCommands, policy: policy })
         .toPromise()
         .then(
           res => {

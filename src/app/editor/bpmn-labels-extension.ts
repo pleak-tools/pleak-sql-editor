@@ -11,8 +11,7 @@ export const SqlBPMNModdle = {
       name: "SQLTask",
       extends: [
         "bpmn:Task",
-        "bpmn:StartEvent",
-        "bpmn:Participant"
+        "bpmn:StartEvent"
       ],
       properties: [
         {
@@ -30,12 +29,11 @@ export const SqlBPMNModdle = {
     {
       name: "Policies",
       extends: [
-        "bpmn:Process",
-        "bpmn:Collaboration"
+        "bpmn:Participant"
       ],
       properties: [
         {
-          "name": "policiesJsonStr",
+          "name": "policyScript",
           "isAttr": false,
           "type": "String"
         }
@@ -231,6 +229,11 @@ export const SqlBPMNModdle = {
       properties: [
         {
           "name": "sqlScript",
+          "isAttr": false,
+          "type": "String"
+        },
+        {
+          "name": "policyScript",
           "isAttr": false,
           "type": "String"
         }
