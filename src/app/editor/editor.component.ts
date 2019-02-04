@@ -3,6 +3,9 @@ import { Http } from '@angular/http';
 import { AuthService } from "../auth/auth.service";
 import { SqlBPMNModdle } from "./bpmn-labels-extension";
 import { Analyser } from "../analyser/SQLDFlowAnalizer";
+import { PetriNets } from "../analyser/PetriNets";
+import { LeaksWhenRequests } from "./leaks-when-requests";
+import { PolicyHelper } from "./policy-helper";
 import { SidebarComponent } from '../sidebar/sidebar.component';
 import NavigatedViewer from 'bpmn-js/lib/NavigatedViewer';
 
@@ -35,7 +38,7 @@ export class EditorComponent implements OnInit {
     }
     this.authService.authStatus.subscribe(status => {
       this.authenticated = status;
-      if (typeof(status) === 'boolean') {
+      if (typeof (status) === 'boolean') {
         this.getModel();
       }
     });
@@ -130,7 +133,7 @@ export class EditorComponent implements OnInit {
         self.file.user = response.user;
         self.file.md5Hash = response.md5Hash;
       },
-      () => {},
+      () => { },
       () => {
         self.initCodemirror();
         self.openDiagram(self.file.content);
@@ -142,18 +145,18 @@ export class EditorComponent implements OnInit {
     let file = this.file;
     if (!file || !this.isAuthenticated()) { return false; }
     if ((this.authService.user && file.user) ? file.user.email === this.authService.user.email : false) { return true; }
-      for (let pIx = 0; pIx < file.permissions.length; pIx++) {
-        if (file.permissions[pIx].action.title === 'edit' &&
+    for (let pIx = 0; pIx < file.permissions.length; pIx++) {
+      if (file.permissions[pIx].action.title === 'edit' &&
         this.authService.user ? file.permissions[pIx].user.email === this.authService.user.email : false) {
-          return true;
-        }
+        return true;
       }
+    }
     return false;
   }
 
   saveSQLScript(e) {
     let self = this;
-    if(!e.type)
+    if (!e.type)
       e.element.sqlScript = self.codeMirror.getValue();
     else
       e.element.policyScript = self.codeMirror.getValue();
@@ -163,7 +166,7 @@ export class EditorComponent implements OnInit {
     self.sidebarComponent.elementBeingEdited = null;
     self.sidebarComponent.elementOldValue = "";
 
-    if(e.element && e.element.id)
+    if (e.element && e.element.id)
       self.canvas.removeMarker(e.element.id, 'selected');
   }
 
@@ -186,21 +189,21 @@ export class EditorComponent implements OnInit {
       setTimeout(() => {
         self.sidebarComponent.init(self.canvas, self.codeMirror);
       }, 100);
-      
-      self.sidebarComponent.save.subscribe(({element, type}) => self.saveSQLScript({element, type}));
+
+      self.sidebarComponent.save.subscribe(({ element, type }) => self.saveSQLScript({ element, type }));
 
       this.viewer.importXML(diagram, () => {
         self.eventBus.on('element.click', function (e) {
           // User can select intermediate and sync data objects for leaks report
-          if (is(e.element.businessObject, 'bpmn:DataObjectReference') || is(e.element.businessObject, 'bpmn:Participant')) {
+          if (is(e.element.businessObject, 'bpmn:DataObjectReference') && e.element.incoming && e.element.incoming.length || is(e.element.businessObject, 'bpmn:Participant')) {
             self.showMenu(e);
           } else {
-            if(self.menuSelector){
+            if (self.menuSelector) {
               self.overlays.remove({ id: self.menuSelector });
               self.menuSelector = null;
             }
 
-            if ((is(e.element.businessObject, 'bpmn:Task') || is(e.element.businessObject, 'bpmn:StartEvent')) && !$(document).find("[data-element-id='" + e.element.id + "']").hasClass('highlight-input')) {
+            if ((is(e.element.businessObject, 'bpmn:Task') || is(e.element.businessObject, 'bpmn:DataObjectReference') || is(e.element.businessObject, 'bpmn:StartEvent')) && !$(document).find("[data-element-id='" + e.element.id + "']").hasClass('highlight-input')) {
               let selectedElement = e.element.businessObject;
               if (self.sidebarComponent.elementBeingEdited !== null && self.sidebarComponent.elementBeingEdited === selectedElement.id && self.sidebarComponent.elementOldValue != self.codeMirror.getValue()) {
                 self.canvas.addMarker(self.sidebarComponent.elementBeingEdited, 'selected');
@@ -218,7 +221,7 @@ export class EditorComponent implements OnInit {
               }
             }
             else {
-                self.overlays.remove({ element: e.element });
+              self.overlays.remove({ element: e.element });
             }
           }
         });
@@ -251,14 +254,14 @@ export class EditorComponent implements OnInit {
         $('#leaksWhenInputError').hide();
         $('#leaksWhenServerError').hide();
         this.sidebarComponent.clear();
-        this.buildSqlInTopologicalOrder();
+        this.runLeaksWhenAnalysis();
       });
-            
+
       $('.buttons-container').on('click', '#bpmn-leaks-report', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          this.sidebarComponent.clear();
-          this.sendBpmnLeaksWhenRequest();
+        e.preventDefault();
+        e.stopPropagation();
+        this.sidebarComponent.clear();
+        this.sendBpmnLeaksWhenRequest();
       });
 
       $(window).on('keydown', (e) => {
@@ -309,13 +312,10 @@ export class EditorComponent implements OnInit {
       </div>
     `;
 
-    if(!!element.incoming.length) {
-      // disable
-    }
-
     overlayHtml = $(overlayHtml);
+    let registry = this.viewer.get('elementRegistry');
 
-    if(self.menuSelector) {
+    if (self.menuSelector) {
       self.overlays.remove({ id: self.menuSelector });
     }
 
@@ -342,21 +342,20 @@ export class EditorComponent implements OnInit {
     });
 
     $(overlayHtml).on('click', '#policy-button', (e) => {
-        this.sidebarComponent.clear();
-        self.roles = self.extractRoles();
-        self.sidebarComponent.loadSQLScript(element.businessObject, 1, self.roles);
+      this.sidebarComponent.clear();
+      self.roles = PolicyHelper.extractRoles(registry);
+      self.sidebarComponent.loadSQLScript(element.businessObject, 1, self.roles);
     });
 
     $(overlayHtml).on('click', '#sql-script-button', (e) => {
       this.sidebarComponent.clear();
       self.sidebarComponent.loadSQLScript(element.businessObject, 0);
     });
-
-    let registry = this.viewer.get('elementRegistry');
-    let overlayPosition = !is(element.businessObject, 'bpmn:Participant') 
-      ? {right: 0, bottom: 0} 
+    
+    let overlayPosition = !is(element.businessObject, 'bpmn:Participant')
+      ? { right: 0, bottom: 0 }
       // : {top: e.originalEvent.clientX - element.x, left: e.originalEvent.clientY - element.y};
-      : {top: 5, left: 40};
+      : { top: 5, left: 40 };
 
     let menuOverlay = this.overlays.add(registry.get(element.businessObject.id), {
       position: overlayPosition,
@@ -367,25 +366,6 @@ export class EditorComponent implements OnInit {
       html: overlayHtml
     });
     self.menuSelector = menuOverlay;
-  }
-
-  extractRoles() {
-    let self = this;
-    let registry = this.viewer.get('elementRegistry');
-    let laneRoles = [];
-    let processRole = $('#fileName')[0].innerText.replace('.bpmn', '');
-    let reg = new RegExp(/^[A-Za-z ]+$/);
-
-    // First we try to find BPMN lanes
-    // If not any, then we take process name as the only role
-    for (var i in registry._elements) {
-      if (registry._elements[i].element.type == "bpmn:Participant") {
-        laneRoles.push(registry._elements[i].element.businessObject.name);
-        // laneRoles.push(reg.exec(registry._elements[i].element.businessObject.name)[0]);
-      }
-    }
-
-    return laneRoles.length ? laneRoles : [processRole];
   }
 
   // Save model
@@ -445,96 +425,96 @@ export class EditorComponent implements OnInit {
   }
 
   private bpmnLeaksWhen(response) {
-      const $modal = $('#bpmnLeaksWhenModal');
+    const $modal = $('#bpmnLeaksWhenModal');
 
-      $modal.find('.modal-body').html(
+    $modal.find('.modal-body').html(
       `<table>
           <thead>
           </thead>
           <tbody>
           </tbody>
         </table>`
-      );
+    );
 
-      $modal.find('.modal-title').text("BPMN LeaksWhen Report");
+    $modal.find('.modal-title').text("BPMN LeaksWhen Report");
 
-      $modal.find('table thead').html(function () {
-          let output = `<th></th>`;
+    $modal.find('table thead').html(function () {
+      let output = `<th></th>`;
 
-          response.inputs.forEach(function (item) {
-              output += `<th><div><span>${item}</span></div></th>`;
-          });
-
-          return `<tr>${output}</tr>`;
+      response.inputs.forEach(function (item) {
+        output += `<th><div><span>${item}</span></div></th>`;
       });
 
-      $modal.find('table tbody').html(function () {
-          let output = '';
+      return `<tr>${output}</tr>`;
+    });
 
-          response.outputs.forEach(function (item, key) {
-              const realKey = Object.keys(item)[0];
-              const realItem = item[realKey];
-              output += `<tr><th>${realKey}</th>`;
+    $modal.find('table tbody').html(function () {
+      let output = '';
 
-              realItem.forEach(function (rowValue) {
-                  const realValue = Object.keys(rowValue)[0];
-                  if (realValue === 'if') {
-                      output += `<td class="${realValue}" data-toggle="tooltip" data-container="body" title="${rowValue[realValue]}">${realValue}</td>`;
-                  } else {
-                      output += `<td class="${realValue}">${realValue}</td>`;
-                  }
-              });
+      response.outputs.forEach(function (item, key) {
+        const realKey = Object.keys(item)[0];
+        const realItem = item[realKey];
+        output += `<tr><th>${realKey}</th>`;
 
-              output += '</tr>';
-          });
+        realItem.forEach(function (rowValue) {
+          const realValue = Object.keys(rowValue)[0];
+          if (realValue === 'if') {
+            output += `<td class="${realValue}" data-toggle="tooltip" data-container="body" title="${rowValue[realValue]}">${realValue}</td>`;
+          } else {
+            output += `<td class="${realValue}">${realValue}</td>`;
+          }
+        });
 
-          return output;
+        output += '</tr>';
       });
 
-      $modal.find('table tbody td').hover(
-          function () {
-              const $output = $(this).closest('table').find('thead th').eq($(this).index());
-              const $input = $('th:first', $(this).parents('tr'));
+      return output;
+    });
 
-              $output.addClass('highlighted');
-              $input.addClass('highlighted');
-          }, function () {
-              const $output = $(this).closest('table').find('thead th').eq($(this).index());
-              const $input = $('th:first', $(this).parents('tr'));
+    $modal.find('table tbody td').hover(
+      function () {
+        const $output = $(this).closest('table').find('thead th').eq($(this).index());
+        const $input = $('th:first', $(this).parents('tr'));
 
-              $output.removeClass('highlighted');
-              $input.removeClass('highlighted');
-          });
+        $output.addClass('highlighted');
+        $input.addClass('highlighted');
+      }, function () {
+        const $output = $(this).closest('table').find('thead th').eq($(this).index());
+        const $input = $('th:first', $(this).parents('tr'));
 
-      $modal.find('.modal-header').on('mousedown', function (event) {
-          const startX = event.pageX;
-          const startY = event.pageY;
-
-          const $modalheader = $(this);
-          const $modalContainer = $modalheader.closest('.modal-dialog');
-
-          const modalX = parseInt($modalContainer.css('transform').split(',')[4]);
-          const modalY = parseInt($modalContainer.css('transform').split(',')[5]);
-
-          $modalheader.css('cursor', 'move');
-          $modal.css('opacity', 0.3);
-
-          const moveFunction = function (event) {
-              const diffX = event.pageX - startX;
-              const diffY = event.pageY - startY;
-
-              $modalContainer.css('transform', `translate(${diffX + modalX}px, ${diffY + modalY}px)`);
-              // console.log('move');
-          };
-
-          $(document).on('mousemove', moveFunction);
-          $(document).on('mouseup', function () {
-              $(document).off('mousemove', moveFunction);
-              $modal.css('opacity', 1);
-          });
+        $output.removeClass('highlighted');
+        $input.removeClass('highlighted');
       });
 
-      $('[data-toggle="tooltip"]', $modal).tooltip();
+    $modal.find('.modal-header').on('mousedown', function (event) {
+      const startX = event.pageX;
+      const startY = event.pageY;
+
+      const $modalheader = $(this);
+      const $modalContainer = $modalheader.closest('.modal-dialog');
+
+      const modalX = parseInt($modalContainer.css('transform').split(',')[4]);
+      const modalY = parseInt($modalContainer.css('transform').split(',')[5]);
+
+      $modalheader.css('cursor', 'move');
+      $modal.css('opacity', 0.3);
+
+      const moveFunction = function (event) {
+        const diffX = event.pageX - startX;
+        const diffY = event.pageY - startY;
+
+        $modalContainer.css('transform', `translate(${diffX + modalX}px, ${diffY + modalY}px)`);
+        // console.log('move');
+      };
+
+      $(document).on('mousemove', moveFunction);
+      $(document).on('mouseup', function () {
+        $(document).off('mousemove', moveFunction);
+        $modal.css('opacity', 1);
+      });
+    });
+
+    $('[data-toggle="tooltip"]', $modal).tooltip();
   }
 
   postLoad(definitions: any) {
@@ -577,570 +557,16 @@ export class EditorComponent implements OnInit {
     );
   }
 
-  to_ll_net(petri) {
-    // Format for arcs is like 5>16 so we need indices instead of ids
-    var i = 1; // index for places
-    var j = 1; // index for transitions
-    var str = "PEP\nPetriBox\nFORMAT_N2\nPL\n";
-    for (var el in petri) {
-      if (petri[el].type == "place") {
-        petri[el].index = i++;
-        str += '"' + el + '"';
-
-        var isInputFound = false;
-        for (var el2 in petri) {
-          if (petri[el2].out.findIndex(x => x == el) != -1) {
-            isInputFound = true;
-            break;
-          }
-        }
-
-        petri[el].isInputFound = isInputFound;
-
-        // Add 1 token for start events or source data objects
-        if (!isInputFound) {
-          str += "M1";
-        }
-
-        str += "\n";
-      }
-    }
-
-    str += "TR\n";
-
-    for (var el in petri) {
-      if (petri[el].type == "transition") {
-        petri[el].index = j++;
-        str += '"' + el + '"\n';
-      }
-    }
-
-    str += "TP\n";
-
-    for (var el in petri) {
-      if (petri[el].type == "transition") {
-        petri[el].out.forEach(x => {
-          str += petri[el].index + "<" + petri[x].index + "\n";
-        });
-      }
-    }
-
-    str += "PT\n";
-
-    for (var el in petri) {
-      if (petri[el].type == "place" && (!el.includes("DataObject") || el.includes("DataObject") && petri[el].isInputFound)) {
-        petri[el].out.forEach(x => {
-          str += petri[el].index + ">" + petri[x].index + "\n";
-        });
-      }
-    }
-
-    str += "RA\n";
-
-    for (var el in petri) {
-      if (petri[el].type == "place" && el.includes("DataObject") && !petri[el].isInputFound) {
-        petri[el].out.forEach(x => {
-          str += petri[x].index + "<" + petri[el].index + "\n";
-        });
-      }
-    }
-
-    var sampleStr = `PEP
-PetriBox
-FORMAT_N2
-% author ""
-% title ""
-% date ""
-% note ""
-% version ""
-PL
-1"p0:c0"9@9M1
-2"DataObjectReference_0wubi9g:c1"9@9M1
-3"DataObjectReference_0orzhva:c2"9@9M1
-4"DataObjectReference_0tqjrqv:c3"9@9
-5"p1:c4"9@9
-6"p2:c5"9@9
-7"DataObjectReference_1y1amaq:c6"9@9
-8"p3:c7"9@9
-9"p4:c8"9@9
-10"p5:c9"9@9
-11"p6:c10"9@9
-12"DataObjectReference_0tqjrqv:c11"9@9
-13"p7:c12"9@9
-14"p2:c13"9@9
-TR
-15"Task_09nvtvy:e0"9@9
-16"ExclusiveGateway_1t4643d0:e1"9@9
-17"Task_1x824b9:e2"9@9
-18"ExclusiveGateway_1t35uvf1:e3"9@9
-19"ExclusiveGateway_1t35uvf0:e4"9@9
-20"Task_1qho87z:e5"9@9
-21"Task_17bpyo0:e6"9@9
-22"ExclusiveGateway_1t4643d1:*e7"9@9
-TP
-15<5
-15<4
-16<6
-17<7
-17<8
-18<10
-19<9
-20<12
-20<13
-21<11
-22<14
-PT
-1>15
-5>16
-4>17
-6>17
-8>18
-8>19
-7>20
-9>20
-7>21
-10>21
-13>22
-RA
-15<2
-20<3`;
-    // this.from_ll_net(sampleStr);
-    return str;
-  }
-
-  from_ll_net(ll_net) {
-    var petri = {};
-    var lines = ll_net.split('\n');
-    // console.log(lines);
-
-    var curr = null;
-    while ((curr = lines.shift()) != "PL") { };
-
-    // Places
-    while ((curr = lines.shift()) != "TR") {
-      var parts = curr.split('"');
-      var llIndex = parseInt(parts[0]);
-      var objectId = parts[1];
-      petri[objectId] = { type: "place", out: [], ll_index: llIndex };
-    }
-
-    // Transitions
-    while ((curr = lines.shift()) != "TP") {
-      var parts = curr.split('"');
-      var llIndex = parseInt(parts[0]);
-      var objectId = parts[1];
-      petri[objectId] = { type: "transition", out: [], ll_index: llIndex };
-    }
-
-    // Transition -> Place
-    while ((curr = lines.shift()) != "PT") {
-      var parts = curr.split('<');
-      var inIndex = parseInt(parts[0]);
-      var outIndex = parts[1];
-
-      for (var el in petri) {
-        if (petri[el].ll_index == inIndex) {
-          var inputObj = el;
-        }
-        if (petri[el].ll_index == outIndex) {
-          var outputObj = el;
-        }
-      }
-
-      petri[inputObj].out.push(outputObj);
-    }
-
-    // Place -> Transition
-    while ((curr = lines.shift()) != "RA") {
-      var parts = curr.split('>');
-      var inIndex = parseInt(parts[0]);
-      var outIndex = parts[1];
-
-      for (var el in petri) {
-        if (petri[el].ll_index == inIndex) {
-          var inputObj = el;
-        }
-        if (petri[el].ll_index == outIndex) {
-          var outputObj = el;
-        }
-      }
-
-      petri[inputObj].out.push(outputObj);
-    }
-
-    // Read arcs
-    while (lines != "") {
-      curr = lines.shift();
-      var parts = curr.split('<');
-      var inIndex = parseInt(parts[0]);
-      var outIndex = parts[1];
-
-      for (var el in petri) {
-        if (petri[el].ll_index == inIndex) {
-          var inputObj = el;
-        }
-        if (petri[el].ll_index == outIndex) {
-          var outputObj = el;
-        }
-      }
-
-      petri[inputObj].out.push(outputObj);
-      petri[outputObj].out.push(inputObj);
-    }
-
-    // Object.keys(petri).forEach(k => petri["id"] = k);
-    // console.log(JSON.stringify(Object.values(petri)));
-    return petri;
-  }
-
-  buildGraph(petri) {
-    // Building in ll_net format
-    function onlyUnique(value, index, self) {
-      return self.indexOf(value) === index;
-    }
-
-    for (var el in petri) {
-      petri[el].out = petri[el].out.filter(onlyUnique);
-    }
-
-    // Removing redundant nodes before/after xor gateway
-    for (var el in petri) {
-      if (el.includes("ExclusiveGateway")) {
-        var copies = 0;
-
-        if (petri[el].out.length > 1) {
-
-          var preceeding = Object.values(petri).find(x => !!x["out"].find(z => z == el));
-          preceeding["out"] = [];
-          for (var i = 0; i < petri[el].out.length; i++) {
-            copies++;
-            var copy = el + i;
-            preceeding["out"].push(copy);
-            petri[copy] = { type: petri[el].type, out: [petri[el].out[i]] };
-          }
-        }
-        else {
-          var preceedings = Object.values(petri).filter(x => !!x["out"].find(z => z == el));
-          for (var i = 0; i < preceedings.length; i++) {
-            copies++;
-            var copy = el + i;
-            preceedings[i]["out"] = [copy];
-            petri[copy] = { type: petri[el].type, out: [petri[el].out[0]] };
-          }
-        }
-
-        delete petri[el];
-
-        // for(var el2 in petri) {
-        //   var oldIdIndex = petri[el2].out.indexOf(x => x == el);
-        //   if(oldIdIndex != -1) {
-        //     petri[el2].out[oldIdIndex] = petri[el2].out[oldIdIndex] + copies;
-        //   }
-        // }
-      }
-    }
-
-    for (var el in petri) {
-      if (petri[el].type == "place") {
-        var isInputFound = false;
-        for (var el2 in petri) {
-          if (petri[el2].out.findIndex(x => x == el) != -1) {
-            isInputFound = true;
-            break;
-          }
-        }
-
-        petri[el].isInputFound = isInputFound;
-      }
-    }
-
-    // var str2 = this.to_ll_net(petri);
-    // console.log(str2);
-    // return;
-
-    // Building in dot format
-
-    var str = "digraph G { rankdir=LR; ";
-    for (var el in petri) {
-      if (petri[el].type == "transition") {
-        str += el + ' [shape=box,label="' + (petri[el].label ? petri[el].label : el) + '"]; ';
-      }
-      else {
-        str += el + ' [label="' + (petri[el].label ? petri[el].label : el) + '"]; ';
-      }
-    }
-
-    for (var el in petri) {
-      petri[el].out.forEach(x => {
-        str += el + " -> " + x + "; ";
-      });
-    }
-
-    str += " }";
-
-    str = str.replace(/[^\x20-\x7E]/g, '');
-    // console.log(str);
-  }
-
-  // To refresh the state of diagram and be able to run analyser again
-  removePetriMarks() {
-    let registry = this.viewer.get('elementRegistry');
-    for (var i in registry._elements) {
-      var node = registry._elements[i].element;
-      if (node['petriPlace']) {
-        delete node['petriPlace'];
-      }
-      if (node['isProcessed']) {
-        delete node['isProcessed'];
-      }
-      if (node['stackImage']) {
-        delete node['stackImage'];
-      }
-      if (!!node.businessObject) {
-        if (node.businessObject['petriPlace']) {
-          delete node.businessObject['petriPlace'];
-        }
-        if (node.businessObject['isProcessed']) {
-          delete node.businessObject['isProcessed'];
-        }
-        if (node.businessObject['stackImage']) {
-          delete node.businessObject['stackImage'];
-        }
-      }
-    }
-  }
-
-  buildPetriNet(registry, startBusinessObj, petri, maxPlaceNumberObj) {
-    let self = this;
-    var crun = [];
-    var st = [startBusinessObj];
-    var xorSplitStack = [];
-
-    while (st.length > 0) {
-      var curr = st.pop();
-      crun.push(curr);
-
-      let inc = curr.incoming ? curr.incoming.map(x => x.sourceRef) : null;
-      let out = curr.outgoing ? curr.outgoing.map(x => x.targetRef) : null;
-
-      if (curr.outgoing && curr.$type != "bpmn:DataObjectReference") {
-        curr.outgoing.forEach(x => {
-          var name = curr.id;
-          if (!is(curr, 'bpmn:StartEvent')) {
-            name = x.petriPlace ? x.petriPlace : "p" + maxPlaceNumberObj.maxPlaceNumber++;
-          }
-
-          if (is(x.targetRef, 'bpmn:EndEvent')) {
-            name = x.targetRef.id;
-          }
-
-          x.petriPlace = name;
-
-          if (!petri[name]) {
-            petri[name] = { out: [], type: "place" };
-          }
-        });
-      }
-
-      if (curr.$type == "bpmn:DataObjectReference") {
-        petri[curr.id] = {
-          out: out.length ? out.map(x => x.id) : [],
-          type: "place"
-        };
-      }
-
-      if (curr.outgoing && curr.incoming && !curr.isProcessed) {
-        var ident = curr.id;
-        if (curr.$type == "bpmn:ParallelGateway") {
-          ident = ident.replace("Exclusive", "Parallel");
-        }
-
-        if (!petri[ident]) {
-          petri[ident] = {
-            out: curr.outgoing.map(x => x.petriPlace),
-            type: "transition"
-          };
-        }
-        else {
-          petri[ident].out = petri[ident].out.concat(curr.outgoing.map(x => x.petriPlace));
-        }
-
-        curr.incoming.forEach(x => {
-          if (x.petriPlace && !petri[x.petriPlace].out.find(z => z == ident)) {
-            petri[x.petriPlace].out.push(ident);
-          }
-        });
-
-        curr.isProcessed = curr.incoming.reduce((acc, cur) => {
-          return acc && !!cur.petriPlace;
-        }, true);
-      }
-
-      var isAllPredecessorsInRun = !inc || inc.reduce((acc, cur) => acc && !!crun.find(x => x == cur), true);
-      if (isAllPredecessorsInRun || curr.$type == 'bpmn:ExclusiveGateway' && out.length == 1 ||
-        curr.$type == 'bpmn:EndEvent') {
-        if (!!curr.stackImage) {
-          // Cycle check
-          continue;
-        }
-        if (curr.$type == 'bpmn:ExclusiveGateway' && inc.length == 1) {
-          curr.stackImage = st.slice();
-          xorSplitStack.push(curr);
-          // st.push(out[0]);
-          out.forEach(x => st.push(x));
-        }
-        else {
-          if (curr.$type != 'bpmn:EndEvent') {
-            out.forEach(x => st.push(x));
-          }
-        }
-      }
-    }
-
-    // Data Objects handling
-    for (var i in registry._elements) {
-      var node = registry._elements[i].element;
-      if (is(node.businessObject, 'bpmn:Task') && petri[node.id]) {
-        self.taskDtoOrdering[node.id] = [];
-        petri[node.id].label = node.businessObject.name;
-
-        if (node.businessObject.dataInputAssociations && node.businessObject.dataInputAssociations.length) {
-          node.businessObject.dataInputAssociations.forEach(x => {
-            // We attach initial data objects with 'create' statements to the first
-            // task of current lane and ignore if there are multiple output associations
-            // because of petri net logic
-            if(!!x.sourceRef[0].sqlScript && x.sourceRef[0].$parent.id == startBusinessObj.$parent.id) {
-              let startEventOut = startBusinessObj.outgoing ? startBusinessObj.outgoing.map(x => x.targetRef) : null;
-              if(!!startEventOut) {
-                petri[x.sourceRef[0].id] = { type: "place", out: [startEventOut[0].id], label: x.sourceRef[0].name }
-              }
-            }
-          });
-        }
-
-        if (node.businessObject.dataOutputAssociations && node.businessObject.dataOutputAssociations.length) {
-          node.businessObject.dataOutputAssociations.forEach(x => {
-            if(!!x.targetRef.sqlScript) {
-              if (petri[node.id].out.findIndex(y => y == x.targetRef.id) == -1)
-                petri[node.id].out.push(x.targetRef.id);
-              if (!petri[x.targetRef.id]) {
-                petri[x.targetRef.id] = { type: "place", out: [], label: x.targetRef.name }
-              }
-            }
-
-            self.taskDtoOrdering[node.id].push(x.targetRef.id);
-          });
-        }
-      }
-    }
-
-    // Handling message flow
-    for (var i in registry._elements) {
-      var node = registry._elements[i].element;
-      if (node.type == "bpmn:MessageFlow" && !node.isProcessed) {
-        var source = node.businessObject.sourceRef;
-        var target = node.businessObject.targetRef;
-
-        // New place for message flow
-        var newId = "";
-        // In case of message flow to start event in another lane
-        // we don't need a new place, because start event is already a place
-        if (is(target, 'bpmn:StartEvent')) {
-          newId = target.id;
-        }
-        else {
-          newId = "p" + maxPlaceNumberObj.maxPlaceNumber++;
-          petri[newId] = { type: "place", out: [target.id], label: newId }
-        }
-
-        if (!petri[source.id]) {
-          petri[source.id] = { type: "transition", out: [newId], label: source.name }
-        }
-        else {
-          petri[source.id].out.push(newId);
-        }
-
-        node.isProcessed = true;
-      }
-    }
-
-    return petri;
-  }
-
-  buildRuns(startBusinessObj) {
-    var runs = [];
-    var crun = [];
-    var st = [startBusinessObj];
-    var xorSplitStack = [];
-    var marked = {};
-
-    while (st.length > 0) {
-      var curr = st.pop();
-      crun.push(curr);
-
-      let inc = curr.incoming ? curr.incoming.map(x => x.sourceRef) : null;
-      let out = curr.outgoing ? curr.outgoing.map(x => x.targetRef) : null;
-
-      var isAllPredecessorsInRun = !inc || inc.reduce((acc, cur) => acc && !!crun.find(x => x == cur), true);
-      if (isAllPredecessorsInRun || curr.$type == 'bpmn:ExclusiveGateway' && out.length == 1 ||
-        curr.$type == 'bpmn:EndEvent') {
-        if (curr.$type == 'bpmn:ExclusiveGateway' && inc.length == 1) {
-          curr.stackImage = st.slice();
-          xorSplitStack.push(curr);
-
-          marked[curr.id] = [out[0]];
-          st.push(out[0]);
-        }
-        else {
-          if (curr.$type != 'bpmn:EndEvent') {
-            out.forEach(x => st.push(x));
-          } else {
-            runs.push(crun.slice());
-            while (xorSplitStack.length > 0) {
-              var top = xorSplitStack[xorSplitStack.length - 1];
-              let xorOut = top.outgoing.map(x => x.targetRef);
-              if (!xorOut.reduce((acc, cur) => acc && !!marked[top.id].find(x => x == cur), true)) {
-                crun = crun.slice(0, crun.findIndex(x => x == top) + 1);
-
-                var unmarked = xorOut.filter(x => !marked[top.id].find(y => y == x));
-                marked[top.id].push(unmarked[0]);
-
-                // not to loose possible parallel tasks
-                st = top.stackImage;
-                st.push(unmarked[0]);
-                break;
-              } else {
-                marked[top.id] = [];
-                xorSplitStack.pop();
-              }
-            }
-          }
-        }
-      }
-    }
-
-    return runs;
-  }
-
-  private promises: Array<any> = [];
-
-  buildSqlInTopologicalOrder() {
+  runLeaksWhenAnalysis() {
     let self = this;
     if (!self.selectedDataObjects.length) {
       $('#leaksWhenInputError').show();
     } else {
       this.viewer.saveXML({ format: true }, (err: any, xml: string) => {
         this.viewer.get("moddle").fromXML(xml, (err: any, definitions: any) => {
-          var element = definitions.diagrams[0].plane.bpmnElement;
           let registry = this.viewer.get('elementRegistry');
-          // let info = dataFlowAnalysis(element, registry);
-          // let [dataFlowEdges, invDataFlowEdges, sources] = [info.dataFlowEdges, info.invDataFlowEdges, info.sources];
-          // let order = topologicalSorting(dataFlowEdges, invDataFlowEdges, sources);
 
-          let processedLabels = self.selectedDataObjects[0]
-            ? self.selectedDataObjects.map(x => x.name.split(" ").map(word => word.toLowerCase()).join("_"))
-            : self.selectedDataObjects;
-
+          // Displaying the spinner during analysis
           let analysisHtml = `<div class="spinner">
                 <div class="double-bounce1"></div>
                 <div class="double-bounce2"></div>
@@ -1148,85 +574,52 @@ RA
           $('#messageModal').find('.modal-title').text("Analysis in progress...");
           $('#messageModal').find('.modal-body').html(analysisHtml);
 
+          // Promise chain for async requests
           let serverResponsePromises = [];
 
-          if (config.leakswhen.multi_runs) {
-            let startEvents = [];
-            for (var i in registry._elements) {
-              if (registry._elements[i].element.type == "bpmn:StartEvent") {
-                startEvents.push(registry._elements[i].element.businessObject);
-              }
+          let startBpmnEvents = [];
+          for (let i in registry._elements) {
+            if (registry._elements[i].element.type == "bpmn:StartEvent") {
+              startBpmnEvents.push(registry._elements[i].element.businessObject);
+            }
+          }
+
+          if (!!startBpmnEvents) {
+            let petriNet = {};
+            let maxPlaceNumberObj = { maxPlaceNumber: 0 };
+            // For multiple lanes we have multiple start events
+            for (let i = 0; i < startBpmnEvents.length; i++) {
+              petriNet = PetriNets.buildPetriNet(registry, startBpmnEvents[i], petriNet, maxPlaceNumberObj, self.taskDtoOrdering);
             }
 
-            if (!!startEvents) {
-              let petri = {};
-              let maxPlaceNumberObj = { maxPlaceNumber: 0 };
-              // For multiple lanes we have multiple start events
-              for (var j = 0; j < startEvents.length; j++) {
-                petri = self.buildPetriNet(registry, startEvents[j], petri, maxPlaceNumberObj);
+            PetriNets.preparePetriNetForServer(petriNet);
+
+            let matcher = {};
+            Object.keys(petriNet).forEach(k => {
+              petriNet[k]["id"] = k;
+
+              let obj = registry.get(k);
+              if (!!obj && obj.businessObject.sqlScript) {
+                matcher[k] = obj.businessObject.sqlScript;
               }
+            });
+            let petriNetArray = Object.values(petriNet);
+            PetriNets.removePetriMarks(registry);
 
-              this.buildGraph(petri);
+            let serverPetriFileName = self.file.id + "_" + self.file.title.substring(0, self.file.title.length - 5);
+            let participants = PolicyHelper.groupPoliciesByParticipants(registry);
 
-              let matcher = {};
-              Object.keys(petri).forEach(k => {
-                petri[k]["id"] = k;
-
-                for (var i in registry._elements) {
-                  let obj = registry.get(k);
-                  if (!!obj && obj.businessObject.sqlScript) {
-                    matcher[k] = obj.businessObject.sqlScript;
-                  }
-                }
-              });
-              let adjustedPetri = Object.values(petri);
-              // console.log(adjustedPetri);
-              // console.log(JSON.stringify(adjustedPetri));
-
-              self.removePetriMarks();
-
-              let serverPetriFileName = self.file.id + "_" + self.file.title.substring(0, self.file.title.length - 5);
-              let participants = self.buildPolicies();
-              
-              $('#messageModal').modal('show');
-              self.sendPreparationRequest(serverPetriFileName, JSON.stringify(adjustedPetri), processedLabels, matcher, participants, serverResponsePromises)
+            $('#messageModal').modal('show');
+            LeaksWhenRequests.sendPreparationRequest(self.http, serverPetriFileName, JSON.stringify(petriNetArray), matcher, self.selectedDataObjects, self.taskDtoOrdering, participants, serverResponsePromises)
               .then(res => $('#messageModal').modal('hide'),
-                    err => {
-                      $('#messageModal').modal('hide');
-                      $('#leaksWhenServerError').show();
-                    });
-            }
+                err => {
+                  $('#messageModal').modal('hide');
+                  $('#leaksWhenServerError').show();
+                });
           }
         });
       });
     }
-  }
-
-  buildPolicies() {
-    let self = this;
-    let registry = this.viewer.get('elementRegistry');
-    let participants = [];
-
-    for (var i in registry._elements) {
-      if (registry._elements[i].element.type == "bpmn:Participant") {
-        let curPart = registry._elements[i].element;
-        participants.push({name: curPart.id, policies: []});
-        if(curPart.businessObject.policyScript){
-          participants[participants.length - 1].policies.push({name: 'laneScript', script: curPart.businessObject.policyScript});
-        }
-
-        for (var j = 0; j < curPart.children.length; j++) {
-          if (curPart.children[j].type == "bpmn:DataObjectReference" && curPart.children[j].businessObject) {
-            participants[participants.length - 1].policies.push({
-              name: curPart.children[j].businessObject.id, 
-              script: (curPart.children[j].businessObject.policyScript ? curPart.children[j].businessObject.policyScript : "")
-            });
-          }
-        }
-      }
-    }
-
-    return participants;
   }
 
   sendBpmnLeaksWhenRequest() {
@@ -1247,7 +640,7 @@ RA
           console.log(err);
           $('#bpmnLeaksWhenModal').modal('toggle');
         } else {
-          this.http.post(config.backend.host + '/rest/sql-privacy/analyze-leaks-when', {model: xml}, this.authService.loadRequestOptions()).subscribe(
+          this.http.post(config.backend.host + '/rest/sql-privacy/analyze-leaks-when', { model: xml }, this.authService.loadRequestOptions()).subscribe(
             success => {
               const response = JSON.parse((<any>success)._body);
               this.bpmnLeaksWhen(JSON.parse(response.result));
@@ -1260,127 +653,6 @@ RA
         }
       });
   }
-
-  sendPreparationRequest(diagramId, petri, processedLabels, matcher, participants, promiseChain) {
-    let self = this;
-    let apiURL = config.leakswhen.host + config.leakswhen.compute;
-
-    return self.http.post(apiURL, { diagram_id: diagramId, petri: petri })
-      .toPromise()
-      .then(
-        res => {
-          let runs = res.json().runs;
-          // console.log(runs);
-
-          runs = runs.filter(run => {
-            return run.reduce((acc, cur) => { return acc || cur.includes('EndEvent') }, false);
-          });
-
-          return runs.reduce((acc, run, index) => acc.then(res => {
-            let sqlCommands = run.reduce((acc, id) => acc + (matcher[id] ? matcher[id] + '\n' :''), '');
-            let currentOutputDto = self.selectedDataObjects[0];
-            // We select participant that contains selected data object
-            let currentParticipant = participants.filter(x => !!x.policies.find(p => p.name == currentOutputDto.id))[0];
-            let orderedDtos = {};
-            let currentOrderingIndex = 0;
-
-            // We should take policies only from those data objects that topologically preceed selected one
-            for(let i = 0; i < run.length; i++) {
-              if(run[i].indexOf('Task') != -1) {
-                for(let j = 0; j < self.taskDtoOrdering[run[i]].length; j++) {
-                  if(run.indexOf(self.taskDtoOrdering[run[i]][j]) == -1){
-                    orderedDtos[self.taskDtoOrdering[run[i]][j]] = currentOrderingIndex;
-                  }
-                }
-              }
-              else {
-                orderedDtos[run[i]] = currentOrderingIndex;
-              }
-              currentOrderingIndex++;
-            }
-
-            // return rolesPolicies.reduce((acc, policy, index) => acc.then(res => {
-              // console.log(policy);
-              let indexOfOutputDto = orderedDtos[currentOutputDto.id];
-              let requestPolicies = currentParticipant.policies.filter(x => (orderedDtos[x.name] <= indexOfOutputDto || x.name == 'laneScript') && !!x.script);
-
-              return self.sendLeaksWhenRequest(sqlCommands, processedLabels, requestPolicies.map(x => x.script), promiseChain, index);
-            // }), Promise.resolve());
-          }), Promise.resolve());
-        });
-  }
-
-  sendLeaksWhenRequest(sqlCommands, processedLabels, policy, promises, runNumber) {
-    let self = this;
-
-      let apiURL = config.leakswhen.host + config.leakswhen.report;
-      return self.http.post(apiURL, { model: "tmp" /*+ runNumber*/, targets: processedLabels.join(','), sql_script: sqlCommands, policy: policy })
-        .toPromise()
-        .then(
-          res => {
-            let files = res.json().files;
-
-            let legend = files.filter(x => x.indexOf('legend') != -1)[0];
-            let namePathMapping = {};
-            files.filter(x => x.indexOf('legend') == -1)
-              .forEach(path => namePathMapping[path.split('/').pop()] = path);
-
-            //let url1 = config.leakswhen.host + legend.replace("leaks-when/", "");
-            let url1 = config.leakswhen.host + legend;
-            return self.http.get(url1)
-              .toPromise()
-              .then(res => {
-                let legendObject = res.json();
-
-                return Object.keys(legendObject).reduce((acc, key) => acc.then(res => {
-                  let clojuredKey = key;
-
-                  return legendObject[clojuredKey].reduce((acc, fileName, fileIndex) => acc.then(resOverlayInsert => {
-                    //let url2 = config.leakswhen.host + namePathMapping[fileName].replace("leaks-when/", "");
-                    let url2 = config.leakswhen.host + namePathMapping[fileName];
-                    let overlayInsert = fileIndex > 0 ? resOverlayInsert : ``;
-
-                    return self.sendLegendFileRequest(url2, overlayInsert, clojuredKey, legendObject, fileIndex);
-                  }), Promise.resolve());
-                }), Promise.resolve());
-              });
-          }
-        );
-  }
-
-  sendLegendFileRequest (url2, overlayInsert, clojuredKey, legendObject, fileCounter) {
-    let self = this;
-
-    return self.http.get(url2)
-      .toPromise()
-      .then(res => {
-          let response = (<any>res)._body;
-
-          let urlParts = url2.split("/");
-          let fileNameParts = url2.split("/")[urlParts.length-1].split(".")[0].split("_");
-          let gid = fileNameParts[fileNameParts.length-1];
-
-          overlayInsert += `
-            <div align="left" class="panel-heading">
-              <b>` + clojuredKey + '(' + fileCounter + ')' + `</b>
-            </div>
-            <div class="panel-body">
-              <div>
-                <a href="` + config.frontend.host + '/graph/' + parseInt(gid) + `" target="_blank">View graph</a>
-              </div>
-            </div>`;
-
-          if (fileCounter == legendObject[clojuredKey].length - 1) {
-            var overlayHtml = $(`
-                <div class="code-dialog" id="` + clojuredKey + `-analysis-results">
-                  <div class="panel panel-default">`+ overlayInsert + `</div></div>`
-            );
-            Analyser.onAnalysisCompleted.emit({ node: { id: "Output" + clojuredKey + fileCounter, name: clojuredKey }, overlayHtml: overlayHtml });
-          }
-
-          return overlayInsert;
-      });
-  };
 
   ngOnInit() {
     window.addEventListener('storage', (e) => {
