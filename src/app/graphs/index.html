@@ -3,8 +3,11 @@
     <script type="text/javascript" src="graphs_viewer.js"></script>
     <link href="graphs_viewer.css" rel="stylesheet" type="text/css">
     <script>
-      var graphId = parseInt(window.location.pathname.split('/')[2]);
-      $.get("http://localhost:3000/leaks-when/data/tmp/leakage_from_" + graphId + ".dot", function( graph ) {
+      var dotPath = window.location.pathname.split('/graph/')[1]
+      if(dotPath[dotPath.length - 1] == '/')
+        dotPath = dotPath.substring(0, dotPath.length - 1);
+
+      $.get("http://localhost:3000/leaks-when/data/" + dotPath + ".dot", function( graph ) {
         new XTraceDAG(document.body, graphlibDot.read(graph).setGraph({ranksep: 100, marginx: 50, marginy: 50}));
       }).fail(function() {
         alert("graph cannot be found");

@@ -6,7 +6,7 @@ declare var require: any
 var config = require('./../../config.json');
 
 export class LeaksWhenRequests {
-  
+
   public static sendPreparationRequest(http: Http, diagramId, petri, matcher, selectedDataObjects, taskDtoOrdering, participants, promiseChain) {
     let apiURL = config.leakswhen.host + config.leakswhen.compute;
 
@@ -21,20 +21,20 @@ export class LeaksWhenRequests {
             return run.reduce((acc, cur) => { return acc || cur.includes('EndEvent') }, false);
           });
 
-          return runs.reduce((acc, run, index) => acc.then(res => {
-            let sqlCommands = run.reduce((acc, id) => acc + (matcher[id] ? matcher[id] + '\n' :''), '');
+          return runs.reduce((acc, run, runNumber) => acc.then(res => {
+            let sqlCommands = run.reduce((acc, id) => acc + (matcher[id] ? matcher[id] + '\n' : ''), '');
 
-            return selectedDataObjects.reduce((acc, currentOutputDto, index) => acc.then(res => {
+            return selectedDataObjects.reduce((acc, currentOutputDto) => acc.then(res => {
               // We select participant that contains selected data object
               let currentParticipant = participants.filter(x => !!x.policies.find(p => p.name == currentOutputDto.id))[0];
               let orderedDtos = {};
               let currentOrderingIndex = 0;
 
               // We should take policies only from those data objects that topologically preceed selected one
-              for(let i = 0; i < run.length; i++) {
-                if(run[i].indexOf('Task') != -1) {
-                  for(let j = 0; j < taskDtoOrdering[run[i]].length; j++) {
-                    if(run.indexOf(taskDtoOrdering[run[i]][j]) == -1){
+              for (let i = 0; i < run.length; i++) {
+                if (run[i].indexOf('Task') != -1) {
+                  for (let j = 0; j < taskDtoOrdering[run[i]].length; j++) {
+                    if (run.indexOf(taskDtoOrdering[run[i]][j]) == -1) {
                       orderedDtos[taskDtoOrdering[run[i]][j]] = currentOrderingIndex;
                     }
                   }
@@ -46,86 +46,87 @@ export class LeaksWhenRequests {
               }
 
               let indexOfOutputDto = orderedDtos[currentOutputDto.id];
-              let requestPolicies = currentParticipant 
-                ? currentParticipant.policies.filter(x => (orderedDtos[x.name] <= indexOfOutputDto || x.name == 'laneScript') && !!x.script) 
+              let requestPolicies = currentParticipant
+                ? currentParticipant.policies.filter(x => (orderedDtos[x.name] <= indexOfOutputDto || x.name == 'laneScript') && !!x.script)
                 : [];
               let processedOutputDto = currentOutputDto.name.split(" ").map(word => word.toLowerCase()).join("_");
 
-              return LeaksWhenRequests.sendLeaksWhenRequest(http, sqlCommands, [processedOutputDto], requestPolicies.map(x => x.script), promiseChain, index);
+              return LeaksWhenRequests.sendLeaksWhenRequest(http, diagramId, sqlCommands, [processedOutputDto], requestPolicies.map(x => x.script), promiseChain, runNumber);
             }), Promise.resolve());
           }), Promise.resolve());
         });
   }
 
-  static sendLeaksWhenRequest(http: Http, sqlCommands, processedLabels, policy, promises, runNumber) {
+  static sendLeaksWhenRequest(http: Http, diagramId, sqlCommands, processedLabels, policy, promises, runNumber) {
     let self = this;
+    let apiURL = config.leakswhen.host + config.leakswhen.report;
+    let modelPath = `${diagramId}/run_${runNumber}/${processedLabels[0]}`;
 
-      let apiURL = config.leakswhen.host + config.leakswhen.report;
-      return http.post(apiURL, { model: "tmp" /*+ runNumber*/, targets: processedLabels.join(','), sql_script: sqlCommands, policy: policy })
-        .toPromise()
-        .then(
-          res => {
-            let files = res.json().files;
+    return http.post(apiURL, { diagram_id: diagramId, run_number: runNumber, selected_dto: processedLabels[0], model: modelPath, targets: processedLabels.join(','), sql_script: sqlCommands, policy: policy })
+      .toPromise()
+      .then(
+        res => {
+          let files = res.json().files;
 
-            let legend = files.filter(x => x.indexOf('legend') != -1)[0];
-            let namePathMapping = {};
-            files.filter(x => x.indexOf('legend') == -1)
-              .forEach(path => namePathMapping[path.split('/').pop()] = path);
+          let legend = files.filter(x => x.indexOf('legend') != -1)[0];
+          let namePathMapping = {};
+          files.filter(x => x.indexOf('legend') == -1)
+            .forEach(path => namePathMapping[path.split('/').pop()] = path);
 
-            //let url1 = config.leakswhen.host + legend.replace("leaks-when/", "");
-            let url1 = config.leakswhen.host + legend;
-            return http.get(url1)
-              .toPromise()
-              .then(res => {
-                let legendObject = res.json();
+          //let url1 = config.leakswhen.host + legend.replace("leaks-when/", "");
+          let url1 = config.leakswhen.host + legend;
+          return http.get(url1)
+            .toPromise()
+            .then(res => {
+              let legendObject = res.json();
 
-                return Object.keys(legendObject).reduce((acc, key) => acc.then(res => {
-                  let clojuredKey = key;
+              return Object.keys(legendObject).reduce((acc, key) => acc.then(res => {
+                let clojuredKey = key;
 
-                  return legendObject[clojuredKey].reduce((acc, fileName, fileIndex) => acc.then(resOverlayInsert => {
-                    //let url2 = config.leakswhen.host + namePathMapping[fileName].replace("leaks-when/", "");
-                    let url2 = config.leakswhen.host + namePathMapping[fileName];
-                    let overlayInsert = fileIndex > 0 ? resOverlayInsert : ``;
+                return legendObject[clojuredKey].reduce((acc, fileName, fileIndex) => acc.then(resOverlayInsert => {
+                  //let url2 = config.leakswhen.host + namePathMapping[fileName].replace("leaks-when/", "");
+                  let url2 = config.leakswhen.host + namePathMapping[fileName];
+                  let overlayInsert = fileIndex > 0 ? resOverlayInsert : ``;
 
-                    return self.sendLegendFileRequest(http, url2, overlayInsert, clojuredKey, legendObject, fileIndex);
-                  }), Promise.resolve());
+                  return self.sendLegendFileRequest(http, modelPath, url2, overlayInsert, clojuredKey, legendObject, fileIndex);
                 }), Promise.resolve());
-              });
-          }
-        );
+              }), Promise.resolve());
+            });
+        }
+      );
   }
 
-  static sendLegendFileRequest (http: Http, url2, overlayInsert, clojuredKey, legendObject, fileCounter) {
+  static sendLegendFileRequest(http: Http, modelPath, url2, overlayInsert, clojuredKey, legendObject, fileCounter) {
     let self = this;
 
     return http.get(url2)
       .toPromise()
       .then(res => {
-          let response = (<any>res)._body;
+        let response = (<any>res)._body;
 
-          let urlParts = url2.split("/");
-          let fileNameParts = url2.split("/")[urlParts.length-1].split(".")[0].split("_");
-          let gid = fileNameParts[fileNameParts.length-1];
+        let urlParts = url2.split("/");
+        let fileNameParts = url2.split("/")[urlParts.length - 1].split(".")[0].split("_");
+        let gid = fileNameParts[fileNameParts.length - 1];
 
-          overlayInsert += `
+        overlayInsert += `
             <div align="left" class="panel-heading">
               <b>` + clojuredKey + '(' + fileCounter + ')' + `</b>
             </div>
             <div class="panel-body">
               <div>
-                <a href="` + config.frontend.host + '/graph/' + parseInt(gid) + `" target="_blank">View graph</a>
+                <a href="${config.frontend.host}/graph/${modelPath}/leakage_from_${gid}" target="_blank">View graph</a>
               </div>
             </div>`;
 
-          if (fileCounter == legendObject[clojuredKey].length - 1) {
-            var overlayHtml = $(`
+        if (fileCounter == legendObject[clojuredKey].length - 1) {
+          var overlayHtml = $(`
                 <div class="code-dialog" id="` + clojuredKey + `-analysis-results">
                   <div class="panel panel-default">`+ overlayInsert + `</div></div>`
-            );
-            Analyser.onAnalysisCompleted.emit({ node: { id: "Output" + clojuredKey + fileCounter, name: clojuredKey }, overlayHtml: overlayHtml });
-          }
+          );
+          Analyser.onAnalysisCompleted.emit({ node: { id: "Output" + clojuredKey + fileCounter, name: clojuredKey }, overlayHtml: overlayHtml });
+        }
 
-          return overlayInsert;
+        return overlayInsert;
       });
   };
 
