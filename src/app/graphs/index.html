@@ -1,7 +1,24 @@
 <html>
   <head>
-    <script type="text/javascript" src="graphs_viewer.js"></script>
-    <link href="graphs_viewer.css" rel="stylesheet" type="text/css">
+    <script type="text/javascript" src="lib/d3/d3.v3.min.js"></script>
+    <script type="text/javascript" src="lib/jQuery/jquery-1.9.0.min.js"></script>
+    <script type="text/javascript" src="lib/jQuery/jquery.tipsy.min.js"></script>
+    <script type="text/javascript" src="lib/jQuery/jquery.contextMenu.min.js"></script>
+    <script type="text/javascript" src="lib/dagre/dagre.min.js"></script>
+    <script type="text/javascript" src="lib/graphlib-dot/graphlib-dot.min.js"></script>
+
+    <script type="text/javascript" src="js/Minimap.js"></script>
+    <script type="text/javascript" src="js/MinimapZoom.js"></script>
+    <script type="text/javascript" src="js/DirectedAcyclicGraph.js"></script>
+    <script type="text/javascript" src="js/List.js"></script>
+    <script type="text/javascript" src="js/Selectable.js"></script>
+    <script type="text/javascript" src="js/Graph.js"></script>
+    <script type="text/javascript" src="js/History.js"></script>
+    <script type="text/javascript" src="js/Tooltip.js"></script>
+    <script type="text/javascript" src="js/ContextMenu.js"></script>
+    <script type="text/javascript" src="js/xtrace_utils.js"></script>
+    <script type="text/javascript" src="js/xtrace_graph.js"></script>
+    <link href="stylesheets/xtrace.css" rel="stylesheet" type="text/css">
     <script>
       var graphId = parseInt(window.location.pathname.split('/')[2]);
       $.get("http://localhost:3000/leaks-when/data/tmp/leakage_from_" + graphId + ".dot", function( graph ) {
