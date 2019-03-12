@@ -23,6 +23,7 @@
         "host": "http://localhost:3000",
         "report": "/upload",
         "compute": "/compute",
+        "ga": "/ga",
         "multi_runs": true
     },
     "guessing_advantage_editor": {

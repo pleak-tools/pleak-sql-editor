@@ -33,6 +33,13 @@
             </a>
           </li>
         </ul>
+        <ul class="buttons analyze" *ngIf="isLoaded()">
+          <li>
+            <a id="ga-analysis" title="Analyse GA" href="#" class="active">
+              <span class="glyphicon glyphicon-list-alt"></span> GA
+            </a>
+          </li>
+        </ul>
         <ul class="buttons analyze">
           <li>
             <a id="bpmn-leaks-report" title="Generate leaks report" href="#" class="active">
@@ -112,7 +119,10 @@
 <div id="canvas"></div>
 
 <div id="sidebar">
+    <!-- <div id="ga-panel"></div> -->
+    <ga-panel></ga-panel>
     <sidebar [canEdit]="canEdit()"></sidebar>
+    <div id="dto-panel"></div>
 </div>
 
 <div class="modal fade" id="changeAnalyzerModal" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel">

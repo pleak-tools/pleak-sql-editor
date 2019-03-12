@@ -1,0 +1,105 @@
+<div class="container">
+  <div *ngIf="isEditing" id="panel-section">
+    <div class="panel panel-default">
+      <div class="panel-heading text-left">
+        <button class="btn btn-default pull-right" type="button" id="CancelEditing" (click)="clear()">X</button>
+        <b>
+          <h3 class="title">Analysis settings</h3>
+        </b>
+      </div>
+      <div class="panel-body">
+
+        <div class="row">
+          <div class="col-md-10 col-md-offset-1">
+            <div class="form-group">
+              <label class="text-16" for="sel1">Adversary party:</label>
+
+              <select class="form-control" id="sel1" [(ngModel)]="attackingParty">
+                <option *ngFor="let role of roles" [ngValue]="role">{{role.label}}</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-md-10 col-md-offset-1">
+            <div class="form-group">
+              <label class="text-16" for="sel2">Target party:</label>
+              <select class="form-control" id="sel2" [(ngModel)]="targetParty">
+                <option *ngFor="let role of roles" [ngValue]="role">{{role.label}}</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-md-10 col-md-offset-1">
+            <div class="form-group">
+              <label class="text-16" for="sel3">Target data object:</label>
+              <select class="form-control" id="sel3" [(ngModel)]="targetDataObject" (change)="selectDataObject($event)">
+                  <option *ngFor="let dto of targetParty.dataObjects" [ngValue]="dto">{{dto.label}}</option>
+                <!-- <option>Ship 2</option>
+                <option>parameters</option> -->
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-md-6 text-right">
+            <div class="form-group" id="attacker-advantage-input-form-group">
+              <label class="text-16" for="attacker-advantage-input">Attacker advantage:</label>
+            </div>
+          </div>
+          <div class="col-md-6 text-left">
+            <span id="attacker-advantage-label">{{parseInt(attackerAdvantage * 100)}}</span>%
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-10 col-md-offset-1">
+            <input type="range" [(ngModel)]="attackerAdvantage" class="advantage-input" id="attacker-advantage-input" value="0.3" min="0.0" max="1.0"
+              step="0.01">
+          </div>
+        </div>
+
+        <div class="row" style="text-align:right">
+          <div class="col-md-12">
+            <button id="run-analysis" (click)="runAnalysis()" type="button" class="btn btn-success" style="margin-top:10px">Run analysis</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="analysis-results-panel"
+        style="background-color:#fff; border-radius:4px; display:none; padding:10px; border-top-right-radius:0px; border-top-left-radius:0px">
+        <div>
+          <h2 style="margin-top: 10px; margin-bottom:20px; color:deepskyblue;">Analysis results</h2>
+        </div>
+        <div class="analysis-spinner" style="display:none">
+          <div class="double-bounce1-2"></div>
+          <div class="double-bounce2-2"></div>
+        </div>
+        <div id="analysis-results-panel-content">
+        </div>
+      </div>
+
+
+
+    </div>
+  </div>
+
+  <!-- <button *ngIf="canEdit" class="btn btn-success" id="SaveEditing" (click)="clear()">Save</button> -->
+</div>
+<!-- </div> -->
+
+<!-- <div id="analysis-panel"
+  style="background-color:#fff; border-radius:4px; padding:10px; border-bottom-right-radius:0px; border-bottom-left-radius:0px"> -->
+<!-- <button class="btn btn-default pull-right" type="button" id="analysis-settings-hide-button">X</button>
+      <h2 style="margin-top: 10px; margin-bottom:20px; margin-left:35px; color:deepskyblue;">Analysis settings</h2> -->
+
+
+
+
+<!-- </div> -->
+
+
+<!-- </div> -->

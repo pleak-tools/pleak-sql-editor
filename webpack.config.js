@@ -159,6 +159,7 @@ module.exports = {
       "./node_modules/font-awesome/css/font-awesome.css",
       "./node_modules/prismjs/themes/prism.css",
       "./node_modules/codemirror/lib/codemirror.css",
+      "./node_modules/jexcel/dist/css/jquery.jexcel.css",
       "./src/styles.less"
     ]
   },
@@ -200,6 +201,7 @@ module.exports = {
           path.join(process.cwd(), "node_modules/font-awesome/css/font-awesome.css"),
           path.join(process.cwd(), "node_modules/prismjs/themes/prism.css"),
           path.join(process.cwd(), "node_modules/codemirror/lib/codemirror.css"),
+          path.join(process.cwd(), "node_modules/jexcel/dist/css/jquery.jexcel.css"),
           path.join(process.cwd(), "src/styles.less")
         ],
         "test": /\.css$/,
@@ -226,6 +228,7 @@ module.exports = {
           path.join(process.cwd(), "node_modules/font-awesome/css/font-awesome.css"),
           path.join(process.cwd(), "node_modules/prismjs/themes/prism.css"),
           path.join(process.cwd(), "node_modules/codemirror/lib/codemirror.css"),
+          path.join(process.cwd(), "node_modules/jexcel/dist/css/jquery.jexcel.css"),
           path.join(process.cwd(), "src/styles.less")
         ],
         "test": /\.scss$|\.sass$/,
@@ -260,6 +263,7 @@ module.exports = {
           path.join(process.cwd(), "node_modules/font-awesome/css/font-awesome.css"),
           path.join(process.cwd(), "node_modules/prismjs/themes/prism.css"),
           path.join(process.cwd(), "node_modules/codemirror/lib/codemirror.css"),
+          path.join(process.cwd(), "node_modules/jexcel/dist/css/jquery.jexcel.css"),
           path.join(process.cwd(), "src/styles.less")
         ],
         "test": /\.less$/,
@@ -292,6 +296,7 @@ module.exports = {
           path.join(process.cwd(), "node_modules/font-awesome/css/font-awesome.css"),
           path.join(process.cwd(), "node_modules/prismjs/themes/prism.css"),
           path.join(process.cwd(), "node_modules/codemirror/lib/codemirror.css"),
+          path.join(process.cwd(), "node_modules/jexcel/dist/css/jquery.jexcel.css"),
           path.join(process.cwd(), "src/styles.less")
         ],
         "test": /\.styl$/,
@@ -325,6 +330,7 @@ module.exports = {
           path.join(process.cwd(), "node_modules/font-awesome/css/font-awesome.css"),
           path.join(process.cwd(), "node_modules/prismjs/themes/prism.css"),
           path.join(process.cwd(), "node_modules/codemirror/lib/codemirror.css"),
+          path.join(process.cwd(), "node_modules/jexcel/dist/css/jquery.jexcel.css"),
           path.join(process.cwd(), "src/styles.less")
         ],
         "test": /\.css$/,
@@ -352,6 +358,7 @@ module.exports = {
           path.join(process.cwd(), "node_modules/font-awesome/css/font-awesome.css"),
           path.join(process.cwd(), "node_modules/prismjs/themes/prism.css"),
           path.join(process.cwd(), "node_modules/codemirror/lib/codemirror.css"),
+          path.join(process.cwd(), "node_modules/jexcel/dist/css/jquery.jexcel.css"),
           path.join(process.cwd(), "src/styles.less")
         ],
         "test": /\.scss$|\.sass$/,
@@ -387,6 +394,7 @@ module.exports = {
           path.join(process.cwd(), "node_modules/font-awesome/css/font-awesome.css"),
           path.join(process.cwd(), "node_modules/prismjs/themes/prism.css"),
           path.join(process.cwd(), "node_modules/codemirror/lib/codemirror.css"),
+          path.join(process.cwd(), "node_modules/jexcel/dist/css/jquery.jexcel.css"),
           path.join(process.cwd(), "src/styles.less")
         ],
         "test": /\.less$/,
@@ -420,6 +428,7 @@ module.exports = {
           path.join(process.cwd(), "node_modules/font-awesome/css/font-awesome.css"),
           path.join(process.cwd(), "node_modules/prismjs/themes/prism.css"),
           path.join(process.cwd(), "node_modules/codemirror/lib/codemirror.css"),
+          path.join(process.cwd(), "node_modules/jexcel/dist/css/jquery.jexcel.css"),
           path.join(process.cwd(), "src/styles.less")
         ],
         "test": /\.styl$/,
@@ -461,6 +470,7 @@ module.exports = {
         "./node_modules/jquery/dist/jquery.js",
         "./node_modules/bootstrap/dist/js/bootstrap.js",
         "./node_modules/codemirror/lib/codemirror.js",
+        "./node_modules/jexcel/dist/js/jquery.jexcel.js",
         "./node_modules/codemirror/mode/sql/sql.js"
       ],
       "basePath": "./"

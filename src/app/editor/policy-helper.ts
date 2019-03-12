@@ -27,6 +27,39 @@ export class PolicyHelper {
     return participants;
   }
 
+  public static getParticipantsInfoForGA(registry) {
+    let participants = [];
+
+    for (var i in registry._elements) {
+      if (registry._elements[i].element.type == "bpmn:Participant") {
+        let curPart = registry._elements[i].element;
+        participants.push({ id: curPart.id, label: curPart.businessObject.name, tasks: [], policies: [], dataObjects: [] });
+        if (curPart.businessObject.policyScript) {
+          participants[participants.length - 1].policies.push({ name: 'laneScript', script: curPart.businessObject.policyScript });
+        }
+
+        for (var j = 0; j < curPart.children.length; j++) {
+          if (curPart.children[j].type == "bpmn:DataObjectReference" && curPart.children[j].businessObject) {
+            participants[participants.length - 1].policies.push({
+              name: curPart.children[j].businessObject.id,
+              script: (curPart.children[j].businessObject.policyScript ? curPart.children[j].businessObject.policyScript : "")
+            });
+
+            participants[participants.length - 1].dataObjects.push({
+              label: curPart.children[j].businessObject.name,
+              id: curPart.children[j].businessObject.id,
+              sqlScript: curPart.children[j].businessObject.sqlScript,
+              tableData: curPart.children[j].businessObject.tableData,
+              attackerSettings: curPart.children[j].businessObject.attackerSettings
+            });
+          }
+        }
+      }
+    }
+
+    return participants;
+  }
+
   public static extractRoles(registry) {
     let laneRoles = [];
     let processRole = $('#fileName')[0].innerText.replace('.bpmn', '');

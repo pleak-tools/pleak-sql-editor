@@ -6,6 +6,7 @@ import { HttpModule } from '@angular/http';
 import { AppComponent } from './app.component';
 import { EditorComponent } from './editor/editor.component';
 import { SidebarComponent } from './sidebar/sidebar.component';
+import { GAPanelComponent } from './ga-panel/ga-panel.component';
 import { SanitizeHtmlPipe } from './microcode/sanitizer';
 import { AuthService } from './auth/auth.service';
 
@@ -14,6 +15,7 @@ import { AuthService } from './auth/auth.service';
     AppComponent,
     EditorComponent,
     SidebarComponent,
+    GAPanelComponent,
     SanitizeHtmlPipe
   ],
   imports: [

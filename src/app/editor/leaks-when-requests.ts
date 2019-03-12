@@ -7,6 +7,22 @@ var config = require('./../../config.json');
 
 export class LeaksWhenRequests {
 
+  public static sendGARequest(http: Http, schemas, queries, policy, attackerSettings, attackerAdvantage) {
+    let apiURL = config.leakswhen.host + config.leakswhen.ga;
+
+    return http.post(apiURL, { schema: schemas, queries: queries, policy: policy, attackerSettings: attackerSettings, attackerAdvantage: attackerAdvantage })
+      .toPromise()
+      .then(
+        res => {
+          let runs = res.json().output;
+          console.log(runs);
+          // return runs.reduce((acc, run, runNumber) => acc.then(res => {
+            // return LeaksWhenRequests.sendLeaksWhenRequest(http, diagramId, sqlCommands, [processedOutputDto], requestPolicies.map(x => x.script), promiseChain, runNumber);
+          // }), Promise.resolve());
+          return true;
+        });
+  }
+
   public static sendPreparationRequest(http: Http, diagramId, petri, matcher, selectedDataObjects, taskDtoOrdering, participants, promiseChain) {
     let apiURL = config.leakswhen.host + config.leakswhen.compute;
 

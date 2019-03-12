@@ -233,6 +233,16 @@ export const SqlBPMNModdle = {
           "type": "String"
         },
         {
+          "name": "tableData",
+          "isAttr": false,
+          "type": "String"
+        },
+        {
+          "name": "attackerSettings",
+          "isAttr": false,
+          "type": "String"
+        },
+        {
           "name": "policyScript",
           "isAttr": false,
           "type": "String"

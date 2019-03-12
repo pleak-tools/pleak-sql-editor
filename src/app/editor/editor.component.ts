@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, ViewChild } from '@angular/core';
+import { Component, OnInit, Input, ViewChild, EventEmitter, Output } from '@angular/core';
 import { Http } from '@angular/http';
 import { AuthService } from "../auth/auth.service";
 import { SqlBPMNModdle } from "./bpmn-labels-extension";
@@ -7,7 +7,9 @@ import { PetriNets } from "../analyser/PetriNets";
 import { LeaksWhenRequests } from "./leaks-when-requests";
 import { PolicyHelper } from "./policy-helper";
 import { SidebarComponent } from '../sidebar/sidebar.component';
+import { GAPanelComponent } from '../ga-panel/ga-panel.component';
 import NavigatedViewer from 'bpmn-js/lib/NavigatedViewer';
+import { ElementsHandler } from "./elements-handler";
 
 declare var $: any;
 declare var CodeMirror: any;
@@ -26,6 +28,7 @@ var config = require('./../../config.json');
   styleUrls: ['/editor.component.less']
 })
 export class EditorComponent implements OnInit {
+  @Output() editSqlTable: EventEmitter<any> = new EventEmitter();
 
   constructor(public http: Http, private authService: AuthService) {
     let pathname = window.location.pathname.split('/');
@@ -47,6 +50,8 @@ export class EditorComponent implements OnInit {
 
   @Input() authenticated: Boolean;
   @ViewChild(SidebarComponent) sidebarComponent: SidebarComponent;
+  @ViewChild(GAPanelComponent) gaPanelComponent: GAPanelComponent;
+  @ViewChild(ElementsHandler) elementsHandler: ElementsHandler;
 
   private loaded: boolean = false;
 
@@ -191,19 +196,31 @@ export class EditorComponent implements OnInit {
       }, 100);
 
       self.sidebarComponent.save.subscribe(({ element, type }) => self.saveSQLScript({ element, type }));
+      self.elementsHandler = new ElementsHandler(this.viewer, diagram, pg_parser, this, this.canEdit());
 
       this.viewer.importXML(diagram, () => {
+        this.viewer.get("moddle").fromXML(diagram, (_err:any, definitions:any) => {
+          if (typeof definitions !== 'undefined') {
+            this.viewer.importDefinitions(definitions, () => this.elementsHandler.createElementHandlerInstances(definitions));
+          }
+        });
+
         self.eventBus.on('element.click', function (e) {
           // User can select intermediate and sync data objects for leaks report
-          if (is(e.element.businessObject, 'bpmn:DataObjectReference') && e.element.incoming && e.element.incoming.length || is(e.element.businessObject, 'bpmn:Participant')) {
-            self.showMenu(e);
+          if (is(e.element.businessObject, 'bpmn:DataObjectReference') || is(e.element.businessObject, 'bpmn:Participant')) {
+            if(e.element.incoming && e.element.incoming.length || is(e.element.businessObject, 'bpmn:Participant')) {
+              self.showMenu(e);
+            }
+            else {
+              self.elementsHandler.click(e.element);
+            }
           } else {
             if (self.menuSelector) {
               self.overlays.remove({ id: self.menuSelector });
               self.menuSelector = null;
             }
 
-            if ((is(e.element.businessObject, 'bpmn:Task') || is(e.element.businessObject, 'bpmn:DataObjectReference') || is(e.element.businessObject, 'bpmn:StartEvent')) && !$(document).find("[data-element-id='" + e.element.id + "']").hasClass('highlight-input')) {
+            if ((is(e.element.businessObject, 'bpmn:Task') || is(e.element.businessObject, 'bpmn:StartEvent')) && !$(document).find("[data-element-id='" + e.element.id + "']").hasClass('highlight-input')) {
               let selectedElement = e.element.businessObject;
               if (self.sidebarComponent.elementBeingEdited !== null && self.sidebarComponent.elementBeingEdited === selectedElement.id && self.sidebarComponent.elementOldValue != self.codeMirror.getValue()) {
                 self.canvas.addMarker(self.sidebarComponent.elementBeingEdited, 'selected');
@@ -257,6 +274,20 @@ export class EditorComponent implements OnInit {
         this.runLeaksWhenAnalysis();
       });
 
+      $('.buttons-container').on('click', '#ga-analysis', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        let registry = this.viewer.get('elementRegistry');
+        // this.roles = PolicyHelper.extractRoles(registry);
+        // let participants = PolicyHelper.groupPoliciesByParticipants(registry);
+        let gaInputs = PolicyHelper.getParticipantsInfoForGA(registry);
+
+        this.gaPanelComponent.init(gaInputs, registry, this.canvas);
+
+        // this.gaPanelComponent.clear();
+        // this.elementsHandler.analysisHandler.loadAnalysisPanelTemplate(this.roles);
+      });
+
       $('.buttons-container').on('click', '#bpmn-leaks-report', (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -274,12 +305,6 @@ export class EditorComponent implements OnInit {
               }
               break;
           }
-        }
-      });
-
-      $(window).bind('beforeunload', (e) => {
-        if (self.file.content != self.lastContent || (self.sidebarComponent.elementBeingEdited !== null && self.sidebarComponent.elementOldValue != self.codeMirror.getValue())) {
-          return 'Are you sure you want to close this tab? Unsaved progress will be lost.';
         }
       });
     }
@@ -301,7 +326,7 @@ export class EditorComponent implements OnInit {
                 <td class="link-row" id="select-button" style="cursor: pointer">` + (element.businessObject.selectedForReport ? "Deselect" : "Select") + `</td>
               </tr>
               <tr>
-                <td class="link-row" id="sql-script-button" style="cursor: pointer">Edit SQL Script</td>
+                <td class="link-row" id="sql-script-button" style="cursor: pointer">Edit SQL table</td>
               </tr>
               <tr>
                 <td class="link-row" id="policy-button" style="cursor: pointer">Edit policy</td>
@@ -345,11 +370,13 @@ export class EditorComponent implements OnInit {
       this.sidebarComponent.clear();
       self.roles = PolicyHelper.extractRoles(registry);
       self.sidebarComponent.loadSQLScript(element.businessObject, 1, self.roles);
+      self.overlays.remove({ id: self.menuSelector });
     });
 
     $(overlayHtml).on('click', '#sql-script-button', (e) => {
       this.sidebarComponent.clear();
-      self.sidebarComponent.loadSQLScript(element.businessObject, 0);
+      self.overlays.remove({ id: self.menuSelector });
+      self.elementsHandler.click(element);
     });
     
     let overlayPosition = !is(element.businessObject, 'bpmn:Participant')
