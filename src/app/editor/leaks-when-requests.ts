@@ -7,10 +7,10 @@ var config = require('./../../config.json');
 
 export class LeaksWhenRequests {
 
-  public static sendGARequest(http: Http, schemas, queries, policy, attackerSettings, attackerAdvantage, callback) {
+  public static sendGARequest(http: Http, schemas, queries, tableDatas, policy, attackerSettings, attackerAdvantage, callback) {
     let apiURL = config.leakswhen.host + config.leakswhen.ga;
 
-    return http.post(apiURL, { schema: schemas, queries: queries, policy: policy, attackerSettings: attackerSettings, attackerAdvantage: attackerAdvantage })
+    return http.post(apiURL, { schema: schemas, queries: queries, tableDatas: tableDatas, policy: policy, attackerSettings: attackerSettings, attackerAdvantage: attackerAdvantage })
       .toPromise()
       .then(
         res => {

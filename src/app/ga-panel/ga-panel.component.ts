@@ -65,7 +65,7 @@ export class GAPanelComponent {
     let self = this;
     let schemas = [];
     let queries = [];
-    let tableDatas = [];
+    let tableDatas = {};
     let attackerSettings = [];
     
     // Policy
@@ -80,23 +80,24 @@ export class GAPanelComponent {
           let isGAInputFound = false;
           let tempSchemas = [];
           let tempAttackerSettings = [];
-          let tempTableDatas = [];
+          // let tempTableDatas = [];
 
           node.businessObject.dataInputAssociations.forEach(x => {
             tempSchemas.push(x.sourceRef[0].sqlScript);
             if(x.sourceRef[0].tableData){
+              let tableName = x.sourceRef[0].name.toLowerCase().replace(' ', '_');
+
               // Attacker settings
               // We have to add table name for each attribute
               let curSettings = x.sourceRef[0].attackerSettings;
               if(!!curSettings){
-                let tableName = x.sourceRef[0].name.toLowerCase().replace(' ', '_');
                 curSettings = curSettings.split('\n').join(`\n${tableName}.`);
                 curSettings = `${tableName}.${curSettings}`;
                 tempAttackerSettings.push(curSettings);
               }
               
               if(!!x.sourceRef[0].tableData){
-                tempTableDatas.push(x.sourceRef[0].tableData);
+                tableDatas[tableName] = self.getPreparedQueries(x.sourceRef[0].tableData);
               }
             }
 
@@ -106,9 +107,8 @@ export class GAPanelComponent {
           });
 
           if(isGAInputFound) {
-            queries.push(node.businessObject.sqlScript);
+            queries.push(self.pruneQueryForGA(node.businessObject.sqlScript));
             schemas = schemas.concat(tempSchemas);
-            tableDatas = tableDatas.concat(tempTableDatas);
             attackerSettings = attackerSettings.concat(tempAttackerSettings);
           }
         }
@@ -117,7 +117,55 @@ export class GAPanelComponent {
 
     $('#analysis-results-panel').show();
     $('.analysis-spinner').fadeIn();
-    LeaksWhenRequests.sendGARequest(this.http, schemas, queries, policies.map(x => x.script).filter(x => !!x), attackerSettings, self.attackerAdvantage, (output) => self.showResults(output, self));
+    LeaksWhenRequests.sendGARequest(this.http, schemas, queries, tableDatas, policies.map(x => x.script).filter(x => !!x), attackerSettings, self.attackerAdvantage, (output) => self.showResults(output, self));
+  }
+
+  getPreparedQueries(tableData) {
+    let inputDB = JSON.parse(tableData);
+
+    if (inputDB) {
+      let DBOutput = "";
+      for (let row of inputDB) {
+        for (let col of row) {
+          DBOutput += col + " ";
+        }
+        DBOutput = DBOutput.trim() + "\n";
+      }
+      DBOutput = DBOutput.trim();
+      return DBOutput;
+    }
+  }
+
+  pruneQueryForGA(query){
+  //   create or replace function aggr_count(portname TEXT)
+  //   returns TABLE(cnt INT8) as
+  // $$
+  //   select count(ship_2.ship_id) as cnt
+  //   from ship_2, port_2, parameters
+  //   where port_2.name = parameters.portname
+  //     AND (point(ship_2.latitude, ship_2.longitude) <@> point(port_2.latitude, port_2.longitude)) / ship_2.max_speed <= parameters.deadline
+  // $$
+  // language SQL IMMUTABLE returns NULL on NULL INPUT;
+
+    let parts = [];
+    let delimIndex = query.indexOf('$$');
+
+    while(delimIndex != -1) {
+      let funcIndex = query.indexOf('function');
+      let braceIndex = query.substring(funcIndex, query.length).indexOf('(');
+      let funcName = query.substring(funcIndex + 9, funcIndex + braceIndex);
+
+      query = query.substring(delimIndex + 2, query.length);
+      delimIndex = query.indexOf('$$');
+      let partQuery = query.substring(0, delimIndex);
+      parts.push(`insert into ${funcName}${partQuery};`);
+
+      query = query.substring(delimIndex + 2, query.length);
+      delimIndex = query.indexOf('$$');
+    }
+
+    let res = parts.join('\n');
+    return res;
   }
 
   showResults(output, self) {
