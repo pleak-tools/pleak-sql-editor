@@ -90,20 +90,20 @@ export class AnalysisHandler {
       this.removeErrorHiglights();
       $('#analysis-panels').hide();
     });
-    $('#analysis-panel').on('click', '#attacker-settings-button', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      this.elementsHandler.attackerSettingsHandler.initAttackerSettingsEditProcess();
-    });
-    $(document).find('#attacker-advantage-input').on('input', (e) => {
-      let percent = Math.round($('#attacker-advantage-input').val() * 100);
-      $('#analysis-panel').find('#attacker-advantage-label').text(percent);
-    });
-    $('#analysis-panel').on('click', '#sensitive-attributes-button', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      this.elementsHandler.sensitiveAttributesHandler.initSensitiveAttributesEditProcess();
-    });
+    // $('#analysis-panel').on('click', '#attacker-settings-button', (e) => {
+    //   e.preventDefault();
+    //   e.stopPropagation();
+    //   this.elementsHandler.attackerSettingsHandler.initAttackerSettingsEditProcess();
+    // });
+    // $(document).find('#attacker-advantage-input').on('input', (e) => {
+    //   let percent = Math.round($('#attacker-advantage-input').val() * 100);
+    //   $('#analysis-panel').find('#attacker-advantage-label').text(percent);
+    // });
+    // $('#analysis-panel').on('click', '#sensitive-attributes-button', (e) => {
+    //   e.preventDefault();
+    //   e.stopPropagation();
+    //   this.elementsHandler.sensitiveAttributesHandler.initSensitiveAttributesEditProcess();
+    // });
   }
 
   // Format analyser input and send it to the analyser

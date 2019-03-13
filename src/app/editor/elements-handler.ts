@@ -16,6 +16,8 @@ export class ElementsHandler {
     this.pg_parser = pg_parser;
     this.parent = parent;
     this.canEdit = canEdit;
+
+    // this.analysisHandler = new AnalysisHandler(this.viewer, this.diagram, this);
   }
 
   viewer: Viewer;
@@ -51,8 +53,7 @@ export class ElementsHandler {
         }
       }
     }
-
-    this.analysisHandler = new AnalysisHandler(this.viewer, this.diagram, this);
+    
     this.prepareParser();
   }
 

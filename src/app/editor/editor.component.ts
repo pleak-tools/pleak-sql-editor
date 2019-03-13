@@ -278,14 +278,11 @@ export class EditorComponent implements OnInit {
         e.preventDefault();
         e.stopPropagation();
         let registry = this.viewer.get('elementRegistry');
-        // this.roles = PolicyHelper.extractRoles(registry);
-        // let participants = PolicyHelper.groupPoliciesByParticipants(registry);
         let gaInputs = PolicyHelper.getParticipantsInfoForGA(registry);
 
         this.gaPanelComponent.init(gaInputs, registry, this.canvas);
 
-        // this.gaPanelComponent.clear();
-        // this.elementsHandler.analysisHandler.loadAnalysisPanelTemplate(this.roles);
+        
       });
 
       $('.buttons-container').on('click', '#bpmn-leaks-report', (e) => {

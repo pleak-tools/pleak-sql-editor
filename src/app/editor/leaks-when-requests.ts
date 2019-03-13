@@ -7,18 +7,14 @@ var config = require('./../../config.json');
 
 export class LeaksWhenRequests {
 
-  public static sendGARequest(http: Http, schemas, queries, policy, attackerSettings, attackerAdvantage) {
+  public static sendGARequest(http: Http, schemas, queries, policy, attackerSettings, attackerAdvantage, callback) {
     let apiURL = config.leakswhen.host + config.leakswhen.ga;
 
     return http.post(apiURL, { schema: schemas, queries: queries, policy: policy, attackerSettings: attackerSettings, attackerAdvantage: attackerAdvantage })
       .toPromise()
       .then(
         res => {
-          let runs = res.json().output;
-          console.log(runs);
-          // return runs.reduce((acc, run, runNumber) => acc.then(res => {
-            // return LeaksWhenRequests.sendLeaksWhenRequest(http, diagramId, sqlCommands, [processedOutputDto], requestPolicies.map(x => x.script), promiseChain, runNumber);
-          // }), Promise.resolve());
+          callback(res.json().result);
           return true;
         });
   }
