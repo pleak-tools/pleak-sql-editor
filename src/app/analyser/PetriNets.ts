@@ -118,7 +118,7 @@ export class PetriNets {
     // Data Objects handling
     for (var i in registry._elements) {
       var node = registry._elements[i].element;
-      if (is(node.businessObject, 'bpmn:Task') && petri[node.id]) {
+      if ((is(node.businessObject, 'bpmn:Task') || is(node.businessObject, 'bpmn:IntermediateCatchEvent')) && petri[node.id]) {
         taskDtoOrdering[node.id] = [];
         petri[node.id].label = node.businessObject.name;
 
@@ -127,7 +127,20 @@ export class PetriNets {
             // We attach initial data objects with 'create' statements to the first
             // task of current lane and ignore if there are multiple output associations
             // because of petri net logic
-            if(!!x.sourceRef[0].sqlScript && x.sourceRef[0].$parent.id == startBusinessObj.$parent.id) {
+            var isFoundInputForDTO = false;
+            for (var j in registry._elements) {
+              var node2 = registry._elements[j].element;
+              if (is(node2.businessObject, 'bpmn:Task') || is(node2.businessObject, 'bpmn:IntermediateCatchEvent')) {
+                if (node2.businessObject.dataOutputAssociations && node2.businessObject.dataOutputAssociations.length) {
+                  node2.businessObject.dataOutputAssociations.forEach(y => {
+                    if(y.targetRef.name == x.sourceRef[0].name)
+                      isFoundInputForDTO = true;
+                  });
+                }
+              }
+            }
+
+            if(!!x.sourceRef[0].sqlScript && !isFoundInputForDTO && x.sourceRef[0].$parent.id == startBusinessObj.$parent.id) {
               let startEventOut = startBusinessObj.outgoing ? startBusinessObj.outgoing.map(x => x.targetRef) : null;
               if(!!startEventOut) {
                 petri[x.sourceRef[0].id] = { type: "place", out: [startEventOut[0].id], label: x.sourceRef[0].name }

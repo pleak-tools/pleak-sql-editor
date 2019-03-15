@@ -220,7 +220,7 @@ export class EditorComponent implements OnInit {
               self.menuSelector = null;
             }
 
-            if ((is(e.element.businessObject, 'bpmn:Task') || is(e.element.businessObject, 'bpmn:StartEvent')) && !$(document).find("[data-element-id='" + e.element.id + "']").hasClass('highlight-input')) {
+            if ((is(e.element.businessObject, 'bpmn:Task') || is(e.element.businessObject, 'bpmn:StartEvent') || is(e.element.businessObject, 'bpmn:IntermediateCatchEvent')) && !$(document).find("[data-element-id='" + e.element.id + "']").hasClass('highlight-input')) {
               let selectedElement = e.element.businessObject;
               if (self.sidebarComponent.elementBeingEdited !== null && self.sidebarComponent.elementBeingEdited === selectedElement.id && self.sidebarComponent.elementOldValue != self.codeMirror.getValue()) {
                 self.canvas.addMarker(self.sidebarComponent.elementBeingEdited, 'selected');

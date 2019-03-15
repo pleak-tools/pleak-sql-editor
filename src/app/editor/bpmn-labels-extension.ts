@@ -11,7 +11,8 @@ export const SqlBPMNModdle = {
       name: "SQLTask",
       extends: [
         "bpmn:Task",
-        "bpmn:StartEvent"
+        "bpmn:StartEvent",
+        "bpmn:IntermediateCatchEvent"
       ],
       properties: [
         {
