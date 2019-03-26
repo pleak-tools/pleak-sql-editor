@@ -27,19 +27,26 @@ To make it available for the pleak-sql-editor, execute:
 
 You can find more information from the [SQL analysis tool repository](https://github.com/pleak-tools/pleak-sql-analysis).
 
-And set up the [Leaks-when analysis tool](https://github.com/pleak-tools/pleak-leaks-when-analysis), using wrapper at [https://github.com/pleak-tools/pleak-leaks-when-ast-transformation](https://github.com/pleak-tools/pleak-leaks-when-ast-transformation).
 
-Install:
+And set up the [SQL leaks-when analysis tool](https://github.com/pleak-tools/pleak-leaks-when-analysis), using wrapper at [https://github.com/pleak-tools/pleak-leaks-when-ast-transformation](https://github.com/pleak-tools/pleak-leaks-when-ast-transformation). Read installation instructions from the [SQL leaks-when analysis tool](https://github.com/pleak-tools/pleak-leaks-when-analysis) repository.
 
-1) Docker-CE, instructions in [https://docs.docker.com/](https://docs.docker.com)
 
-To build, execute:
+And set up the [BPMN leaks-when analysis tool](https://github.com/pleak-tools/pleak-leaks-when-analysis):
 
-`docker build -t pleaktools/leakswhen .`
+Requirements:
 
-To make it available for the pleak-sql-editor, execute:
+- ocaml (`apt install ocaml`)
+- opam (`apt install opam`)
+- libocamlgraph-ocaml-dev (`apt install libocamlgraph-ocaml-dev` / `opam install ocamlgraph`)
+- libxml-light-ocaml-dev (`apt install libxml-light-ocaml-dev` / `opam install xml-light`)
+- Z3 Theorem Prover - to install, you can clone it from [https://github.com/Z3Prover/z3](https://github.com/Z3Prover/z3) and compile it yourself or (on some Linux versions, for example Ubuntu 16.4) execute `apt install z3`. You will need Z3 to be in the PATH.
 
-`docker run --rm -it -p 3000:3000 pleaktools/leakswhen`
+Based on environment, you might also need to install:
+
+- m4 (`apt install m4`)
+- ocamlfind (`opam install ocamlfind`)
+
+To build the BPMN leaks-when analysis tool, execute `ocamlbuild -use-ocamlfind GrbDriver.native` in `/src` directory of [BPMN leaks-when analysis tool](https://github.com/pleak-tools/pleak-leaks-when-analysis)
 
 ## Build
 
