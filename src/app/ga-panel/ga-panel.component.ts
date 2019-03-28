@@ -32,9 +32,15 @@ export class GAPanelComponent {
 
   init(gaInputs, registry, canvas) {
     let self = this;
-    self.roles = gaInputs;
-    self.attackingParty = gaInputs[0];
-    self.targetParty = gaInputs[1];
+
+    if(gaInputs.length) {
+      self.roles = gaInputs;
+      self.attackingParty = gaInputs[0];
+      if(gaInputs.length > 1)
+        self.targetParty = gaInputs[1];
+      else
+        self.targetParty = gaInputs[0];
+    }
 
     self.canvas = canvas;
     self.registry = registry;
@@ -70,7 +76,9 @@ export class GAPanelComponent {
     
     // Policy
     let participants = PolicyHelper.groupPoliciesByParticipants(self.registry);
-    let policies = participants.find(x => x.name == self.targetParty.id).policies;
+    let policies = participants.length
+      ? participants.find(x => x.name == self.targetParty.id).policies
+      : self.roles[0].policies;
     
     for (var i in self.registry._elements) {
       var node = self.registry._elements[i].element;
@@ -115,6 +123,7 @@ export class GAPanelComponent {
       }
     }
 
+    $('#leaksWhenServerError').hide();
     $('#analysis-results-panel').show();
     $('.analysis-spinner').fadeIn();
     LeaksWhenRequests.sendGARequest(this.http, schemas, queries, tableDatas, policies.map(x => x.script).filter(x => !!x), attackerSettings, self.attackerAdvantage, (output) => self.showResults(output, self));

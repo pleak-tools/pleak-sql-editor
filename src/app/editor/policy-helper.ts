@@ -57,6 +57,31 @@ export class PolicyHelper {
       }
     }
 
+    if(!participants.length) {
+      let processRole = $('#fileName')[0].innerText.replace('.bpmn', '');
+      participants.push({ id: processRole, label: processRole, tasks: [], policies: [], dataObjects: [] });
+
+      for (var i in registry._elements) {
+        let elem = registry._elements[i].element;
+        if (elem.type == "bpmn:DataObjectReference" && elem.businessObject) {
+          participants[0].policies.push({
+            name: elem.businessObject.id,
+            script: (elem.businessObject.policyScript 
+              ? elem.businessObject.policyScript 
+              : "")
+          });
+
+          participants[0].dataObjects.push({
+            label: elem.businessObject.name,
+            id: elem.businessObject.id,
+            sqlScript: elem.businessObject.sqlScript,
+            tableData: elem.businessObject.tableData,
+            attackerSettings: elem.businessObject.attackerSettings
+          });
+        }
+      }
+    }
+
     return participants;
   }
 

@@ -9,7 +9,7 @@
       </div>
       <div class="panel-body">
 
-        <div class="row">
+        <div *ngIf="roles.length > 1" class="row">
           <div class="col-md-10 col-md-offset-1">
             <div class="form-group">
               <label class="text-16" for="sel1">Adversary party:</label>
@@ -21,7 +21,7 @@
           </div>
         </div>
 
-        <div class="row">
+        <div *ngIf="roles.length > 1" class="row">
           <div class="col-md-10 col-md-offset-1">
             <div class="form-group">
               <label class="text-16" for="sel2">Target party:</label>
@@ -32,7 +32,7 @@
           </div>
         </div>
 
-        <div class="row">
+        <div *ngIf="roles.length > 0" class="row">
           <div class="col-md-10 col-md-offset-1">
             <div class="form-group">
               <label class="text-16" for="sel3">Target data object:</label>

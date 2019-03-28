@@ -311,7 +311,9 @@ export class EditorComponent implements OnInit {
     let element = e.element;
     let self = this;
     let overlayHtml = `
-      <div class="panel panel-default stereotype-editor" id="` + element.businessObject.id + `-stereotype-selector" style="height: 150px">
+      <div class="panel panel-default stereotype-editor" id="` + element.businessObject.id + `-stereotype-selector" style="height: `+ 
+      (!is(e.element.businessObject, 'bpmn:Participant') ? '150px' : '75px') +
+      `">
         <div class="stereotype-editor-close-link" style="float: right; color: darkgray; cursor: pointer">X</div>
         <div class="stereotype-selector-main-menu">
           <div style="margin-bottom:10px; min-width: 130px">
@@ -319,13 +321,15 @@ export class EditorComponent implements OnInit {
           </div>
           <table class="table table-hover stereotypes-table">
             <tbody>
-              <tr>
-                <td class="link-row" id="select-button" style="cursor: pointer">` + (element.businessObject.selectedForReport ? "Deselect" : "Select") + `</td>
-              </tr>
-              <tr>
-                <td class="link-row" id="sql-script-button" style="cursor: pointer">Edit SQL table</td>
-              </tr>
-              <tr>
+            `+ (!is(e.element.businessObject, 'bpmn:Participant') 
+              ? `<tr>
+                  <td class="link-row" id="select-button" style="cursor: pointer">` + (element.businessObject.selectedForReport ? "Deselect" : "Select") + `</td>
+                </tr>
+                <tr>
+                  <td class="link-row" id="sql-script-button" style="cursor: pointer">Edit SQL table</td>
+                </tr>`
+              : ``) +
+              `<tr>
                 <td class="link-row" id="policy-button" style="cursor: pointer">Edit policy</td>
               </tr>
             </tbody>

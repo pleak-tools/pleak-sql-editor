@@ -16,6 +16,12 @@ export class LeaksWhenRequests {
         res => {
           callback(res.json().result);
           return true;
+        },
+        err => {
+          $('#leaksWhenServerError').show();
+          $('#analysis-results-panel').hide();
+          $('.analysis-spinner').hide();
+          return true;
         });
   }
 
