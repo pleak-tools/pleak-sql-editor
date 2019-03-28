@@ -46,9 +46,6 @@ export class GAPanelComponent {
     self.registry = registry;
 
     self.isEditing = true;
-    setTimeout(() => {
-      $('#CancelEditing').on('click', () => self.closeSQLScriptPanel());
-    }, 50);
   }
 
   selectDataObject(e) {
@@ -270,7 +267,7 @@ export class GAPanelComponent {
 
   closeSQLScriptPanel() {
     let self = this;
-    
+    self.clear();
     for (var i in self.registry._elements) {
       let el = self.registry._elements[i].element;
       if (is(el.businessObject, 'bpmn:DataObjectReference')) {
