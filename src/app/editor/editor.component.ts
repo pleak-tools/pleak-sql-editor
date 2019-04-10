@@ -10,6 +10,7 @@ import { SidebarComponent } from '../sidebar/sidebar.component';
 import { GAPanelComponent } from '../ga-panel/ga-panel.component';
 import NavigatedViewer from 'bpmn-js/lib/NavigatedViewer';
 import { ElementsHandler } from "./elements-handler";
+import { SimpleDisclosureAnalysis } from "./simple-analysis";
 
 declare var $: any;
 declare var CodeMirror: any;
@@ -199,7 +200,7 @@ export class EditorComponent implements OnInit {
       self.elementsHandler = new ElementsHandler(this.viewer, diagram, pg_parser, this, this.canEdit());
 
       this.viewer.importXML(diagram, () => {
-        this.viewer.get("moddle").fromXML(diagram, (_err:any, definitions:any) => {
+        this.viewer.get("moddle").fromXML(diagram, (_err: any, definitions: any) => {
           if (typeof definitions !== 'undefined') {
             this.viewer.importDefinitions(definitions, () => this.elementsHandler.createElementHandlerInstances(definitions));
           }
@@ -208,7 +209,7 @@ export class EditorComponent implements OnInit {
         self.eventBus.on('element.click', function (e) {
           // User can select intermediate and sync data objects for leaks report
           if (is(e.element.businessObject, 'bpmn:DataObjectReference') || is(e.element.businessObject, 'bpmn:Participant')) {
-            if(e.element.incoming && e.element.incoming.length || is(e.element.businessObject, 'bpmn:Participant')) {
+            if (e.element.incoming && e.element.incoming.length || is(e.element.businessObject, 'bpmn:Participant')) {
               self.showMenu(e);
             }
             else {
@@ -279,10 +280,20 @@ export class EditorComponent implements OnInit {
         e.stopPropagation();
         let registry = this.viewer.get('elementRegistry');
         let gaInputs = PolicyHelper.getParticipantsInfoForGA(registry);
-
         this.gaPanelComponent.init(gaInputs, registry, this.canvas);
+      });
 
-        
+      $('.buttons-container').on('click', '#sd-analysis', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        let registry = this.viewer.get('elementRegistry');
+        SimpleDisclosureAnalysis.showPopup(registry);
+
+        $(document).off('click', '#simpleLeaksWhen');
+        $(document).on('click', '#simpleLeaksWhen', (e) => {
+          let processedTarget = SimpleDisclosureAnalysis.SelectedTarget.simplificationDto.name.split(" ").map(word => word.toLowerCase()).join("_");
+          self.runLeaksWhenAnalysis(processedTarget, SimpleDisclosureAnalysis.SelectedTarget.selectedTargetForLeaksWhen);
+        });
       });
 
       $('.buttons-container').on('click', '#bpmn-leaks-report', (e) => {
@@ -307,11 +318,37 @@ export class EditorComponent implements OnInit {
     }
   }
 
+  // initDataDepenenciesResultTableHiglights(row: number, col: number): void {
+    // this.removeModelDependencyHiglights();
+    // $(document).find('#simpleDisclosureReportModal').find('.modal-dialog').addClass('dd-transparent');
+    // $(document).find('.dd-col-h, .dd-row-h').css('background-color', '#f5f5f5').css('color', 'black');
+    // $(document).find('.dd-col, .dd-row').css('background-color', 'white').css('color', 'black');
+    // $(document).find('.dd-c-' + col).css('background-color', 'springgreen').css('color', 'white');
+    // $(document).find('.dd-r-' + row).css('background-color', 'lightcoral').css('color', 'white');
+    // $(document).find('.dd-' + row + '-' + col).css('background-color', 'deepskyblue').css('color', 'white');
+
+    // let inputs = this.elementsHandler.getDataObjectHandlersByDataObjectName(clickedDataObject.path.input);
+    // for (let input of inputs) {
+    //   this.canvas.addMarker(input.dataObject.id, 'highlight-dd-input');
+    // }
+
+    // let outputs = this.elementsHandler.getDataObjectHandlersByDataObjectName(clickedDataObject.path.output);
+    // for (let output of outputs) {
+    //   this.canvas.addMarker(output.dataObject.id, 'highlight-dd-output');
+    // }
+
+    // for (let betweens of clickedDataObject.path.between) {
+    //   for (let between of this.elementsHandler.getDataObjectHandlersByDataObjectName(betweens)) {
+    //     this.canvas.addMarker(between.dataObject.id, 'highlight-dd-between');
+    //   }
+    // }
+  // }
+
   showMenu(e) {
     let element = e.element;
     let self = this;
     let overlayHtml = `
-      <div class="panel panel-default stereotype-editor" id="` + element.businessObject.id + `-stereotype-selector" style="height: `+ 
+      <div class="panel panel-default stereotype-editor" id="` + element.businessObject.id + `-stereotype-selector" style="height: ` +
       (!is(e.element.businessObject, 'bpmn:Participant') ? '150px' : '75px') +
       `">
         <div class="stereotype-editor-close-link" style="float: right; color: darkgray; cursor: pointer">X</div>
@@ -321,15 +358,15 @@ export class EditorComponent implements OnInit {
           </div>
           <table class="table table-hover stereotypes-table">
             <tbody>
-            `+ (!is(e.element.businessObject, 'bpmn:Participant') 
-              ? `<tr>
+            `+ (!is(e.element.businessObject, 'bpmn:Participant')
+        ? `<tr>
                   <td class="link-row" id="select-button" style="cursor: pointer">` + (element.businessObject.selectedForReport ? "Deselect" : "Select") + `</td>
                 </tr>
                 <tr>
                   <td class="link-row" id="sql-script-button" style="cursor: pointer">Edit SQL table</td>
                 </tr>`
-              : ``) +
-              `<tr>
+        : ``) +
+      `<tr>
                 <td class="link-row" id="policy-button" style="cursor: pointer">Edit policy</td>
               </tr>
             </tbody>
@@ -379,7 +416,7 @@ export class EditorComponent implements OnInit {
       self.overlays.remove({ id: self.menuSelector });
       self.elementsHandler.click(element);
     });
-    
+
     let overlayPosition = !is(element.businessObject, 'bpmn:Participant')
       ? { right: 0, bottom: 0 }
       // : {top: e.originalEvent.clientX - element.x, left: e.originalEvent.clientY - element.y};
@@ -585,9 +622,9 @@ export class EditorComponent implements OnInit {
     );
   }
 
-  runLeaksWhenAnalysis() {
+  runLeaksWhenAnalysis(simplificationTarget=null, outputTarget=null) {
     let self = this;
-    if (!self.selectedDataObjects.length) {
+    if (!self.selectedDataObjects.length && !outputTarget) {
       $('#leaksWhenInputError').show();
     } else {
       this.viewer.saveXML({ format: true }, (err: any, xml: string) => {
@@ -638,7 +675,7 @@ export class EditorComponent implements OnInit {
             let participants = PolicyHelper.groupPoliciesByParticipants(registry);
 
             $('#messageModal').modal('show');
-            LeaksWhenRequests.sendPreparationRequest(self.http, serverPetriFileName, JSON.stringify(petriNetArray), matcher, self.selectedDataObjects, self.taskDtoOrdering, participants, serverResponsePromises)
+            LeaksWhenRequests.sendPreparationRequest(self.http, serverPetriFileName, JSON.stringify(petriNetArray), matcher, (outputTarget ? [outputTarget] : self.selectedDataObjects), self.taskDtoOrdering, participants, simplificationTarget, serverResponsePromises)
               .then(res => $('#messageModal').modal('hide'),
                 err => {
                   $('#messageModal').modal('hide');

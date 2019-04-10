@@ -25,7 +25,7 @@ export class LeaksWhenRequests {
         });
   }
 
-  public static sendPreparationRequest(http: Http, diagramId, petri, matcher, selectedDataObjects, taskDtoOrdering, participants, promiseChain) {
+  public static sendPreparationRequest(http: Http, diagramId, petri, matcher, selectedDataObjects, taskDtoOrdering, participants, simplificationTarget, promiseChain) {
     let apiURL = config.leakswhen.host + config.leakswhen.compute;
 
     return http.post(apiURL, { diagram_id: diagramId, petri: petri })
@@ -69,18 +69,18 @@ export class LeaksWhenRequests {
                 : [];
               let processedOutputDto = currentOutputDto.name.split(" ").map(word => word.toLowerCase()).join("_");
 
-              return LeaksWhenRequests.sendLeaksWhenRequest(http, diagramId, sqlCommands, [processedOutputDto], requestPolicies.map(x => x.script), promiseChain, runNumber);
+              return LeaksWhenRequests.sendLeaksWhenRequest(http, diagramId, sqlCommands, [processedOutputDto], requestPolicies.map(x => x.script), promiseChain, runNumber, simplificationTarget);
             }), Promise.resolve());
           }), Promise.resolve());
         });
   }
 
-  static sendLeaksWhenRequest(http: Http, diagramId, sqlCommands, processedLabels, policy, promises, runNumber) {
+  static sendLeaksWhenRequest(http: Http, diagramId, sqlCommands, processedLabels, policy, promises, runNumber, simplificationTarget) {
     let self = this;
     let apiURL = config.leakswhen.host + config.leakswhen.report;
     let modelPath = `${diagramId}/run_${runNumber}/${processedLabels[0]}`;
 
-    return http.post(apiURL, { diagram_id: diagramId, run_number: runNumber, selected_dto: processedLabels[0], model: modelPath, targets: processedLabels.join(','), sql_script: sqlCommands, policy: policy })
+    return http.post(apiURL, { diagram_id: diagramId, simplificationTarget: simplificationTarget, run_number: runNumber, selected_dto: processedLabels[0], model: modelPath, targets: processedLabels.join(','), sql_script: sqlCommands, policy: policy })
       .toPromise()
       .then(
         res => {
@@ -106,7 +106,7 @@ export class LeaksWhenRequests {
                   let url2 = config.leakswhen.host + namePathMapping[fileName];
                   let overlayInsert = fileIndex > 0 ? resOverlayInsert : ``;
 
-                  return self.sendLegendFileRequest(http, modelPath, url2, overlayInsert, clojuredKey, legendObject, fileIndex);
+                  return self.sendLegendFileRequest(http, modelPath, url2, overlayInsert, clojuredKey, legendObject, fileIndex, simplificationTarget);
                 }), Promise.resolve());
               }), Promise.resolve());
             });
@@ -114,7 +114,7 @@ export class LeaksWhenRequests {
       );
   }
 
-  static sendLegendFileRequest(http: Http, modelPath, url2, overlayInsert, clojuredKey, legendObject, fileCounter) {
+  static sendLegendFileRequest(http: Http, modelPath, url2, overlayInsert, clojuredKey, legendObject, fileCounter, simplificationTarget) {
     let self = this;
 
     return http.get(url2)
@@ -141,7 +141,8 @@ export class LeaksWhenRequests {
                 <div class="code-dialog" id="` + clojuredKey + `-analysis-results">
                   <div class="panel panel-default">`+ overlayInsert + `</div></div>`
           );
-          Analyser.onAnalysisCompleted.emit({ node: { id: "Output" + clojuredKey + fileCounter, name: clojuredKey }, overlayHtml: overlayHtml });
+          let nameWithSimplificationTarget = clojuredKey + (simplificationTarget ? `(${simplificationTarget})` : '');
+          Analyser.onAnalysisCompleted.emit({ node: { id: "Output" + clojuredKey + fileCounter, name: nameWithSimplificationTarget}, overlayHtml: overlayHtml });
         }
 
         return overlayInsert;

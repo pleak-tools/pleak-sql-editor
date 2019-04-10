@@ -20,6 +20,19 @@
           </li>
         </ul>
         <ul class="buttons analyze" *ngIf="isLoaded()">
+            <!-- <div class="dropdown">
+                <button type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                  Dropdown button
+                </button>
+                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                  <a id="analyse-diagram" title="Analyze PA-BPMN diagram" href="#" class="dropdown-item active">
+                      <span class="glyphicon glyphicon-equalizer"></span> Analyze Sensitivities
+                  </a>
+                  <a class="dropdown-item" href="#">Another action</a>
+                  <a class="dropdown-item" href="#">Something else here</a>
+                </div>
+              </div> -->
+
           <li>
             <a id="analyse-diagram" title="Analyze PA-BPMN diagram" href="#" class="active">
               <span class="glyphicon glyphicon-equalizer"></span> Analyze Sensitivities
@@ -37,6 +50,13 @@
           <li>
             <a id="ga-analysis" title="Analyse GA" href="#" class="active">
               <span class="glyphicon glyphicon-list-alt"></span> GA
+            </a>
+          </li>
+        </ul>
+        <ul class="buttons analyze" *ngIf="isLoaded()">
+          <li>
+            <a id="sd-analysis" title="Simple disclosure analysis" href="#" class="active">
+              <span class="glyphicon glyphicon-list-alt"></span> SDA
             </a>
           </li>
         </ul>
@@ -86,6 +106,32 @@
   <span id="leaksWhenServerError" class="help-block error-message">
     Server error!
   </span>
+</div>
+
+<div class="modal fade" id="simpleDisclosureReportModal" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel">
+  <div class="modal-dialog" style="width: 1200px">
+    <div class="modal-content">
+      <form>
+        <div class="modal-header">
+          <h4><span id="simpleDisclosureReportTitle"></span> - Simple disclosure analysis report</h4>
+        </div>
+        <div class="modal-body">
+          <div id="report-table"></div>
+        </div>
+        <div class="modal-footer">
+          <div class="pull-left">
+            D = direct disclosure, I = indirect disclosure
+          </div>
+          <div class="pull-right">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+          </div>
+          <div class="pull-right">
+            <button id="simpleLeaksWhen" type="button" class="btn btn-default" data-dismiss="modal">Run simple Leaks-When</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
 
 <div class="modal fade" id="messageModal" role="dialog">
