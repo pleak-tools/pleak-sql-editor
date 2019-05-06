@@ -315,34 +315,35 @@ export class EditorComponent implements OnInit {
           }
         }
       });
+
+      $(document).off('click', '#pe-bpmn-editor-import');
+      $(document).on('click', '#pe-bpmn-editor-import', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.loadExtendedSimpleDisclosureData().then(() => {
+          let esd = localStorage.getItem('esdInfo'); // here is the imported extended simple disclosure data
+          console.log(esd);
+        });
+      });
+
     }
   }
 
-  // initDataDepenenciesResultTableHiglights(row: number, col: number): void {
-    // this.removeModelDependencyHiglights();
-    // $(document).find('#simpleDisclosureReportModal').find('.modal-dialog').addClass('dd-transparent');
-    // $(document).find('.dd-col-h, .dd-row-h').css('background-color', '#f5f5f5').css('color', 'black');
-    // $(document).find('.dd-col, .dd-row').css('background-color', 'white').css('color', 'black');
-    // $(document).find('.dd-c-' + col).css('background-color', 'springgreen').css('color', 'white');
-    // $(document).find('.dd-r-' + row).css('background-color', 'lightcoral').css('color', 'white');
-    // $(document).find('.dd-' + row + '-' + col).css('background-color', 'deepskyblue').css('color', 'white');
-
-    // let inputs = this.elementsHandler.getDataObjectHandlersByDataObjectName(clickedDataObject.path.input);
-    // for (let input of inputs) {
-    //   this.canvas.addMarker(input.dataObject.id, 'highlight-dd-input');
-    // }
-
-    // let outputs = this.elementsHandler.getDataObjectHandlersByDataObjectName(clickedDataObject.path.output);
-    // for (let output of outputs) {
-    //   this.canvas.addMarker(output.dataObject.id, 'highlight-dd-output');
-    // }
-
-    // for (let betweens of clickedDataObject.path.between) {
-    //   for (let between of this.elementsHandler.getDataObjectHandlersByDataObjectName(betweens)) {
-    //     this.canvas.addMarker(between.dataObject.id, 'highlight-dd-between');
-    //   }
-    // }
-  // }
+  loadExtendedSimpleDisclosureData(): any {
+    return new Promise((resolve) => {
+      localStorage.setItem('esdInfo', '');
+      localStorage.setItem('esdInfoStatus', '');
+      $("#pe-bpmn-import-iframe").attr("src", config.frontend.host + '/pe-bpmn-editor/export/' + this.fileId + '/esd'); // "esd" as extended simple disclosure
+      $("#pe-bpmn-import-iframe").off('load').on('load', () => {
+        let poller = setInterval(() => {
+          if (localStorage.getItem('esdInfo') && localStorage.getItem('esdInfoStatus') && localStorage.getItem('esdInfoStatus').length > 0) {
+            clearInterval(poller);
+            resolve();
+          }
+        }, 100);
+      });
+    });
+  }
 
   showMenu(e) {
     let element = e.element;
@@ -622,7 +623,7 @@ export class EditorComponent implements OnInit {
     );
   }
 
-  runLeaksWhenAnalysis(simplificationTarget=null, outputTarget=null) {
+  runLeaksWhenAnalysis(simplificationTarget = null, outputTarget = null) {
     let self = this;
     if (!self.selectedDataObjects.length && !outputTarget) {
       $('#leaksWhenInputError').show();
@@ -725,15 +726,17 @@ export class EditorComponent implements OnInit {
         if (!this.authService.verifyToken()) {
           this.getModel();
         } else {
-          let lastModifiedFileId = Number(localStorage.getItem('lastModifiedFileId').replace(/['"]+/g, ''));
-          let currentFileId = null;
-          if (this.file) {
-            currentFileId = this.file.id;
-          }
-          let localStorageLastModifiedTime = Number(localStorage.getItem('lastModified').replace(/['"]+/g, ''))
-          let lastModifiedTime = this.lastModified;
-          if (lastModifiedFileId && currentFileId && localStorageLastModifiedTime && lastModifiedTime && lastModifiedFileId == currentFileId && localStorageLastModifiedTime > lastModifiedTime) {
-            this.getModel();
+          if (localStorage.getItem('lastModifiedFileId') && localStorage.getItem('lastModified')) {
+            let lastModifiedFileId = Number(localStorage.getItem('lastModifiedFileId').replace(/['"]+/g, ''));
+            let currentFileId = null;
+            if (this.file) {
+              currentFileId = this.file.id;
+            }
+            let localStorageLastModifiedTime = Number(localStorage.getItem('lastModified').replace(/['"]+/g, ''))
+            let lastModifiedTime = this.lastModified;
+            if (lastModifiedFileId && currentFileId && localStorageLastModifiedTime && lastModifiedTime && lastModifiedFileId == currentFileId && localStorageLastModifiedTime > lastModifiedTime) {
+              this.getModel();
+            }
           }
         }
       }

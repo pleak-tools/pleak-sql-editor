@@ -5,12 +5,11 @@ import { Subject } from "rxjs/Subject";
 import { Observable } from "rxjs/Observable";
 
 declare var $: any;
-declare function require(name:string);
+declare function require(name: string);
 
 var jwt_decode = require('jwt-decode');
 
 var config = require('./../../config.json');
-var backend = config.backend.host;
 
 interface LoginCredentials {
   email: String,
@@ -33,6 +32,8 @@ export class AuthService {
 
   private authStatusBool: Subject<Boolean> = new Subject<boolean>();
   authStatus: Observable<Boolean> = this.authStatusBool.asObservable();
+
+  previous: boolean = false;
 
   getUserEmail() {
     return this.user.email;
@@ -60,12 +61,18 @@ export class AuthService {
     this.http.get(config.backend.host + '/rest/auth', this.loadRequestOptions()).subscribe(
       success => {
         this.user = jwt_decode(localStorage.getItem('jwt'));
-        this.authStatusChanged(true);
+        if (!this.previous) {
+          this.previous = true;
+          this.authStatusChanged(true);
+        }
       },
       fail => {
         localStorage.removeItem('jwt');
         this.user = null;
-        this.authStatusChanged(false);
+        if (this.previous) {
+          this.previous = false;
+          this.authStatusChanged(false);
+        }
         return false;
       }
     );
@@ -91,7 +98,7 @@ export class AuthService {
       }
     );
   }
-  
+
   loginREST(user: LoginCredentials) {
     this.http.post(config.backend.host + '/rest/auth/login', user, this.loadRequestOptions()).subscribe(
       success => {
@@ -122,7 +129,7 @@ export class AuthService {
         this.user = null;
         this.authStatusChanged(false);
         this.hideLogoutLoading();
-      } 
+      }
     );
   }
 
@@ -137,7 +144,7 @@ export class AuthService {
   };
 
   loginSuccess() {
-    $('#loginLoading').fadeOut("slow", function() {
+    $('#loginLoading').fadeOut("slow", function () {
       $('#loginForm').trigger('reset').show();
       $('#loginForm .help-block').hide();
       $('#loginForm .form-group').removeClass('has-error');
@@ -150,7 +157,7 @@ export class AuthService {
   };
 
   loginError(code: Number) {
-    $('#loginLoading').fadeOut("slow", function() {
+    $('#loginLoading').fadeOut("slow", function () {
       $('#loginForm .help-block').hide();
       $('#loginForm .form-group').addClass('has-error');
       $('#loginForm').show();
@@ -178,7 +185,7 @@ export class AuthService {
   };
 
   hideLogoutLoading() {
-    $('#logoutLoading').fadeOut("slow", function() {
+    $('#logoutLoading').fadeOut("slow", function () {
       $('#logoutText').show();
     });
     $('#logoutModal').modal('hide');
