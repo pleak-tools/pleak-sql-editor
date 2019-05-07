@@ -69,10 +69,10 @@ export class SimpleDisclosureAnalysis {
           if (allDtos[c].name != 'parameters') {
             $(document).off('click', '.dd-' + r + '-' + c);
             $(document).on('click', '.dd-' + r + '-' + c, (e) => {
-              $(document).find('.dd-' + r + '-' + c).css('background-color', 'deepskyblue').css('color', 'white');
               if (SimpleDisclosureAnalysis.SelectedTarget.simplificationDto) {
                 $(document).find('.dd-' + SimpleDisclosureAnalysis.SelectedTarget.r + '-' + SimpleDisclosureAnalysis.SelectedTarget.c).css('background-color', '#f5f5f5').css('color', 'black');
               }
+              $(document).find('.dd-' + r + '-' + c).css('background-color', 'deepskyblue').css('color', 'white');
               SimpleDisclosureAnalysis.SelectedTarget.simplificationDto = allDtos[c];
               SimpleDisclosureAnalysis.SelectedTarget.c = c;
               SimpleDisclosureAnalysis.SelectedTarget.r = r;
@@ -87,10 +87,10 @@ export class SimpleDisclosureAnalysis {
             if (allDtos[c].name != 'parameters') {
               $(document).off('click', '.dd-' + r + '-' + c);
               $(document).on('click', '.dd-' + r + '-' + c, (e) => {
-                $(document).find('.dd-' + r + '-' + c).css('background-color', 'deepskyblue').css('color', 'white');
                 if (SimpleDisclosureAnalysis.SelectedTarget.simplificationDto) {
                   $(document).find('.dd-' + SimpleDisclosureAnalysis.SelectedTarget.r + '-' + SimpleDisclosureAnalysis.SelectedTarget.c).css('background-color', '#f5f5f5').css('color', 'black');
                 }
+                $(document).find('.dd-' + r + '-' + c).css('background-color', 'deepskyblue').css('color', 'white');
                 SimpleDisclosureAnalysis.SelectedTarget.simplificationDto = allDtos[c];
                 SimpleDisclosureAnalysis.SelectedTarget.c = c;
                 SimpleDisclosureAnalysis.SelectedTarget.r = r;

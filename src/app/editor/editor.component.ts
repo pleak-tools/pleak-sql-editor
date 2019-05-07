@@ -292,6 +292,7 @@ export class EditorComponent implements OnInit {
         $(document).off('click', '#simpleLeaksWhen');
         $(document).on('click', '#simpleLeaksWhen', (e) => {
           let processedTarget = SimpleDisclosureAnalysis.SelectedTarget.simplificationDto.name.split(" ").map(word => word.toLowerCase()).join("_");
+          self.canvas.addMarker(SimpleDisclosureAnalysis.SelectedTarget.simplificationDto.id, 'highlight-group');
           self.runLeaksWhenAnalysis(processedTarget, SimpleDisclosureAnalysis.SelectedTarget.selectedTargetForLeaksWhen);
         });
       });
@@ -317,32 +318,6 @@ export class EditorComponent implements OnInit {
       });
     }
   }
-
-  // initDataDepenenciesResultTableHiglights(row: number, col: number): void {
-    // this.removeModelDependencyHiglights();
-    // $(document).find('#simpleDisclosureReportModal').find('.modal-dialog').addClass('dd-transparent');
-    // $(document).find('.dd-col-h, .dd-row-h').css('background-color', '#f5f5f5').css('color', 'black');
-    // $(document).find('.dd-col, .dd-row').css('background-color', 'white').css('color', 'black');
-    // $(document).find('.dd-c-' + col).css('background-color', 'springgreen').css('color', 'white');
-    // $(document).find('.dd-r-' + row).css('background-color', 'lightcoral').css('color', 'white');
-    // $(document).find('.dd-' + row + '-' + col).css('background-color', 'deepskyblue').css('color', 'white');
-
-    // let inputs = this.elementsHandler.getDataObjectHandlersByDataObjectName(clickedDataObject.path.input);
-    // for (let input of inputs) {
-    //   this.canvas.addMarker(input.dataObject.id, 'highlight-dd-input');
-    // }
-
-    // let outputs = this.elementsHandler.getDataObjectHandlersByDataObjectName(clickedDataObject.path.output);
-    // for (let output of outputs) {
-    //   this.canvas.addMarker(output.dataObject.id, 'highlight-dd-output');
-    // }
-
-    // for (let betweens of clickedDataObject.path.between) {
-    //   for (let between of this.elementsHandler.getDataObjectHandlersByDataObjectName(betweens)) {
-    //     this.canvas.addMarker(between.dataObject.id, 'highlight-dd-between');
-    //   }
-    // }
-  // }
 
   showMenu(e) {
     let element = e.element;

@@ -117,16 +117,16 @@ export class LeaksWhenRequests {
   static sendLegendFileRequest(http: Http, modelPath, url2, overlayInsert, clojuredKey, legendObject, fileCounter, simplificationTarget) {
     let self = this;
 
-    return http.get(url2)
-      .toPromise()
-      .then(res => {
-        let response = (<any>res)._body;
+    // return http.get(url2)
+    //   .toPromise()
+    //   .then(res => {
+    //     let response = (<any>res)._body;
 
-        let urlParts = url2.split("/");
-        let fileNameParts = url2.split("/")[urlParts.length - 1].split(".")[0].split("_");
-        let gid = fileNameParts[fileNameParts.length - 1];
+    let urlParts = url2.split("/");
+    let fileNameParts = url2.split("/")[urlParts.length - 1].split(".")[0].split("_");
+    let gid = fileNameParts[fileNameParts.length - 1];
 
-        overlayInsert += `
+    overlayInsert += `
             <div align="left" class="panel-heading">
               <b>` + clojuredKey + '(' + fileCounter + ')' + `</b>
             </div>
@@ -136,17 +136,17 @@ export class LeaksWhenRequests {
               </div>
             </div>`;
 
-        if (fileCounter == legendObject[clojuredKey].length - 1) {
-          var overlayHtml = $(`
+    if (fileCounter == legendObject[clojuredKey].length - 1) {
+      var overlayHtml = $(`
                 <div class="code-dialog" id="` + clojuredKey + `-analysis-results">
                   <div class="panel panel-default">`+ overlayInsert + `</div></div>`
-          );
-          let nameWithSimplificationTarget = clojuredKey + (simplificationTarget ? `(${simplificationTarget})` : '');
-          Analyser.onAnalysisCompleted.emit({ node: { id: "Output" + clojuredKey + fileCounter, name: nameWithSimplificationTarget}, overlayHtml: overlayHtml });
-        }
+      );
+      let nameWithSimplificationTarget = clojuredKey + (simplificationTarget ? `(${simplificationTarget})` : '');
+      Analyser.onAnalysisCompleted.emit({ node: { id: "Output" + clojuredKey + fileCounter, name: nameWithSimplificationTarget }, overlayHtml: overlayHtml });
+    }
 
-        return overlayInsert;
-      });
+    return overlayInsert;
+    // });
   };
 
 }
