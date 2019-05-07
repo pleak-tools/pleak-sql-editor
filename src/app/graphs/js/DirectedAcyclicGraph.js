@@ -104,7 +104,7 @@ function DirectedAcyclicGraph() {
 
     var styleEdge = function(d) {
         if(d.params.color)
-            d3.select(this).classed("stroke-" + d.params.color, true);
+            d3.select(this).classed("stroke-" + d.params.color, true).style('stroke', d.params.color);
 
         if(d.params.style) {
             var style = d.params.style.split(',');
@@ -118,8 +118,9 @@ function DirectedAcyclicGraph() {
         var rect = d3.select(this).append("rect");
         var text = d3.select(this).append("text").attr("text-anchor", "middle").attr("x", 0);
         text.append("tspan").attr("x", 0).attr("dy", "1.2em").text(nodename);
-        rect.classed("color-" + d.params.fillcolor, true);
-        rect.classed("stroke-" + d.params.color, true);
+        rect.classed("color-" + d.params.fillcolor, true).style('fill', d.params.fillcolor);
+        rect.classed("stroke-" + d.params.color, true).style('stroke', d.params.color);
+
         var prior_pos = nodepos.call(this, d);
         if (prior_pos!=null) {
             d3.select(this).attr("transform", graph.nodeTranslate);
