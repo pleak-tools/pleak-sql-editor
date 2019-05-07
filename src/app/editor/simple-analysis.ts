@@ -13,6 +13,12 @@ export class SimpleDisclosureAnalysis {
 
   public static showPopup(registry, esd) {
     let rolesDisclosures = {};
+    SimpleDisclosureAnalysis.SelectedTarget = {
+      simplificationDto: null,
+      r: null,
+      c: null,
+      selectedTargetForLeaksWhen: null
+    };
 
     let maxPlaceNumberObj = { maxPlaceNumber: 1 };
     for (let i in registry._elements) {
@@ -32,9 +38,9 @@ export class SimpleDisclosureAnalysis {
       }
     }
 
-    allDtos = allDtos.sort((x, y) => {
-      return x.orderingIndex <= y.orderingIndex ? x : y;
-    });
+    // allDtos = allDtos.sort((x, y) => {
+    //   return x.orderingIndex <= y.orderingIndex ? x : y;
+    // });
 
     esd = JSON.parse(esd);
     let simpleDisclosureDataObjects = esd.simpleDisclosureDataObjects;
@@ -66,7 +72,7 @@ export class SimpleDisclosureAnalysis {
                 $(document).find('.dd-' + SimpleDisclosureAnalysis.SelectedTarget.r + '-' + SimpleDisclosureAnalysis.SelectedTarget.c).css('background-color', 'white').css('color', 'black');
               }
               $(document).find('.dd-' + r + '-' + c).css('background-color', 'deepskyblue').css('color', 'white');
-              SimpleDisclosureAnalysis.SelectedTarget.simplificationDto = allDtos[c];
+              SimpleDisclosureAnalysis.SelectedTarget.simplificationDto = allDtos.find(x => x.name == simpleDisclosureDataObjects[c].name);
               SimpleDisclosureAnalysis.SelectedTarget.c = c;
               SimpleDisclosureAnalysis.SelectedTarget.r = r;
   
@@ -95,7 +101,7 @@ export class SimpleDisclosureAnalysis {
     }
     table += '</table>';
 
-    $('#simple-legend').text('V = visible, H = hidden, O = owner, MF = MessageFlow, S = SecureChannel, D = direct, I = indirect');
+    // $('#simple-legend').text('V = visible, H = hidden, O = owner, MF = MessageFlow, S = SecureChannel, D = direct, I = indirect');
     $('#simpleDisclosureReportModal').find('#report-table').html('').html(table);
     let processName = $('#fileName')[0].innerText.replace('.bpmn', '');
     $('#simpleDisclosureReportModal').find('#simpleDisclosureReportTitle').text(processName);

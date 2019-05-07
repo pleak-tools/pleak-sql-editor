@@ -20,57 +20,13 @@
             </a>
           </li>
         </ul>
-        <ul class="buttons analyze" *ngIf="isLoaded()">
-          <li>
-            <a id="analyse-diagram" title="Analyze PA-BPMN diagram" href="#" class="active">
-              <span class="glyphicon glyphicon-equalizer"></span> Analyze Sensitivities
-            </a>
-          </li>
-        </ul>
-        <ul class="buttons analyze" *ngIf="isLoaded()">
-          <li>
-            <a id="leaks-report" title="Generate leaks report" href="#" class="active">
-              <span class="glyphicon glyphicon-list-alt"></span> SQL LeaksWhen
-            </a>
-          </li>
-        </ul>
-        <ul class="buttons analyze" *ngIf="isLoaded()">
-          <li>
-            <a id="ga-analysis" title="Analyse GA" href="#" class="active">
-              <span class="glyphicon glyphicon-list-alt"></span> GA
-            </a>
-          </li>
-        </ul>
-        <ul class="buttons analyze" *ngIf="isLoaded()">
-          <li>
-            <a id="sd-analysis" title="Simple disclosure analysis" href="#" class="active">
-              <span class="glyphicon glyphicon-list-alt"></span> SDA
-            </a>
-          </li>
-        </ul>
-        <ul class="buttons analyze">
-          <li>
-            <a id="bpmn-leaks-report" title="Generate leaks report" href="#" class="active">
-              <span class="glyphicon glyphicon-list-alt"></span> BPMN LeaksWhen
-            </a>
-          </li>
-        </ul>
-        <!-- <ul class="buttons analyze">
-          <li>
-            <a id="pe-bpmn-editor-import" title="Generate leaks report" href="#" class="active">
-              <span class="glyphicon glyphicon-list-alt"></span> Import ESD data
-            </a>
-          </li>
-        </ul> -->
-        <ul class="buttons analyze" id="login-container" *ngIf="isAuthenticated()">
+        <ul class="buttons" id="login-container" *ngIf="isAuthenticated()">
           <li>
             <a id="log-out" data-toggle="modal" data-target="#logoutModal" href class="active">
               <span class="glyphicon glyphicon-log-in"></span> Log out
             </a>
           </li>
         </ul>
-
-
         <ul class="buttons analyze" id="login-container" *ngIf="!isAuthenticated()">
           <li>
             <a id="log-in" data-toggle="modal" data-target="#loginModal" href class="active">
@@ -78,11 +34,42 @@
             </a>
           </li>
         </ul>
-        <div class="file-name-container">
-          <span id="fileSaveSuccess" class="help-block success-message" style="display: none;">
-            Successfully saved the diagram!
-          </span>
+
+        <div class="btn-group group-fullheight">
+          <!-- <a title="Analysis" class="active dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <span class="glyphicon glyphicon-menu-hamburger"></span> Analysis
+                </a> -->
+
+          <button type="button" class="btn btn-primary btn-block dropdown-toggle" data-toggle="dropdown"
+            aria-haspopup="true" aria-expanded="false"><span class="glyphicon glyphicon-menu-hamburger"></span>
+            Analysis <span class="caret"></span></button>
+          <ul class="dropdown-menu">
+            <li>
+              <a id="sd-analysis"><span class="glyphicon glyphicon-list-alt"></span> Simple Disclosure</a>
+            </li>
+            <li>
+              <a id="leaks-report">
+                <span class="glyphicon glyphicon-list-alt"></span> SQL Leaks-When
+              </a>
+            </li>
+            <li>
+              <a id="ga-analysis"><span class="glyphicon glyphicon-list-alt"></span> Guessing Advantage</a>
+            </li>
+            <li>
+              <a id="bpmn-leaks-report"><span class="glyphicon glyphicon-list-alt"></span> BPMN Leaks-When</a>
+            </li>
+            <li>
+              <a id="analyse-diagram">
+                <span class="glyphicon glyphicon-equalizer"></span> Analyze sensitivities
+              </a>
+            </li>
+          </ul>
         </div>
+      </div>
+      <div class="file-name-container">
+        <span id="fileSaveSuccess" class="help-block success-message" style="display: none;">
+          Successfully saved the diagram!
+        </span>
       </div>
     </div>
     <div class="row">
@@ -111,14 +98,14 @@
     <div class="modal-content">
       <form>
         <div class="modal-header">
-          <h4><span id="simpleDisclosureReportTitle"></span> - Simple disclosure analysis report</h4>
+          <h4><span id="simpleDisclosureReportTitle"></span> - Extended simple disclosure analysis report</h4>
         </div>
         <div class="modal-body">
           <div id="report-table"></div>
         </div>
         <div class="modal-footer">
           <div class="pull-left">
-            D = direct disclosure, I = indirect disclosure
+            V = visible, H = hidden, O = owner, MF = MessageFlow, S = SecureChannel, D = direct, I = indirect
           </div>
           <div class="pull-right">
             <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>

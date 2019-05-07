@@ -286,15 +286,31 @@ export class EditorComponent implements OnInit {
       $('.buttons-container').on('click', '#sd-analysis', (e) => {
         e.preventDefault();
         e.stopPropagation();
+
+        let analysisHtml = `<div class="spinner">
+            <div class="double-bounce1"></div>
+            <div class="double-bounce2"></div>
+          </div>`;
+        $('#messageModal').find('.modal-title').text("Analysis in progress...");
+        $('#messageModal').find('.modal-body').html(analysisHtml);
+        $('#messageModal').modal('show');
+        $('#leaksWhenInputError').hide();
+
         let registry = this.viewer.get('elementRegistry');
         this.loadExtendedSimpleDisclosureData().then(() => {
           let esd = localStorage.getItem('esdInfo');
           SimpleDisclosureAnalysis.showPopup(registry, esd);
+          $('#messageModal').modal('hide');
           $(document).off('click', '#simpleLeaksWhen');
           $(document).on('click', '#simpleLeaksWhen', (e) => {
-            let processedTarget = SimpleDisclosureAnalysis.SelectedTarget.simplificationDto.name.split(" ").map(word => word.toLowerCase()).join("_");
-            self.canvas.addMarker(SimpleDisclosureAnalysis.SelectedTarget.simplificationDto.id, 'highlight-group');
-            self.runLeaksWhenAnalysis(processedTarget, SimpleDisclosureAnalysis.SelectedTarget.selectedTargetForLeaksWhen);
+            if(SimpleDisclosureAnalysis.SelectedTarget.simplificationDto){
+              let processedTarget = SimpleDisclosureAnalysis.SelectedTarget.simplificationDto.name.split(" ").map(word => word.toLowerCase()).join("_");
+              self.canvas.addMarker(SimpleDisclosureAnalysis.SelectedTarget.simplificationDto.id, 'highlight-group');
+              self.runLeaksWhenAnalysis(processedTarget, SimpleDisclosureAnalysis.SelectedTarget.selectedTargetForLeaksWhen);
+            }
+            else{
+              $('#leaksWhenInputError').show();
+            }
           });
         });
       });
@@ -318,14 +334,6 @@ export class EditorComponent implements OnInit {
           }
         }
       });
-
-      // $(document).off('click', '#pe-bpmn-editor-import');
-      // $(document).on('click', '#pe-bpmn-editor-import', (e) => {
-      //   e.preventDefault();
-      //   e.stopPropagation();
-        
-      // });
-
     }
   }
 
