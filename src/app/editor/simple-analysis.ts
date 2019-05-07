@@ -11,9 +11,8 @@ export class SimpleDisclosureAnalysis {
     selectedTargetForLeaksWhen: null
   };
 
-  public static showPopup(registry) {
+  public static showPopup(registry, esd) {
     let rolesDisclosures = {};
-    let parties = PolicyHelper.getParticipantsInfoForGA(registry);
 
     let maxPlaceNumberObj = { maxPlaceNumber: 1 };
     for (let i in registry._elements) {
@@ -37,78 +36,70 @@ export class SimpleDisclosureAnalysis {
       return x.orderingIndex <= y.orderingIndex ? x : y;
     });
 
+    esd = JSON.parse(esd);
+    let simpleDisclosureDataObjects = esd.simpleDisclosureDataObjects;
+    let uniqueLanesAndPools = esd.uniqueLanesAndPools;
+    let dataObjectGroupsMessageFlowConnections = esd.dataObjectGroupsMessageFlowConnections;
+    let columns = simpleDisclosureDataObjects.length;
+    let rows = uniqueLanesAndPools.length;
+
     let table = "";
     table += '<table class="table" style="text-align:center">';
     table += '<tr><th style="background-color:#f5f5f5; text-align:center;">#</th>';
-
-    // Data objects (header)
-    for (let j = 0; j < allDtos.length; j++) {
-      table += '<th style="background-color:#f5f5f5; text-align:center; vertical-align: middle;" class="dd-' + j + '">' + allDtos[j].name + '</th>';
-      // $(document).off('click', '.dd-' + j);
-      // $(document).on('click', '.dd-' + j, (e) => {
-      //   $(document).find('.dd-' + j).css('background-color', 'springgreen').css('color', 'white');
-      // });
+    for (let c = 0; c < columns; c++) {
+      table += '<th style="background-color:#f5f5f5; text-align:center; vertical-align: middle;">' + simpleDisclosureDataObjects[c].name + '</th>';
     }
-
     table += '</tr>';
-    for (let r = 0; r < parties.length; r++) {
-      table += '<tr><td style="background-color:#f5f5f5;"><b>' + parties[r].label + '</b></td>';
-      for (let c = 0; c < allDtos.length; c++) {
-        var isDtoFound = false;
-        for (var t in rolesDisclosures) {
-          if (t == parties[r].label) {
-            for (var t1 in rolesDisclosures[t]) {
-              if (t1 == allDtos[c].name) {
-                isDtoFound = true;
-              }
-            }
-          }
-        }
-        if (isDtoFound) {
-          table += '<td style="background-color:#f5f5f5;" class="dd-' + r + '-' + c + '">D</td>';
-          if (allDtos[c].name != 'parameters') {
+    for (let r = 0; r < rows; r++) {
+      table += '<tr><td style="background-color:#f5f5f5;"><b>' + uniqueLanesAndPools[r].name + '</b></td>';
+      for (let c = 0; c < columns; c++) {
+        let visibilityInfoExists = simpleDisclosureDataObjects[c].visibility.filter((obj) => {
+          return obj.visibleTo == uniqueLanesAndPools[r].id;
+        });
+        if (visibilityInfoExists.length !== 0) {
+          table += '<td class="dd-' + r + '-' + c + '">' + visibilityInfoExists[0].visibility + '</td>';
+          if(visibilityInfoExists[0].visibility.indexOf('I') > -1 || 
+             visibilityInfoExists[0].visibility.indexOf('D') > -1){
             $(document).off('click', '.dd-' + r + '-' + c);
             $(document).on('click', '.dd-' + r + '-' + c, (e) => {
               if (SimpleDisclosureAnalysis.SelectedTarget.simplificationDto) {
-                $(document).find('.dd-' + SimpleDisclosureAnalysis.SelectedTarget.r + '-' + SimpleDisclosureAnalysis.SelectedTarget.c).css('background-color', '#f5f5f5').css('color', 'black');
+                $(document).find('.dd-' + SimpleDisclosureAnalysis.SelectedTarget.r + '-' + SimpleDisclosureAnalysis.SelectedTarget.c).css('background-color', 'white').css('color', 'black');
               }
               $(document).find('.dd-' + r + '-' + c).css('background-color', 'deepskyblue').css('color', 'white');
               SimpleDisclosureAnalysis.SelectedTarget.simplificationDto = allDtos[c];
               SimpleDisclosureAnalysis.SelectedTarget.c = c;
               SimpleDisclosureAnalysis.SelectedTarget.r = r;
-
+  
               SimpleDisclosureAnalysis.findOutputDtoForLeaksWhen(messageFlows, allDtos);
             });
           }
+        } else {
+          table += '<td>?</td>';
         }
-        else {
-          if (allDtos[c].visibility && allDtos[c].participant.businessObject.name != parties[r].label) {
-            table += '<td style="background-color:#f5f5f5;" class="dd-' + r + '-' + c + '">I</td>';
-            if (allDtos[c].name != 'parameters') {
-              $(document).off('click', '.dd-' + r + '-' + c);
-              $(document).on('click', '.dd-' + r + '-' + c, (e) => {
-                if (SimpleDisclosureAnalysis.SelectedTarget.simplificationDto) {
-                  $(document).find('.dd-' + SimpleDisclosureAnalysis.SelectedTarget.r + '-' + SimpleDisclosureAnalysis.SelectedTarget.c).css('background-color', '#f5f5f5').css('color', 'black');
-                }
-                $(document).find('.dd-' + r + '-' + c).css('background-color', 'deepskyblue').css('color', 'white');
-                SimpleDisclosureAnalysis.SelectedTarget.simplificationDto = allDtos[c];
-                SimpleDisclosureAnalysis.SelectedTarget.c = c;
-                SimpleDisclosureAnalysis.SelectedTarget.r = r;
-
-                SimpleDisclosureAnalysis.findOutputDtoForLeaksWhen(messageFlows, allDtos);
-              });
-            }
-          }
-          else {
-            table += '<td>-</td>';
-          }
+      }
+      table += '</tr>';
+    }
+    if (dataObjectGroupsMessageFlowConnections) {
+      table += '<tr><td colspan="' + (columns + 1) + '"></td></tr><tr><td>Shared over</td>'
+      for (let c2 = 0; c2 < columns; c2++) {
+        let connectionInfo = dataObjectGroupsMessageFlowConnections.filter((obj) => {
+          return obj.name == simpleDisclosureDataObjects[c2].name;
+        });
+        if (connectionInfo.length !== 0) {
+          table += '<td>' + connectionInfo[0].type + '</td>';
+        } else {
+          table += '<td>-</td>';
         }
       }
       table += '</tr>';
     }
     table += '</table>';
+
+    $('#simple-legend').text('V = visible, H = hidden, O = owner, MF = MessageFlow, S = SecureChannel, D = direct, I = indirect');
     $('#simpleDisclosureReportModal').find('#report-table').html('').html(table);
-    $('#simpleDisclosureReportModal').find('#simpleDisclosureReportTitle').text('Test');
+    let processName = $('#fileName')[0].innerText.replace('.bpmn', '');
+    $('#simpleDisclosureReportModal').find('#simpleDisclosureReportTitle').text(processName);
+    $('#simpleDisclosureReportModal').find('#simpleDisclosureReportType').text(' - Extended simple disclosure analysis report');
     $('#simpleDisclosureReportModal').modal();
   }
 
@@ -125,7 +116,8 @@ export class SimpleDisclosureAnalysis {
         for (var j = 0; j < curPart.children.length; j++) {
           if ((is(curPart.children[j].businessObject, 'bpmn:DataObjectReference') ||
             is(curPart.children[j].businessObject, 'bpmn:Task') ||
-            is(curPart.children[j].businessObject, 'bpmn:StartEvent')) &&
+            is(curPart.children[j].businessObject, 'bpmn:StartEvent') ||
+            is(curPart.children[j].businessObject, 'bpmn:IntermediateCatchEvent')) &&
             curPart.children[j].businessObject) {
             participants[participants.length - 1].dtos.push(curPart.children[j].businessObject);
             curPart.children[j].businessObject.participant = curPart;

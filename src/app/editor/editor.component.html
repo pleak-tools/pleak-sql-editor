@@ -55,20 +55,20 @@
             </a>
           </li>
         </ul>
-        <ul class="buttons analyze">
+        <!-- <ul class="buttons analyze">
           <li>
             <a id="pe-bpmn-editor-import" title="Generate leaks report" href="#" class="active">
               <span class="glyphicon glyphicon-list-alt"></span> Import ESD data
             </a>
           </li>
-        </ul>
+        </ul> -->
         <ul class="buttons analyze" id="login-container" *ngIf="isAuthenticated()">
           <li>
             <a id="log-out" data-toggle="modal" data-target="#logoutModal" href class="active">
               <span class="glyphicon glyphicon-log-in"></span> Log out
             </a>
           </li>
-        </ul> -->
+        </ul>
 
 
         <ul class="buttons analyze" id="login-container" *ngIf="!isAuthenticated()">
@@ -95,7 +95,7 @@
 
 <div class="row error-messages">
   <span id="analyserInputError" class="help-block error-message">
-    SQL-analyser couldn't analyse all the tasks of the model! Makse sure that all input queries are correct!
+    SQL-analyser couldn't analyse all the tasks of the model! Make sure that all input queries are correct!
   </span>
   <span id="leaksWhenInputError" class="help-block error-message">
     No data objects selected!

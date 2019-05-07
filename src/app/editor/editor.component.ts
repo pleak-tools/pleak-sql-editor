@@ -287,13 +287,15 @@ export class EditorComponent implements OnInit {
         e.preventDefault();
         e.stopPropagation();
         let registry = this.viewer.get('elementRegistry');
-        SimpleDisclosureAnalysis.showPopup(registry);
-
-        $(document).off('click', '#simpleLeaksWhen');
-        $(document).on('click', '#simpleLeaksWhen', (e) => {
-          let processedTarget = SimpleDisclosureAnalysis.SelectedTarget.simplificationDto.name.split(" ").map(word => word.toLowerCase()).join("_");
-          self.canvas.addMarker(SimpleDisclosureAnalysis.SelectedTarget.simplificationDto.id, 'highlight-group');
-          self.runLeaksWhenAnalysis(processedTarget, SimpleDisclosureAnalysis.SelectedTarget.selectedTargetForLeaksWhen);
+        this.loadExtendedSimpleDisclosureData().then(() => {
+          let esd = localStorage.getItem('esdInfo');
+          SimpleDisclosureAnalysis.showPopup(registry, esd);
+          $(document).off('click', '#simpleLeaksWhen');
+          $(document).on('click', '#simpleLeaksWhen', (e) => {
+            let processedTarget = SimpleDisclosureAnalysis.SelectedTarget.simplificationDto.name.split(" ").map(word => word.toLowerCase()).join("_");
+            self.canvas.addMarker(SimpleDisclosureAnalysis.SelectedTarget.simplificationDto.id, 'highlight-group');
+            self.runLeaksWhenAnalysis(processedTarget, SimpleDisclosureAnalysis.SelectedTarget.selectedTargetForLeaksWhen);
+          });
         });
       });
 
@@ -317,15 +319,12 @@ export class EditorComponent implements OnInit {
         }
       });
 
-      $(document).off('click', '#pe-bpmn-editor-import');
-      $(document).on('click', '#pe-bpmn-editor-import', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        this.loadExtendedSimpleDisclosureData().then(() => {
-          let esd = localStorage.getItem('esdInfo'); // here is the imported extended simple disclosure data
-          console.log(esd);
-        });
-      });
+      // $(document).off('click', '#pe-bpmn-editor-import');
+      // $(document).on('click', '#pe-bpmn-editor-import', (e) => {
+      //   e.preventDefault();
+      //   e.stopPropagation();
+        
+      // });
 
     }
   }
