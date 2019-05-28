@@ -4,7 +4,12 @@
     "outDir": "../out-tsc/app",
     "baseUrl": "./",
     "module": "es2015",
-    "types": []
+    "types": [],
+    "paths": {
+      "crypto": [ "empty.ts"],
+      "fs": [ "empty.ts"],
+      "path": [ "empty.ts"]
+    }
   },
   "exclude": [
     "test.ts",

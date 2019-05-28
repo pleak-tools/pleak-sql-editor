@@ -1,25 +1,25 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
-import { LeaksWhenRequests } from "../editor/leaks-when-requests";
-import { PolicyHelper } from "../editor/policy-helper";
-import { Http } from '@angular/http';
+import { Component } from '@angular/core';
+import { LeaksWhenRequests } from '../editor/leaks-when-requests';
+import { PolicyHelper } from '../editor/policy-helper';
+import { HttpClient } from '@angular/common/http';
 
 declare var $: any;
-let is = (element, type) => element.$instanceOf(type);
+const is = (element, type) => element.$instanceOf(type);
 
 @Component({
   selector: 'ga-panel',
-  templateUrl: '/ga-panel.component.html',
-  styleUrls: ['/ga-panel.component.less']
+  templateUrl: 'ga-panel.component.html',
+  styleUrls: ['ga-panel.component.less']
 })
 export class GAPanelComponent {
   // @Output() save: EventEmitter<any> = new EventEmitter();
 
-  constructor(public http: Http){
+  constructor(public http: HttpClient) {
   }
 
-  public sidebarTitle: String = "Analysis settings";
+  public sidebarTitle: String = 'Analysis settings';
   public isEditing: Boolean = false;
-  
+
   public roles: Array<any> = [];
   public dataObjects: Array<String> = [];
   public attackerAdvantage = 0.3;
@@ -31,15 +31,16 @@ export class GAPanelComponent {
   public analysisResult: any;
 
   init(gaInputs, registry, canvas) {
-    let self = this;
+    const self = this;
 
-    if(gaInputs.length) {
+    if (gaInputs.length) {
       self.roles = gaInputs;
       self.attackingParty = gaInputs[0];
-      if(gaInputs.length > 1)
+      if (gaInputs.length > 1) {
         self.targetParty = gaInputs[1];
-      else
+      } else {
         self.targetParty = gaInputs[0];
+      }
     }
 
     self.canvas = canvas;
@@ -49,15 +50,14 @@ export class GAPanelComponent {
   }
 
   selectDataObject(e) {
-    let self = this;
-    
-    for (var i in self.registry._elements) {
-      let el = self.registry._elements[i].element;
-      if(is(el.businessObject, 'bpmn:DataObjectReference')){
-        if (el.businessObject && el.businessObject.id == self.targetDataObject.id) {
+    const self = this;
+
+    for (const i in self.registry._elements) {
+      const el = self.registry._elements[i].element;
+      if (is(el.businessObject, 'bpmn:DataObjectReference')) {
+        if (el.businessObject && el.businessObject.id === self.targetDataObject.id) {
           self.canvas.addMarker(el.id, 'highlight-group');
-        }
-        else {
+        } else {
           self.canvas.removeMarker(el.id, 'highlight-group');
         }
       }
@@ -65,53 +65,53 @@ export class GAPanelComponent {
   }
 
   runAnalysis() {
-    let self = this;
+    const self = this;
     let schemas = [];
-    let queries = [];
-    let tableDatas = {};
+    const queries = [];
+    const tableDatas = {};
     let attackerSettings = [];
-    
-    // Policy
-    let participants = PolicyHelper.groupPoliciesByParticipants(self.registry);
-    let policies = participants.length
-      ? participants.find(x => x.name == self.targetParty.id).policies
-      : self.roles[0].policies;
-    
-    for (var i in self.registry._elements) {
-      var node = self.registry._elements[i].element;
 
-      if (node.type == "bpmn:Task") {
+    // Policy
+    const participants = PolicyHelper.groupPoliciesByParticipants(self.registry);
+    const policies = participants.length
+      ? participants.find(x => x.name === self.targetParty.id).policies
+      : self.roles[0].policies;
+
+    for (const i in self.registry._elements) {
+      const node = self.registry._elements[i].element;
+
+      if (node.type === 'bpmn:Task') {
         if (node.businessObject.dataInputAssociations && node.businessObject.dataInputAssociations.length) {
           let isGAInputFound = false;
-          let tempSchemas = [];
-          let tempAttackerSettings = [];
+          const tempSchemas = [];
+          const tempAttackerSettings = [];
           // let tempTableDatas = [];
 
           node.businessObject.dataInputAssociations.forEach(x => {
             tempSchemas.push(x.sourceRef[0].sqlScript);
-            if(x.sourceRef[0].tableData){
-              let tableName = x.sourceRef[0].name.toLowerCase().replace(' ', '_');
+            if (x.sourceRef[0].tableData) {
+              const tableName = x.sourceRef[0].name.toLowerCase().replace(' ', '_');
 
               // Attacker settings
               // We have to add table name for each attribute
               let curSettings = x.sourceRef[0].attackerSettings;
-              if(!!curSettings){
+              if (!!curSettings) {
                 curSettings = curSettings.split('\n').join(`\n${tableName}.`);
                 curSettings = `${tableName}.${curSettings}`;
                 tempAttackerSettings.push(curSettings);
               }
-              
-              if(!!x.sourceRef[0].tableData){
+
+              if (!!x.sourceRef[0].tableData) {
                 tableDatas[tableName] = self.getPreparedQueries(x.sourceRef[0].tableData);
               }
             }
 
-            if(x.sourceRef[0].id == self.targetDataObject.id) {
+            if (x.sourceRef[0].id === self.targetDataObject.id) {
               isGAInputFound = true;
             }
           });
 
-          if(isGAInputFound) {
+          if (isGAInputFound) {
             queries.push(self.pruneQueryForGA(node.businessObject.sqlScript));
             schemas = schemas.concat(tempSchemas);
             attackerSettings = attackerSettings.concat(tempAttackerSettings);
@@ -127,22 +127,22 @@ export class GAPanelComponent {
   }
 
   getPreparedQueries(tableData) {
-    let inputDB = JSON.parse(tableData);
+    const inputDB = JSON.parse(tableData);
 
     if (inputDB) {
-      let DBOutput = "";
-      for (let row of inputDB) {
-        for (let col of row) {
-          DBOutput += col + " ";
+      let DBOutput = '';
+      for (const row of inputDB) {
+        for (const col of row) {
+          DBOutput += col + ' ';
         }
-        DBOutput = DBOutput.trim() + "\n";
+        DBOutput = DBOutput.trim() + '\n';
       }
       DBOutput = DBOutput.trim();
       return DBOutput;
     }
   }
 
-  pruneQueryForGA(query){
+  pruneQueryForGA(query) {
   //   create or replace function aggr_count(portname TEXT)
   //   returns TABLE(cnt INT8) as
   // $$
@@ -153,29 +153,29 @@ export class GAPanelComponent {
   // $$
   // language SQL IMMUTABLE returns NULL on NULL INPUT;
 
-    let parts = [];
+    const parts = [];
     let delimIndex = query.indexOf('$$');
 
-    while(delimIndex != -1) {
-      let funcIndex = query.indexOf('function');
-      let braceIndex = query.substring(funcIndex, query.length).indexOf('(');
-      let funcName = query.substring(funcIndex + 9, funcIndex + braceIndex);
+    while (delimIndex !== -1) {
+      const funcIndex = query.indexOf('function');
+      const braceIndex = query.substring(funcIndex, query.length).indexOf('(');
+      const funcName = query.substring(funcIndex + 9, funcIndex + braceIndex);
 
       query = query.substring(delimIndex + 2, query.length);
       delimIndex = query.indexOf('$$');
-      let partQuery = query.substring(0, delimIndex);
+      const partQuery = query.substring(0, delimIndex);
       parts.push(`insert into ${funcName}${partQuery};`);
 
       query = query.substring(delimIndex + 2, query.length);
       delimIndex = query.indexOf('$$');
     }
 
-    let res = parts.join('\n');
+    const res = parts.join('\n');
     return res;
   }
 
   showResults(output, self) {
-    let lines = output.split(String.fromCharCode(30));
+    const lines = output.split(String.fromCharCode(30));
     self.analysisResult = lines;
     // this.setChangesInModelStatus(false);
     self.showAnalysisResults();
@@ -186,18 +186,18 @@ export class GAPanelComponent {
       let resultsHtml = '';
 
       let priorGuessProbability: any = Number.parseFloat(this.analysisResult[0]).toFixed(2);
-      priorGuessProbability = (priorGuessProbability == 0 ? 0 : priorGuessProbability);
-      priorGuessProbability = ( isNaN(priorGuessProbability) ? "&infin;" : priorGuessProbability + " %" );
+      priorGuessProbability = (priorGuessProbability === 0 ? 0 : priorGuessProbability);
+      priorGuessProbability = ( isNaN(priorGuessProbability) ? '&infin;' : priorGuessProbability + ' %' );
 
       let posteriorGuessProbability: any = Number.parseFloat(this.analysisResult[1]).toFixed(2);
-      posteriorGuessProbability = (posteriorGuessProbability == 0 ? 0 : posteriorGuessProbability);
-      posteriorGuessProbability = ( isNaN(posteriorGuessProbability) ? "&infin;" : posteriorGuessProbability + " %" );
+      posteriorGuessProbability = (posteriorGuessProbability === 0 ? 0 : posteriorGuessProbability);
+      posteriorGuessProbability = ( isNaN(posteriorGuessProbability) ? '&infin;' : posteriorGuessProbability + ' %' );
 
-      let expectedCost: any = Number.parseFloat(this.analysisResult[2]).toFixed(2);
+      const expectedCost: any = Number.parseFloat(this.analysisResult[2]).toFixed(2);
 
       let relativeError: any = Number.parseFloat(this.analysisResult[3]).toFixed(2);
-      relativeError = (relativeError == 0 ? 0 : relativeError);
-      relativeError = ( isNaN(relativeError) ? "&infin;" : relativeError + " %" );
+      relativeError = (relativeError === 0 ? 0 : relativeError);
+      relativeError = ( isNaN(relativeError) ? '&infin;' : relativeError + ' %' );
 
       resultsHtml += `
       <div class="" id="general-analysis-results">
@@ -234,28 +234,28 @@ export class GAPanelComponent {
 
   formatAnalysisErrorResults(fail: any) {
     if (fail.status === 409) {
-      let resultsString = fail.json().error;
-      let parts = resultsString.split("ERROR: ");
+      const resultsString = fail.json().error;
+      const parts = resultsString.split('ERROR: ');
       if (parts.length > 1) {
-        this.analysisResult = parts[1].replace("WARNING:  there is no transaction in progress", "");
+        this.analysisResult = parts[1].replace('WARNING:  there is no transaction in progress', '');
       } else {
-        let parts2 = resultsString.split("banach: ");
+        const parts2 = resultsString.split('banach: ');
         if (parts2.length > 1) {
           this.analysisResult = parts2[1];
         } else {
-          this.analysisResult = "Invalid input";
+          this.analysisResult = 'Invalid input';
         }
       }
     } else if (fail.status === 400) {
-      this.analysisResult = "Analyzer error";
+      this.analysisResult = 'Analyzer error';
     } else {
-      this.analysisResult = "Server error";
+      this.analysisResult = 'Server error';
     }
     this.showAnalysisErrorResult();
   }
 
   showAnalysisErrorResult() {
-    let resultsHtml = '<div style="text-align:left"><font style="color:darkred"><span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span> ' + this.analysisResult + '</font></div>';
+    const resultsHtml = '<div style="text-align:left"><font style="color:darkred"><span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span> ' + this.analysisResult + '</font></div>';
     $('.analysis-spinner').hide();
     $('#analysis-results-panel-content').html(resultsHtml);
   }
@@ -266,10 +266,10 @@ export class GAPanelComponent {
   }
 
   closeSQLScriptPanel() {
-    let self = this;
+    const self = this;
     self.clear();
-    for (var i in self.registry._elements) {
-      let el = self.registry._elements[i].element;
+    for (const i in self.registry._elements) {
+      const el = self.registry._elements[i].element;
       if (is(el.businessObject, 'bpmn:DataObjectReference')) {
         self.canvas.removeMarker(el.id, 'highlight-group');
       }
