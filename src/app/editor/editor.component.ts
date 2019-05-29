@@ -50,9 +50,9 @@ export class EditorComponent implements OnInit {
   }
 
   @Input() authenticated: Boolean;
-  @ViewChild(SidebarComponent) sidebarComponent: SidebarComponent;
-  @ViewChild(GAPanelComponent) gaPanelComponent: GAPanelComponent;
-  @ViewChild(ElementsHandler) elementsHandler: ElementsHandler;
+  @ViewChild(SidebarComponent, { static: true }) sidebarComponent: SidebarComponent;
+  @ViewChild(GAPanelComponent, { static: true }) gaPanelComponent: GAPanelComponent;
+  @ViewChild(ElementsHandler, { static: false }) elementsHandler: ElementsHandler;
 
   private loaded = false;
 
