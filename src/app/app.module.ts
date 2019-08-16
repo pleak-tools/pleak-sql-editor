@@ -9,6 +9,7 @@ import { SidebarComponent } from './sidebar/sidebar.component';
 import { GAPanelComponent } from './ga-panel/ga-panel.component';
 import { SanitizeHtmlPipe } from './microcode/sanitizer';
 import { AuthService } from './auth/auth.service';
+import { AngularMultiSelectModule } from 'angular2-multiselect-dropdown';
 
 @NgModule({
   declarations: [
@@ -21,7 +22,8 @@ import { AuthService } from './auth/auth.service';
   imports: [
     BrowserModule,
     FormsModule,
-    HttpModule
+    HttpModule,
+    AngularMultiSelectModule
   ],
   providers: [AuthService],
   bootstrap: [AppComponent]

@@ -5,6 +5,10 @@
         <h4 class="editor-title">Pleak SQL-privacy editor</h4>
       </div>
       <div class="col-xs-9 buttons-container">
+          <!-- <angular2-multiselect id="sel4" [data]="dropdownList" [(ngModel)]="selectedItems"
+          [settings]="dropdownSettings">
+          </angular2-multiselect> -->
+
         <ul class="buttons">
           <li>
             <a id="change-editor" title="Change analyzer" data-toggle="modal" data-target="#changeAnalyzerModal"
@@ -61,6 +65,11 @@
             <li>
               <a id="analyse-diagram">
                 <span class="glyphicon glyphicon-equalizer"></span> Analyze sensitivities
+              </a>
+            </li>
+            <li>
+              <a id="propagate-diagram">
+                <span class="glyphicon glyphicon-export"></span> Propagate intermediates
               </a>
             </li>
           </ul>

@@ -2,13 +2,14 @@ import * as Viewer from 'bpmn-js/lib/NavigatedViewer';
 
 import { AnalysisHandler } from './analysis-handler';
 import { DataObjectHandler } from "./data-object-handler";
+import { Http } from '@angular/http';
 
 declare let $: any;
 let is = (element, type) => element.$instanceOf(type);
 
 export class ElementsHandler {
 
-  constructor(viewer: Viewer, diagram: String, pg_parser, parent: any, canEdit: Boolean) {
+  constructor(public http: Http, viewer: Viewer, diagram: String, pg_parser, parent: any, canEdit: Boolean) {
     this.viewer = viewer;
     this.eventBus = this.viewer.get('eventBus');
     this.canvas = this.viewer.get('canvas');
@@ -73,14 +74,14 @@ export class ElementsHandler {
       if (element.$type === "bpmn:Process") {
         if (element.flowElements) {
           for (let node of element.flowElements.filter((e: any) => is(e, "bpmn:DataObjectReference"))) {
-            this.dataObjectHandlers.push(new DataObjectHandler(this, node));
+            this.dataObjectHandlers.push(new DataObjectHandler(this.http, this, node));
           }
         }
       } else {
         for (let participant of element.participants) {
           if (participant.processRef && participant.processRef.flowElements) {
             for (let node of participant.processRef.flowElements.filter((e: any) => is(e, "bpmn:DataObjectReference"))) {
-              this.dataObjectHandlers.push(new DataObjectHandler(this, node));
+              this.dataObjectHandlers.push(new DataObjectHandler(this.http, this, node));
             }
           }
         }

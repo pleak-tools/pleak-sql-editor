@@ -1,6 +1,9 @@
 import * as Viewer from 'bpmn-js/lib/NavigatedViewer';
 
 import { ElementsHandler } from "./elements-handler";
+import { LeaksWhenRequests } from './leaks-when-requests';
+import { Http } from '@angular/http';
+import { GAPanelComponent } from '../ga-panel/ga-panel.component';
 
 declare let $: any;
 declare let jexcel: any;
@@ -15,7 +18,7 @@ let DBJexcel;
 
 export class DataObjectHandler {
 
-  constructor(elementsHandler: ElementsHandler, dataObject: any) {
+  constructor(public http: Http, elementsHandler: ElementsHandler, dataObject: any) {
     this.viewer = elementsHandler.viewer;
     this.registry = this.viewer.get('elementRegistry');
     this.canvas = this.viewer.get('canvas');
@@ -23,7 +26,6 @@ export class DataObjectHandler {
 
     this.elementsHandler = elementsHandler;
     this.dataObject = dataObject;
-
   }
 
   beingEdited: Boolean = false;
@@ -167,6 +169,9 @@ export class DataObjectHandler {
 
   initDataObjectOptionsButtons() {
     this.terminateDataObjectOptionsButtons();
+    this.dataObjectOptionsPanelContainer.one('click', '#data-object-options-propagate-button', (e) => {
+      this.propagateTables();
+    });
     this.dataObjectOptionsPanelContainer.one('click', '#data-object-options-save-button', (e) => {
       this.saveDataObjectOptions();
     });
@@ -199,6 +204,33 @@ export class DataObjectHandler {
     this.dataObject.sqlScript = schemaCodeMirror.getValue();
     this.dataObject.tableData = JSON.stringify(cleanedInputDB);
     this.dataObject.attackerSettings = attackerSettingsCodeMirror.getValue();
+  }
+
+  propagateTables() {
+    let reg = this.registry;
+    GAPanelComponent.runPropagationAnalysis(this.registry, this.http, (output) => {
+
+      for (var i in reg._elements) {
+        var node = reg._elements[i].element;
+  
+        if (node.type == "bpmn:DataObjectReference") {
+          for(var tab in output.tableSchemas){
+            if(tab == node.businessObject.id) {
+              node.businessObject.sqlScript = output.tableSchemas[tab];
+              node.businessObject.tableData = output.tableDatas[tab];
+            }
+          }
+          // if (node.businessObject.dataInputAssociations && node.businessObject.dataInputAssociations.length) {
+          //   // let isGAInputFound = false;
+          // }
+        }
+      }
+
+      this.updateDataObjectOptions();
+      this.setNewModelContentVariableContent();
+      this.initDataObjectOptionsPanel();
+    });
+    // LeaksWhenRequests.sendPropagationRequest(this.http, schemas, queries, tableDatas);
   }
 
   saveDataObjectOptions() {

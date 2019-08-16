@@ -68,7 +68,7 @@ export class EditorComponent implements OnInit {
   private lastContent: String = '';
   private codeMirror: any;
   private fileId: Number = null;
-  private file: any;
+  public static file: any;
   private lastModified: Number = null;
   private selectedDataObjects: Array<any> = [];
   private taskDtoOrdering = {};
@@ -92,25 +92,25 @@ export class EditorComponent implements OnInit {
     self.viewer = null;
     this.http.get(config.backend.host + '/rest/directories/files/' + (this.viewerType === 'public' ? 'public/' : '') + this.modelId, this.authService.loadRequestOptions()).subscribe(
       success => {
-        self.file = JSON.parse((<any>success)._body);
-        self.fileId = self.file.id;
-        if (self.file.content.length === 0) {
+        EditorComponent.file = JSON.parse((<any>success)._body);
+        self.fileId = EditorComponent.file.id;
+        if (EditorComponent.file.content.length === 0) {
           alert('File can\'t be found or opened!');
         }
         if (this.viewerType === 'public' && this.isAuthenticated()) {
           self.getPermissions();
         } else {
           self.initCodemirror();
-          self.openDiagram(self.file.content);
+          self.openDiagram(EditorComponent.file.content);
         }
-        self.lastContent = self.file.content;
-        document.title = 'Pleak SQL-privacy editor - ' + self.file.title;
-        $('#fileName').text(this.file.title);
+        self.lastContent = EditorComponent.file.content;
+        document.title = 'Pleak SQL-privacy editor - ' + EditorComponent.file.title;
+        $('#fileName').text(EditorComponent.file.title);
         self.lastModified = new Date().getTime();
       },
       fail => {
         self.fileId = null;
-        self.file = null;
+        EditorComponent.file = null;
         self.lastContent = '';
       }
     );
@@ -135,20 +135,20 @@ export class EditorComponent implements OnInit {
     this.http.get(config.backend.host + '/rest/directories/files/' + this.fileId, this.authService.loadRequestOptions()).subscribe(
       success => {
         let response = JSON.parse((<any>success)._body);
-        self.file.permissions = response.permissions;
-        self.file.user = response.user;
-        self.file.md5Hash = response.md5Hash;
+        EditorComponent.file.permissions = response.permissions;
+        EditorComponent.file.user = response.user;
+        EditorComponent.file.md5Hash = response.md5Hash;
       },
       () => { },
       () => {
         self.initCodemirror();
-        self.openDiagram(self.file.content);
+        self.openDiagram(EditorComponent.file.content);
       }
     );
   }
 
   canEdit() {
-    let file = this.file;
+    let file = EditorComponent.file;
     if (!file || !this.isAuthenticated()) { return false; }
     if ((this.authService.user && file.user) ? file.user.email === this.authService.user.email : false) { return true; }
     for (let pIx = 0; pIx < file.permissions.length; pIx++) {
@@ -197,7 +197,7 @@ export class EditorComponent implements OnInit {
       }, 100);
 
       self.sidebarComponent.save.subscribe(({ element, type }) => self.saveSQLScript({ element, type }));
-      self.elementsHandler = new ElementsHandler(this.viewer, diagram, pg_parser, this, this.canEdit());
+      self.elementsHandler = new ElementsHandler(this.http, this.viewer, diagram, pg_parser, this, this.canEdit());
 
       this.viewer.importXML(diagram, () => {
         this.viewer.get("moddle").fromXML(diagram, (_err: any, definitions: any) => {
@@ -266,9 +266,50 @@ export class EditorComponent implements OnInit {
         this.analyse();
       });
 
+      $('.buttons-container').on('click', '#propagate-diagram', (e) => {
+        e.preventDefault();
+        // e.stopPropagation();
+
+        let analysisHtml = `<div class="spinner">
+            <div class="double-bounce1"></div>
+            <div class="double-bounce2"></div>
+          </div>`;
+        $('#messageModal').find('.modal-title').text("Propagation in progress...");
+        $('#messageModal').find('.modal-body').html(analysisHtml);
+        $('#messageModal').modal('show');
+        $('#leaksWhenInputError').hide();
+
+        let reg = self.viewer.get('elementRegistry');
+        GAPanelComponent.runPropagationAnalysis(reg, this.http, (output) => {
+
+          for (var i in reg._elements) {
+            var node = reg._elements[i].element;
+      
+            if (node.type == "bpmn:DataObjectReference") {
+              for(var tab in output.tableSchemas){
+                if(tab == node.businessObject.id) {
+                  node.businessObject.sqlScript = output.tableSchemas[tab];
+                  node.businessObject.tableData = output.tableDatas[tab];
+                }
+              }
+              // if (node.businessObject.dataInputAssociations && node.businessObject.dataInputAssociations.length) {
+              //   // let isGAInputFound = false;
+              // }
+            }
+          }
+
+          setTimeout(() => $('#messageModal').modal('hide'), 250);
+          
+          // this.updateDataObjectOptions();
+          // this.setNewModelContentVariableContent();
+        });
+        // this.sidebarComponent.clear();
+        // this.analyse();
+      });
+
       $('.buttons-container').on('click', '#leaks-report', (e) => {
         e.preventDefault();
-        e.stopPropagation();
+        // e.stopPropagation();
         $('#leaksWhenInputError').hide();
         $('#leaksWhenServerError').hide();
         this.sidebarComponent.clear();
@@ -277,7 +318,7 @@ export class EditorComponent implements OnInit {
 
       $('.buttons-container').on('click', '#ga-analysis', (e) => {
         e.preventDefault();
-        e.stopPropagation();
+        // e.stopPropagation();
         let registry = this.viewer.get('elementRegistry');
         let gaInputs = PolicyHelper.getParticipantsInfoForGA(registry);
         this.gaPanelComponent.init(gaInputs, registry, this.canvas);
@@ -285,7 +326,7 @@ export class EditorComponent implements OnInit {
 
       $('.buttons-container').on('click', '#sd-analysis', (e) => {
         e.preventDefault();
-        e.stopPropagation();
+        // e.stopPropagation();
 
         let analysisHtml = `<div class="spinner">
             <div class="double-bounce1"></div>
@@ -454,8 +495,8 @@ export class EditorComponent implements OnInit {
           if (err) {
             console.log(err);
           } else {
-            self.file.content = xml;
-            this.http.put(config.backend.host + '/rest/directories/files/' + self.fileId, self.file, this.authService.loadRequestOptions()).subscribe(
+            EditorComponent.file.content = xml;
+            this.http.put(config.backend.host + '/rest/directories/files/' + self.fileId, EditorComponent.file, this.authService.loadRequestOptions()).subscribe(
               success => {
                 if (success.status === 200 || success.status === 201) {
                   var data = JSON.parse((<any>success)._body);
@@ -469,8 +510,8 @@ export class EditorComponent implements OnInit {
                   if (self.fileId !== data.id) {
                     window.location.href = config.frontend.host + '/modeler/' + data.id;
                   }
-                  self.file.md5Hash = data.md5Hash;
-                  self.lastContent = self.file.content;
+                  EditorComponent.file.md5Hash = data.md5Hash;
+                  self.lastContent = EditorComponent.file.content;
                   self.fileId = data.id;
                 } else if (success.status === 401) {
                   $('#loginModal').modal();
@@ -622,8 +663,8 @@ export class EditorComponent implements OnInit {
       },
       (err: any, xml: string) => {
         if (xml) {
-          this.file.content = xml;
-          if (this.file.content != this.lastContent) {
+          EditorComponent.file.content = xml;
+          if (EditorComponent.file.content != this.lastContent) {
             $('#save-diagram').addClass('active');
           }
         }
@@ -680,7 +721,7 @@ export class EditorComponent implements OnInit {
             let petriNetArray = Object.values(petriNet);
             PetriNets.removePetriMarks(registry);
 
-            let serverPetriFileName = self.file.id + "_" + self.file.title.substring(0, self.file.title.length - 5);
+            let serverPetriFileName = EditorComponent.file.id + "_" + EditorComponent.file.title.substring(0, EditorComponent.file.title.length - 5);
             let participants = PolicyHelper.groupPoliciesByParticipants(registry);
 
             $('#messageModal').modal('show');
@@ -728,7 +769,38 @@ export class EditorComponent implements OnInit {
       });
   }
 
+  dropdownList = [];
+  selectedItems = [];
+  dropdownSettings = {};
+
   ngOnInit() {
+    this.dropdownList = [
+      {"id":1,"itemName":"India"},
+      {"id":2,"itemName":"Singapore"},
+      {"id":3,"itemName":"Australia"},
+      {"id":4,"itemName":"Canada"},
+      {"id":5,"itemName":"South Korea"},
+      {"id":6,"itemName":"Germany"},
+      {"id":7,"itemName":"France"},
+      {"id":8,"itemName":"Russia"},
+      {"id":9,"itemName":"Italy"},
+      {"id":10,"itemName":"Sweden"}
+    ];
+    this.selectedItems = [
+            {"id":2,"itemName":"Singapore"},
+            {"id":3,"itemName":"Australia"},
+            {"id":4,"itemName":"Canada"},
+            {"id":5,"itemName":"South Korea"}
+    ];
+    this.dropdownSettings = {
+              singleSelection: false, 
+              text:"Select Countries",
+              selectAllText:'Select All',
+              unSelectAllText:'UnSelect All',
+              enableSearchFilter: true,
+              classes:"myclass custom-class"
+    };
+
     window.addEventListener('storage', (e) => {
       if (e.storageArea === localStorage) {
         if (!this.authService.verifyToken()) {
@@ -737,8 +809,8 @@ export class EditorComponent implements OnInit {
           if (localStorage.getItem('lastModifiedFileId') && localStorage.getItem('lastModified')) {
             let lastModifiedFileId = Number(localStorage.getItem('lastModifiedFileId').replace(/['"]+/g, ''));
             let currentFileId = null;
-            if (this.file) {
-              currentFileId = this.file.id;
+            if (EditorComponent.file) {
+              currentFileId = EditorComponent.file.id;
             }
             let localStorageLastModifiedTime = Number(localStorage.getItem('lastModified').replace(/['"]+/g, ''))
             let lastModifiedTime = this.lastModified;

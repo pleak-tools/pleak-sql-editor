@@ -26,6 +26,7 @@
     "@angular/platform-browser": "^5.2.0",
     "@angular/platform-browser-dynamic": "^5.2.0",
     "@angular/router": "^5.2.0",
+    "angular2-multiselect-dropdown": "^4.2.3",
     "bootstrap": "^3.3.7",
     "bpmn-js": "^3.2.3",
     "classlist.js": "^1.1.20150312",
@@ -44,7 +45,7 @@
   },
   "devDependencies": {
     "@angular-devkit/core": "0.3.2",
-    "@angular/cli": "~1.7.4",
+    "@angular/cli": "^1.7.4",
     "@angular/compiler-cli": "^5.2.0",
     "@angular/language-service": "^5.2.0",
     "@ngtools/webpack": "1.10.2",

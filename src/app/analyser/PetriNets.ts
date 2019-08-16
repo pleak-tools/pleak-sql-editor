@@ -29,7 +29,7 @@ export class PetriNets {
     }
   }
 
-  public static buildPetriNet(registry, startBusinessObj, petri, maxPlaceNumberObj, taskDtoOrdering) {
+  public static buildPetriNet(registry, startBusinessObj, petri, maxPlaceNumberObj, taskDtoOrdering, excludeIntermediateDtoWithSQL = false) {
     let currentRun = [];
     let st = [startBusinessObj];
     let xorSplitStack = [];

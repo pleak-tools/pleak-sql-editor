@@ -45,6 +45,26 @@
           </div>
         </div>
 
+        <div *ngIf="roles.length > 0 && tasksList.length > 0" class="row">
+            <div class="col-md-10 col-md-offset-1">
+              <div class="form-group">
+                <label class="text-16" for="sel4">Selected tasks:</label>
+                <angular2-multiselect  name="sel4" [data]="tasksList" [(ngModel)]="selectedTasks" 
+              [settings]="dropdownSettings" 
+              (onSelect)="onItemSelect($event)" 
+              (onDeSelect)="OnItemDeSelect($event)"
+              (onSelectAll)="onSelectAll($event)"
+              (onDeSelectAll)="onDeSelectAll($event)">
+              <c-item>
+                  <ng-template let-item="item">
+                    <label>{{item.itemName}}</label>
+                  </ng-template>
+              </c-item>
+            </angular2-multiselect>
+              </div>
+            </div>
+        </div>
+
         <div class="row">
           <div class="col-md-6 text-right">
             <div class="form-group" id="attacker-advantage-input-form-group">
