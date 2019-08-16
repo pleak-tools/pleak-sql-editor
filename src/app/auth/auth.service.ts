@@ -28,6 +28,8 @@ export class AuthService {
   private authStatusBool = new BehaviorSubject<boolean|null>(null);
   authStatus = this.authStatusBool.asObservable();
 
+  static loadRequestOptions<T>(input: T): {headers: {'JSON-Web-Token': string}} & T;
+  static loadRequestOptions(): {headers: {'JSON-Web-Token': string}};
   static loadRequestOptions(input: object | null = null): object {
     return Object.assign({headers: {'JSON-Web-Token': localStorage.jwt || ''}}, input);
   }
