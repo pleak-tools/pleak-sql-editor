@@ -1,38 +1,38 @@
 import { Component, OnInit, Input, ViewChild, EventEmitter, Output } from '@angular/core';
-import { Http } from '@angular/http';
-import { AuthService } from "../auth/auth.service";
-import { SqlBPMNModdle } from "./bpmn-labels-extension";
-import { Analyser } from "../analyser/SQLDFlowAnalizer";
-import { PetriNets } from "../analyser/PetriNets";
-import { LeaksWhenRequests } from "./leaks-when-requests";
-import { PolicyHelper } from "./policy-helper";
+import {HttpClient, HttpResponse} from '@angular/common/http';
+import { AuthService } from '../auth/auth.service';
+import { SqlBPMNModdle } from './bpmn-labels-extension';
+import { Analyser } from '../analyser/SQLDFlowAnalizer';
+import { PetriNets } from '../analyser/PetriNets';
+import { LeaksWhenRequests } from './leaks-when-requests';
+import { PolicyHelper } from './policy-helper';
 import { SidebarComponent } from '../sidebar/sidebar.component';
 import { GAPanelComponent } from '../ga-panel/ga-panel.component';
 import NavigatedViewer from 'bpmn-js/lib/NavigatedViewer';
-import { ElementsHandler } from "./elements-handler";
-import { SimpleDisclosureAnalysis } from "./simple-analysis";
+import { ElementsHandler } from './elements-handler';
+import { SimpleDisclosureAnalysis } from './simple-analysis';
 
 declare var $: any;
 declare var CodeMirror: any;
 declare function require(name: string);
 
-let is = (element, type) => element.$instanceOf(type);
+const is = (element, type) => element.$instanceOf(type);
 
-var pg_parser = require("exports-loader?Module!pgparser/pg_query.js");
-pg_parser.parse("");
+const pg_parser = require('exports-loader?Module!pgparser/pg_query.js');
+pg_parser.parse('');
 
-var config = require('./../../config.json');
+const config = require('./../../config.json');
 
 @Component({
   selector: 'app-sql-privacy-editor',
-  templateUrl: '/editor.component.html',
-  styleUrls: ['/editor.component.less']
+  templateUrl: 'editor.component.html',
+  styleUrls: ['editor.component.less']
 })
 export class EditorComponent implements OnInit {
   @Output() editSqlTable: EventEmitter<any> = new EventEmitter();
 
-  constructor(public http: Http, private authService: AuthService) {
-    let pathname = window.location.pathname.split('/');
+  constructor(public http: HttpClient, private authService: AuthService) {
+    const pathname = window.location.pathname.split('/');
     if (pathname[2] === 'viewer') {
       this.modelId = pathname[3];
       this.viewerType = 'public';
@@ -50,19 +50,19 @@ export class EditorComponent implements OnInit {
   }
 
   @Input() authenticated: Boolean;
-  @ViewChild(SidebarComponent) sidebarComponent: SidebarComponent;
-  @ViewChild(GAPanelComponent) gaPanelComponent: GAPanelComponent;
-  @ViewChild(ElementsHandler) elementsHandler: ElementsHandler;
+  @ViewChild(SidebarComponent, { static: true }) sidebarComponent: SidebarComponent;
+  @ViewChild(GAPanelComponent, { static: true }) gaPanelComponent: GAPanelComponent;
+  @ViewChild(ElementsHandler, { static: false }) elementsHandler: ElementsHandler;
 
-  private loaded: boolean = false;
+  private loaded = false;
 
   private viewer: NavigatedViewer;
   private eventBus;
   private overlays;
   private canvas;
 
-  private modelId;
-  private viewerType;
+  modelId;
+  viewerType;
   private menuSelector;
 
   private lastContent: String = '';
@@ -79,10 +79,6 @@ export class EditorComponent implements OnInit {
     return this.authenticated;
   }
 
-  isLoaded() {
-    return this.loaded;
-  }
-
   // Load model
   getModel() {
     const self = this;
@@ -90,9 +86,9 @@ export class EditorComponent implements OnInit {
     $('.buttons-container').off('click', '#save-diagram');
     $('.buttons-container').off('click', '#analyse-diagram');
     self.viewer = null;
-    this.http.get(config.backend.host + '/rest/directories/files/' + (this.viewerType === 'public' ? 'public/' : '') + this.modelId, this.authService.loadRequestOptions()).subscribe(
+    this.http.get(config.backend.host + '/rest/directories/files/' + (this.viewerType === 'public' ? 'public/' : '') + this.modelId, AuthService.loadRequestOptions()).subscribe(
       success => {
-        EditorComponent.file = JSON.parse((<any>success)._body);
+        EditorComponent.file = success;
         self.fileId = EditorComponent.file.id;
         if (EditorComponent.file.content.length === 0) {
           alert('File can\'t be found or opened!');
@@ -131,29 +127,28 @@ export class EditorComponent implements OnInit {
   }
 
   getPermissions() {
-    let self = this;
-    this.http.get(config.backend.host + '/rest/directories/files/' + this.fileId, this.authService.loadRequestOptions()).subscribe(
-      success => {
-        let response = JSON.parse((<any>success)._body);
-        EditorComponent.file.permissions = response.permissions;
-        EditorComponent.file.user = response.user;
-        EditorComponent.file.md5Hash = response.md5Hash;
-      },
+    this.http.get(config.backend.host + '/rest/directories/files/' + this.fileId, AuthService.loadRequestOptions()).subscribe(
+        (response: any) => {
+          EditorComponent.file.permissions = response.permissions;
+          EditorComponent.file.user = response.user;
+          EditorComponent.file.md5Hash = response.md5Hash;
+        },
       () => { },
       () => {
-        self.initCodemirror();
-        self.openDiagram(EditorComponent.file.content);
+        this.initCodemirror();
+        this.openDiagram(EditorComponent.file.content);
       }
     );
   }
 
   canEdit() {
-    let file = EditorComponent.file;
+    const file = EditorComponent.file;
+
     if (!file || !this.isAuthenticated()) { return false; }
     if ((this.authService.user && file.user) ? file.user.email === this.authService.user.email : false) { return true; }
     for (let pIx = 0; pIx < file.permissions.length; pIx++) {
       if (file.permissions[pIx].action.title === 'edit' &&
-        this.authService.user ? file.permissions[pIx].user.email === this.authService.user.email : false) {
+      this.authService.user ? file.permissions[pIx].user.email === this.authService.user.email : false) {
         return true;
       }
     }
@@ -161,19 +156,21 @@ export class EditorComponent implements OnInit {
   }
 
   saveSQLScript(e) {
-    let self = this;
-    if (!e.type)
+    const self = this;
+    if (!e.type) {
       e.element.sqlScript = self.codeMirror.getValue();
-    else
+    } else {
       e.element.policyScript = self.codeMirror.getValue();
+    }
 
     self.updateModelContentVariable();
     self.sidebarComponent.isEditing = false;
     self.sidebarComponent.elementBeingEdited = null;
-    self.sidebarComponent.elementOldValue = "";
+    self.sidebarComponent.elementOldValue = '';
 
-    if (e.element && e.element.id)
+    if (e.element && e.element.id) {
       self.canvas.removeMarker(e.element.id, 'selected');
+    }
   }
 
   // Load diagram and add editor
@@ -200,7 +197,7 @@ export class EditorComponent implements OnInit {
       self.elementsHandler = new ElementsHandler(this.http, this.viewer, diagram, pg_parser, this, this.canEdit());
 
       this.viewer.importXML(diagram, () => {
-        this.viewer.get("moddle").fromXML(diagram, (_err: any, definitions: any) => {
+        this.viewer.get('moddle').fromXML(diagram, (_err: any, definitions: any) => {
           if (typeof definitions !== 'undefined') {
             this.viewer.importDefinitions(definitions, () => this.elementsHandler.createElementHandlerInstances(definitions));
           }
@@ -211,8 +208,7 @@ export class EditorComponent implements OnInit {
           if (is(e.element.businessObject, 'bpmn:DataObjectReference') || is(e.element.businessObject, 'bpmn:Participant')) {
             if (e.element.incoming && e.element.incoming.length || is(e.element.businessObject, 'bpmn:Participant')) {
               self.showMenu(e);
-            }
-            else {
+            } else {
               self.elementsHandler.click(e.element);
             }
           } else {
@@ -221,12 +217,12 @@ export class EditorComponent implements OnInit {
               self.menuSelector = null;
             }
 
-            if ((is(e.element.businessObject, 'bpmn:Task') || is(e.element.businessObject, 'bpmn:StartEvent') || is(e.element.businessObject, 'bpmn:IntermediateCatchEvent')) && !$(document).find("[data-element-id='" + e.element.id + "']").hasClass('highlight-input')) {
-              let selectedElement = e.element.businessObject;
-              if (self.sidebarComponent.elementBeingEdited !== null && self.sidebarComponent.elementBeingEdited === selectedElement.id && self.sidebarComponent.elementOldValue != self.codeMirror.getValue()) {
+            if ((is(e.element.businessObject, 'bpmn:Task') || is(e.element.businessObject, 'bpmn:StartEvent') || is(e.element.businessObject, 'bpmn:IntermediateCatchEvent')) && !$(document).find('[data-element-id=\'' + e.element.id + '\']').hasClass('highlight-input')) {
+              const selectedElement = e.element.businessObject;
+              if (self.sidebarComponent.elementBeingEdited !== null && self.sidebarComponent.elementBeingEdited === selectedElement.id && self.sidebarComponent.elementOldValue !== self.codeMirror.getValue()) {
                 self.canvas.addMarker(self.sidebarComponent.elementBeingEdited, 'selected');
                 return false;
-              } else if (self.sidebarComponent.elementBeingEdited !== null && self.sidebarComponent.elementBeingEdited !== selectedElement.id && self.sidebarComponent.elementOldValue != self.codeMirror.getValue()) {
+              } else if (self.sidebarComponent.elementBeingEdited !== null && self.sidebarComponent.elementBeingEdited !== selectedElement.id && self.sidebarComponent.elementOldValue !== self.codeMirror.getValue()) {
                 if (confirm('You have some unsaved changes. Would you like to revert these changes?')) {
                   self.sidebarComponent.loadSQLScript(selectedElement, 0);
                 } else {
@@ -237,8 +233,7 @@ export class EditorComponent implements OnInit {
               } else {
                 self.sidebarComponent.loadSQLScript(selectedElement, 0);
               }
-            }
-            else {
+            } else {
               self.overlays.remove({ element: e.element });
             }
           }
@@ -318,9 +313,9 @@ export class EditorComponent implements OnInit {
 
       $('.buttons-container').on('click', '#ga-analysis', (e) => {
         e.preventDefault();
-        // e.stopPropagation();
-        let registry = this.viewer.get('elementRegistry');
-        let gaInputs = PolicyHelper.getParticipantsInfoForGA(registry);
+        e.stopPropagation();
+        const registry = this.viewer.get('elementRegistry');
+        const gaInputs = PolicyHelper.getParticipantsInfoForGA(registry);
         this.gaPanelComponent.init(gaInputs, registry, this.canvas);
       });
 
@@ -328,28 +323,27 @@ export class EditorComponent implements OnInit {
         e.preventDefault();
         // e.stopPropagation();
 
-        let analysisHtml = `<div class="spinner">
+        const analysisHtml = `<div class="spinner">
             <div class="double-bounce1"></div>
             <div class="double-bounce2"></div>
           </div>`;
-        $('#messageModal').find('.modal-title').text("Analysis in progress...");
+        $('#messageModal').find('.modal-title').text('Analysis in progress...');
         $('#messageModal').find('.modal-body').html(analysisHtml);
         $('#messageModal').modal('show');
         $('#leaksWhenInputError').hide();
 
-        let registry = this.viewer.get('elementRegistry');
+        const registry = this.viewer.get('elementRegistry');
         this.loadExtendedSimpleDisclosureData().then(() => {
-          let esd = localStorage.getItem('esdInfo');
+          const esd = localStorage.getItem('esdInfo');
           SimpleDisclosureAnalysis.showPopup(registry, esd);
           $('#messageModal').modal('hide');
           $(document).off('click', '#simpleLeaksWhen');
-          $(document).on('click', '#simpleLeaksWhen', (e) => {
-            if(SimpleDisclosureAnalysis.SelectedTarget.simplificationDto){
-              let processedTarget = SimpleDisclosureAnalysis.SelectedTarget.simplificationDto.name.split(" ").map(word => word.toLowerCase()).join("_");
+          $(document).on('click', '#simpleLeaksWhen', () => {
+            if (SimpleDisclosureAnalysis.SelectedTarget.simplificationDto) {
+              const processedTarget = SimpleDisclosureAnalysis.SelectedTarget.simplificationDto.name.split(' ').map(word => word.toLowerCase()).join('_');
               self.canvas.addMarker(SimpleDisclosureAnalysis.SelectedTarget.simplificationDto.id, 'highlight-group');
               self.runLeaksWhenAnalysis(processedTarget, SimpleDisclosureAnalysis.SelectedTarget.selectedTargetForLeaksWhen);
-            }
-            else{
+            } else {
               $('#leaksWhenInputError').show();
             }
           });
@@ -382,9 +376,9 @@ export class EditorComponent implements OnInit {
     return new Promise((resolve) => {
       localStorage.setItem('esdInfo', '');
       localStorage.setItem('esdInfoStatus', '');
-      $("#pe-bpmn-import-iframe").attr("src", config.frontend.host + '/pe-bpmn-editor/export/' + this.fileId + '/esd'); // "esd" as extended simple disclosure
-      $("#pe-bpmn-import-iframe").off('load').on('load', () => {
-        let poller = setInterval(() => {
+      $('#pe-bpmn-import-iframe').attr('src', config.frontend.host + '/pe-bpmn-editor/export/' + this.fileId + '/esd'); // "esd" as extended simple disclosure
+      $('#pe-bpmn-import-iframe').off('load').on('load', () => {
+        const poller = setInterval(() => {
           if (localStorage.getItem('esdInfo') && localStorage.getItem('esdInfoStatus') && localStorage.getItem('esdInfoStatus').length > 0) {
             clearInterval(poller);
             resolve();
@@ -395,8 +389,8 @@ export class EditorComponent implements OnInit {
   }
 
   showMenu(e) {
-    let element = e.element;
-    let self = this;
+    const element = e.element;
+    const self = this;
     let overlayHtml = `
       <div class="panel panel-default stereotype-editor" id="` + element.businessObject.id + `-stereotype-selector" style="height: ` +
       (!is(e.element.businessObject, 'bpmn:Participant') ? '150px' : '75px') +
@@ -408,9 +402,9 @@ export class EditorComponent implements OnInit {
           </div>
           <table class="table table-hover stereotypes-table">
             <tbody>
-            `+ (!is(e.element.businessObject, 'bpmn:Participant')
+            ` + (!is(e.element.businessObject, 'bpmn:Participant')
         ? `<tr>
-                  <td class="link-row" id="select-button" style="cursor: pointer">` + (element.businessObject.selectedForReport ? "Deselect" : "Select") + `</td>
+                  <td class="link-row" id="select-button" style="cursor: pointer">` + (element.businessObject.selectedForReport ? 'Deselect' : 'Select') + `</td>
                 </tr>
                 <tr>
                   <td class="link-row" id="sql-script-button" style="cursor: pointer">Edit SQL table</td>
@@ -426,53 +420,53 @@ export class EditorComponent implements OnInit {
     `;
 
     overlayHtml = $(overlayHtml);
-    let registry = this.viewer.get('elementRegistry');
+    const registry = this.viewer.get('elementRegistry');
 
     if (self.menuSelector) {
       self.overlays.remove({ id: self.menuSelector });
     }
 
-    $(overlayHtml).on('click', '.stereotype-editor-close-link', (e) => {
+    $(overlayHtml).on('click', '.stereotype-editor-close-link', () => {
       self.overlays.remove({ id: self.menuSelector });
       self.menuSelector = null;
     });
 
-    $(overlayHtml).on('click', '#select-button', (e) => {
+    $(overlayHtml).on('click', '#select-button', () => {
       if (!element.businessObject.selectedForReport) {
         self.selectedDataObjects.push(element.businessObject);
         element.businessObject.selectedForReport = true;
         self.canvas.addMarker(element.id, 'highlight-input-selected');
-        $("#select-button").text("Deselect");
+        $('#select-button').text('Deselect');
       } else {
-        let index = self.selectedDataObjects.findIndex(x => x == element.businessObject);
+        const index = self.selectedDataObjects.findIndex(x => x === element.businessObject);
         self.selectedDataObjects.splice(index, 1);
         element.businessObject.selectedForReport = false;
         self.canvas.removeMarker(element.id, 'highlight-input-selected');
-        $("#select-button").text("Select");
+        $('#select-button').text('Select');
       }
       self.overlays.remove({ id: self.menuSelector });
       self.menuSelector = null;
     });
 
-    $(overlayHtml).on('click', '#policy-button', (e) => {
+    $(overlayHtml).on('click', '#policy-button', () => {
       this.sidebarComponent.clear();
       self.roles = PolicyHelper.extractRoles(registry);
       self.sidebarComponent.loadSQLScript(element.businessObject, 1, self.roles);
       self.overlays.remove({ id: self.menuSelector });
     });
 
-    $(overlayHtml).on('click', '#sql-script-button', (e) => {
+    $(overlayHtml).on('click', '#sql-script-button', () => {
       this.sidebarComponent.clear();
       self.overlays.remove({ id: self.menuSelector });
       self.elementsHandler.click(element);
     });
 
-    let overlayPosition = !is(element.businessObject, 'bpmn:Participant')
+    const overlayPosition = !is(element.businessObject, 'bpmn:Participant')
       ? { right: 0, bottom: 0 }
       // : {top: e.originalEvent.clientX - element.x, left: e.originalEvent.clientY - element.y};
       : { top: 5, left: 40 };
 
-    let menuOverlay = this.overlays.add(registry.get(element.businessObject.id), {
+    const menuOverlay = this.overlays.add(registry.get(element.businessObject.id), {
       position: overlayPosition,
       show: {
         minZoom: 0,
@@ -485,7 +479,7 @@ export class EditorComponent implements OnInit {
 
   // Save model
   save() {
-    var self = this;
+    const self = this;
     if ($('#save-diagram').is('.active')) {
       this.viewer.saveXML(
         {
@@ -496,24 +490,24 @@ export class EditorComponent implements OnInit {
             console.log(err);
           } else {
             EditorComponent.file.content = xml;
-            this.http.put(config.backend.host + '/rest/directories/files/' + self.fileId, EditorComponent.file, this.authService.loadRequestOptions()).subscribe(
-              success => {
-                if (success.status === 200 || success.status === 201) {
-                  var data = JSON.parse((<any>success)._body);
+            this.http.put(config.backend.host + '/rest/directories/files/' + self.fileId, EditorComponent.file, AuthService.loadRequestOptions({observe: 'response'})).subscribe(
+              (response: HttpResponse<any>) => {
+                if (response.status === 200 || response.status === 201) {
+                  const data = response.body;
                   $('#fileSaveSuccess').show();
                   $('#fileSaveSuccess').fadeOut(5000);
                   $('#save-diagram').removeClass('active');
-                  var date = new Date();
+                  const date = new Date();
                   self.lastModified = date.getTime();
-                  localStorage.setItem("lastModifiedFileId", '"' + data.id + '"');
-                  localStorage.setItem("lastModified", '"' + date.getTime() + '"');
+                  localStorage.setItem('lastModifiedFileId', '"' + data.id + '"');
+                  localStorage.setItem('lastModified', '"' + date.getTime() + '"');
                   if (self.fileId !== data.id) {
                     window.location.href = config.frontend.host + '/modeler/' + data.id;
                   }
                   EditorComponent.file.md5Hash = data.md5Hash;
                   self.lastContent = EditorComponent.file.content;
                   self.fileId = data.id;
-                } else if (success.status === 401) {
+                } else if (response.status === 401) {
                   $('#loginModal').modal();
                 }
               },
@@ -528,10 +522,10 @@ export class EditorComponent implements OnInit {
 
   // Analyse model
   analyse() {
-    $('#messageModal').find('.modal-title').text("Analysis in progress...");
+    $('#messageModal').find('.modal-title').text('Analysis in progress...');
     this.selectedDataObjects = [];
-    this.viewer.saveXML({ format: true }, (err: any, xml: string) => {
-      this.viewer.get("moddle").fromXML(xml, (err: any, definitions: any) => {
+    this.viewer.saveXML({ format: true }, (err1: any, xml: string) => {
+      this.viewer.get('moddle').fromXML(xml, (err2: any, definitions: any) => {
         if (typeof definitions !== 'undefined') {
           this.viewer.importDefinitions(definitions, () => this.postLoad(definitions));
         }
@@ -551,7 +545,7 @@ export class EditorComponent implements OnInit {
         </table>`
     );
 
-    $modal.find('.modal-title').text("BPMN LeaksWhen Report");
+    $modal.find('.modal-title').text('BPMN LeaksWhen Report');
 
     $modal.find('table thead').html(function () {
       let output = `<th></th>`;
@@ -566,7 +560,7 @@ export class EditorComponent implements OnInit {
     $modal.find('table tbody').html(function () {
       let output = '';
 
-      response.outputs.forEach(function (item, key) {
+      response.outputs.forEach(function (item) {
         const realKey = Object.keys(item)[0];
         const realItem = item[realKey];
         output += `<tr><th>${realKey}</th>`;
@@ -614,9 +608,9 @@ export class EditorComponent implements OnInit {
       $modalheader.css('cursor', 'move');
       $modal.css('opacity', 0.3);
 
-      const moveFunction = function (event) {
-        const diffX = event.pageX - startX;
-        const diffY = event.pageY - startY;
+      const moveFunction = function (e) {
+        const diffX = e.pageX - startX;
+        const diffY = e.pageY - startY;
 
         $modalContainer.css('transform', `translate(${diffX + modalX}px, ${diffY + modalY}px)`);
         // console.log('move');
@@ -633,12 +627,12 @@ export class EditorComponent implements OnInit {
   }
 
   postLoad(definitions: any) {
-    for (let diagram of definitions.diagrams) {
-      var element = diagram.plane.bpmnElement;
-      if (element.$type === "bpmn:Process") {
+    for (const diagram of definitions.diagrams) {
+      const element = diagram.plane.bpmnElement;
+      if (element.$type === 'bpmn:Process') {
         this.processBPMNProcess(element);
       } else {
-        for (let participant of element.participants) {
+        for (const participant of element.participants) {
           if (participant.processRef) {
             this.processBPMNProcess(participant.processRef);
           }
@@ -648,12 +642,12 @@ export class EditorComponent implements OnInit {
   }
 
   processBPMNProcess(element: any) {
-    let registry = this.viewer.get('elementRegistry');
-    let canvas = this.viewer.get('canvas');
-    let eventBus = this.viewer.get('eventBus');
-    let overlays = this.viewer.get('overlays');
+    const registry = this.viewer.get('elementRegistry');
+    const canvas = this.viewer.get('canvas');
+    const eventBus = this.viewer.get('eventBus');
+    const overlays = this.viewer.get('overlays');
 
-    Analyser.analizeSQLDFlow(element, registry, canvas, overlays, eventBus, this.http, this.authService);
+    Analyser.analizeSQLDFlow(element, registry, canvas, overlays, eventBus, this.http);
   }
 
   updateModelContentVariable() {
@@ -664,7 +658,7 @@ export class EditorComponent implements OnInit {
       (err: any, xml: string) => {
         if (xml) {
           EditorComponent.file.content = xml;
-          if (EditorComponent.file.content != this.lastContent) {
+          if (EditorComponent.file.content !== this.lastContent) {
             $('#save-diagram').addClass('active');
           }
         }
@@ -673,35 +667,35 @@ export class EditorComponent implements OnInit {
   }
 
   runLeaksWhenAnalysis(simplificationTarget = null, outputTarget = null) {
-    let self = this;
+    const self = this;
     if (!self.selectedDataObjects.length && !outputTarget) {
       $('#leaksWhenInputError').show();
     } else {
       this.viewer.saveXML({ format: true }, (err: any, xml: string) => {
-        this.viewer.get("moddle").fromXML(xml, (err: any, definitions: any) => {
-          let registry = this.viewer.get('elementRegistry');
+        this.viewer.get('moddle').fromXML(xml, () => {
+          const registry = this.viewer.get('elementRegistry');
 
           // Displaying the spinner during analysis
-          let analysisHtml = `<div class="spinner">
+          const analysisHtml = `<div class="spinner">
                 <div class="double-bounce1"></div>
                 <div class="double-bounce2"></div>
               </div>`;
-          $('#messageModal').find('.modal-title').text("Analysis in progress...");
+          $('#messageModal').find('.modal-title').text('Analysis in progress...');
           $('#messageModal').find('.modal-body').html(analysisHtml);
 
           // Promise chain for async requests
-          let serverResponsePromises = [];
+          const serverResponsePromises = [];
 
-          let startBpmnEvents = [];
-          for (let i in registry._elements) {
-            if (registry._elements[i].element.type == "bpmn:StartEvent") {
+          const startBpmnEvents = [];
+          for (const i in registry._elements) {
+            if (registry._elements[i].element.type === 'bpmn:StartEvent') {
               startBpmnEvents.push(registry._elements[i].element.businessObject);
             }
           }
 
           if (!!startBpmnEvents) {
             let petriNet = {};
-            let maxPlaceNumberObj = { maxPlaceNumber: 0 };
+            const maxPlaceNumberObj = { maxPlaceNumber: 0 };
             // For multiple lanes we have multiple start events
             for (let i = 0; i < startBpmnEvents.length; i++) {
               petriNet = PetriNets.buildPetriNet(registry, startBpmnEvents[i], petriNet, maxPlaceNumberObj, self.taskDtoOrdering);
@@ -709,25 +703,25 @@ export class EditorComponent implements OnInit {
 
             PetriNets.preparePetriNetForServer(petriNet);
 
-            let matcher = {};
+            const matcher = {};
             Object.keys(petriNet).forEach(k => {
-              petriNet[k]["id"] = k;
+              petriNet[k]['id'] = k;
 
-              let obj = registry.get(k);
+              const obj = registry.get(k);
               if (!!obj && obj.businessObject.sqlScript) {
                 matcher[k] = obj.businessObject.sqlScript;
               }
             });
-            let petriNetArray = Object.values(petriNet);
+            const petriNetArray = Object.values(petriNet);
             PetriNets.removePetriMarks(registry);
 
-            let serverPetriFileName = EditorComponent.file.id + "_" + EditorComponent.file.title.substring(0, EditorComponent.file.title.length - 5);
-            let participants = PolicyHelper.groupPoliciesByParticipants(registry);
+            const serverPetriFileName = EditorComponent.file.id + '_' + EditorComponent.file.title.substring(0, EditorComponent.file.title.length - 5);
+            const participants = PolicyHelper.groupPoliciesByParticipants(registry);
 
             $('#messageModal').modal('show');
             LeaksWhenRequests.sendPreparationRequest(self.http, serverPetriFileName, JSON.stringify(petriNetArray), matcher, (outputTarget ? [outputTarget] : self.selectedDataObjects), self.taskDtoOrdering, participants, simplificationTarget, serverResponsePromises)
               .then(res => $('#messageModal').modal('hide'),
-                err => {
+                () => {
                   $('#messageModal').modal('hide');
                   $('#leaksWhenServerError').show();
                 });
@@ -738,12 +732,12 @@ export class EditorComponent implements OnInit {
   }
 
   sendBpmnLeaksWhenRequest() {
-    let analysisHtml = `
+    const analysisHtml = `
       <div class="spinner">
         <div class="double-bounce1"></div>
         <div class="double-bounce2"></div>
       </div>`;
-    $('#bpmnLeaksWhenModal').find('.modal-title').text("Analysis in progress...");
+    $('#bpmnLeaksWhenModal').find('.modal-title').text('Analysis in progress...');
     $('#bpmnLeaksWhenModal').find('.modal-body').html(analysisHtml);
     $('#bpmnLeaksWhenModal').modal();
     this.viewer.saveXML(
@@ -755,13 +749,12 @@ export class EditorComponent implements OnInit {
           console.log(err);
           $('#bpmnLeaksWhenModal').modal('toggle');
         } else {
-          this.http.post(config.backend.host + '/rest/sql-privacy/analyze-leaks-when', { model: xml }, this.authService.loadRequestOptions()).subscribe(
-            success => {
-              const response = JSON.parse((<any>success)._body);
+          this.http.post(config.backend.host + '/rest/sql-privacy/analyze-leaks-when', { model: xml }, AuthService.loadRequestOptions()).subscribe(
+            (response: any) => {
               this.bpmnLeaksWhen(JSON.parse(response.result));
             },
             () => {
-              console.log("analysis failed");
+              console.log('analysis failed');
               $('#bpmnLeaksWhenModal').modal('toggle');
             }
           );
@@ -807,14 +800,14 @@ export class EditorComponent implements OnInit {
           this.getModel();
         } else {
           if (localStorage.getItem('lastModifiedFileId') && localStorage.getItem('lastModified')) {
-            let lastModifiedFileId = Number(localStorage.getItem('lastModifiedFileId').replace(/['"]+/g, ''));
+            const lastModifiedFileId = Number(localStorage.getItem('lastModifiedFileId').replace(/['"]+/g, ''));
             let currentFileId = null;
             if (EditorComponent.file) {
               currentFileId = EditorComponent.file.id;
             }
-            let localStorageLastModifiedTime = Number(localStorage.getItem('lastModified').replace(/['"]+/g, ''))
-            let lastModifiedTime = this.lastModified;
-            if (lastModifiedFileId && currentFileId && localStorageLastModifiedTime && lastModifiedTime && lastModifiedFileId == currentFileId && localStorageLastModifiedTime > lastModifiedTime) {
+            const localStorageLastModifiedTime = Number(localStorage.getItem('lastModified').replace(/['"]+/g, ''));
+            const lastModifiedTime = this.lastModified;
+            if (lastModifiedFileId && currentFileId && localStorageLastModifiedTime && lastModifiedTime && lastModifiedFileId === currentFileId && localStorageLastModifiedTime > lastModifiedTime) {
               this.getModel();
             }
           }
@@ -822,7 +815,7 @@ export class EditorComponent implements OnInit {
       }
     });
 
-    Analyser.onAnalysisCompleted.subscribe(result => {
+    Analyser.analysisCompleted.subscribe(result => {
       this.sidebarComponent.emitTaskResult(result);
     });
 

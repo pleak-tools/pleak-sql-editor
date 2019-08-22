@@ -1,10 +1,12 @@
 import { Http } from '@angular/http';
-import { Analyser } from "../analyser/SQLDFlowAnalizer";
+// import { Analyser } from "../analyser/SQLDFlowAnalizer";
 var pg_parser = require("exports-loader?Module!pgparser/pg_query.js")
+import { Analyser } from '../analyser/SQLDFlowAnalizer';
+import { HttpClient } from '@angular/common/http';
 
 declare var $: any;
-declare var require: any
-var config = require('./../../config.json');
+declare var require: any;
+const config = require('./../../config.json');
 
 export class LeaksWhenRequests {
 
@@ -126,27 +128,27 @@ export class LeaksWhenRequests {
     return allMatches;
   }
 
-  public static sendPreparationRequest(http: Http, diagramId, petri, matcher, selectedDataObjects, taskDtoOrdering, participants, simplificationTarget, promiseChain) {
+  public static sendPreparationRequest(http: HttpClient, diagramId, petri, matcher, selectedDataObjects, taskDtoOrdering, participants, simplificationTarget, promiseChain) {
     let apiURL = config.leakswhen.host + config.leakswhen.compute;
 
     return http.post(apiURL, { diagram_id: diagramId, petri: petri })
       .toPromise()
       .then(
-        res => {
-          let runs = res.json().runs;
+          (res: any) => {
+          let runs = res.runs;
           // console.log(runs);
 
           runs = runs.filter(run => {
-            return run.reduce((acc, cur) => { return acc || cur.includes('EndEvent') }, false);
+            return run.reduce((acc, cur) => acc || cur.includes('EndEvent'), false);
           });
 
-          return runs.reduce((acc, run, runNumber) => acc.then(res => {
-            let sqlCommands = run.reduce((acc, id) => acc + (matcher[id] ? matcher[id] + '\n' : ''), '');
+          return runs.reduce((acc, run, runNumber) => acc.then(() => {
+            const sqlCommands = run.reduce((acc, id) => acc + (matcher[id] ? matcher[id] + '\n' : ''), '');
 
-            return selectedDataObjects.reduce((acc, currentOutputDto) => acc.then(res => {
+            return selectedDataObjects.reduce((acc, currentOutputDto) => acc.then(() => {
               // We select participant that contains selected data object
-              let currentParticipant = participants.filter(x => !!x.policies.find(p => p.name == currentOutputDto.id))[0];
-              let orderedDtos = {};
+              const currentParticipant = participants.filter(x => !!x.policies.find(p => p.name == currentOutputDto.id))[0];
+              const orderedDtos = {};
               let currentOrderingIndex = 0;
 
               // We should take policies only from those data objects that topologically preceed selected one
@@ -157,18 +159,17 @@ export class LeaksWhenRequests {
                       orderedDtos[taskDtoOrdering[run[i]][j]] = currentOrderingIndex;
                     }
                   }
-                }
-                else {
+                } else {
                   orderedDtos[run[i]] = currentOrderingIndex;
                 }
                 currentOrderingIndex++;
               }
 
-              let indexOfOutputDto = orderedDtos[currentOutputDto.id];
-              let requestPolicies = currentParticipant
+              const indexOfOutputDto = orderedDtos[currentOutputDto.id];
+              const requestPolicies = currentParticipant
                 ? currentParticipant.policies.filter(x => (orderedDtos[x.name] <= indexOfOutputDto || x.name == 'laneScript') && !!x.script)
                 : [];
-              let processedOutputDto = currentOutputDto.name.split(" ").map(word => word.toLowerCase()).join("_");
+              const processedOutputDto = currentOutputDto.name.split(' ').map(word => word.toLowerCase()).join('_');
 
               return LeaksWhenRequests.sendLeaksWhenRequest(http, diagramId, sqlCommands, [processedOutputDto], requestPolicies.map(x => x.script), promiseChain, runNumber, simplificationTarget);
             }), Promise.resolve());
@@ -176,36 +177,36 @@ export class LeaksWhenRequests {
         });
   }
 
-  static sendLeaksWhenRequest(http: Http, diagramId, sqlCommands, processedLabels, policy, promises, runNumber, simplificationTarget) {
-    let self = this;
-    let apiURL = config.leakswhen.host + config.leakswhen.report;
-    let modelPath = `${diagramId}/run_${runNumber}/${processedLabels[0]}`;
+  static sendLeaksWhenRequest(http: HttpClient, diagramId, sqlCommands, processedLabels, policy, promises, runNumber, simplificationTarget) {
+    const self = this;
+    const apiURL = config.leakswhen.host + config.leakswhen.report;
+    const modelPath = `${diagramId}/run_${runNumber}/${processedLabels[0]}`;
 
     return http.post(apiURL, { diagram_id: diagramId, simplificationTarget: simplificationTarget, run_number: runNumber, selected_dto: processedLabels[0], model: modelPath, targets: processedLabels.join(','), sql_script: sqlCommands, policy: policy })
       .toPromise()
       .then(
-        res => {
-          let files = res.json().files;
+      (res: any) => {
+          const files = res.files;
 
-          let legend = files.filter(x => x.indexOf('legend') != -1)[0];
-          let namePathMapping = {};
+          const legend = files.filter(x => x.indexOf('legend') != -1)[0];
+          const namePathMapping = {};
           files.filter(x => x.indexOf('legend') == -1)
             .forEach(path => namePathMapping[path.split('/').pop()] = path);
 
           //let url1 = config.leakswhen.host + legend.replace("leaks-when/", "");
-          let url1 = config.leakswhen.host + legend;
+          const url1 = config.leakswhen.host + legend;
           return http.get(url1)
             .toPromise()
-            .then(res => {
-              let legendObject = res.json();
+            .then((res2: any) => {
+              const legendObject = res2;
 
-              return Object.keys(legendObject).reduce((acc, key) => acc.then(res => {
-                let clojuredKey = key;
+              return Object.keys(legendObject).reduce((acc, key) => acc.then(() => {
+                const clojuredKey = key;
 
                 return legendObject[clojuredKey].reduce((acc, fileName, fileIndex) => acc.then(resOverlayInsert => {
                   //let url2 = config.leakswhen.host + namePathMapping[fileName].replace("leaks-when/", "");
-                  let url2 = config.leakswhen.host + namePathMapping[fileName];
-                  let overlayInsert = fileIndex > 0 ? resOverlayInsert : ``;
+                  const url2 = config.leakswhen.host + namePathMapping[fileName];
+                  const overlayInsert = fileIndex > 0 ? resOverlayInsert : ``;
 
                   return self.sendLegendFileRequest(http, modelPath, url2, overlayInsert, clojuredKey, legendObject, fileIndex, simplificationTarget);
                 }), Promise.resolve());
@@ -215,17 +216,16 @@ export class LeaksWhenRequests {
       );
   }
 
-  static sendLegendFileRequest(http: Http, modelPath, url2, overlayInsert, clojuredKey, legendObject, fileCounter, simplificationTarget) {
-    let self = this;
+  static sendLegendFileRequest(http: HttpClient, modelPath, url2, overlayInsert, clojuredKey, legendObject, fileCounter, simplificationTarget) {
 
     // return http.get(url2)
     //   .toPromise()
     //   .then(res => {
     //     let response = (<any>res)._body;
 
-    let urlParts = url2.split("/");
-    let fileNameParts = url2.split("/")[urlParts.length - 1].split(".")[0].split("_");
-    let gid = fileNameParts[fileNameParts.length - 1];
+    const urlParts = url2.split('/');
+    const fileNameParts = url2.split('/')[urlParts.length - 1].split('.')[0].split('_');
+    const gid = fileNameParts[fileNameParts.length - 1];
 
     overlayInsert += `
             <div align="left" class="panel-heading">
@@ -237,17 +237,17 @@ export class LeaksWhenRequests {
               </div>
             </div>`;
 
-    if (fileCounter == legendObject[clojuredKey].length - 1) {
-      var overlayHtml = $(`
+    if (fileCounter === legendObject[clojuredKey].length - 1) {
+      const overlayHtml = $(`
                 <div class="code-dialog" id="` + clojuredKey + `-analysis-results">
-                  <div class="panel panel-default">`+ overlayInsert + `</div></div>`
+                  <div class="panel panel-default">` + overlayInsert + `</div></div>`
       );
-      let nameWithSimplificationTarget = clojuredKey + (simplificationTarget ? `(${simplificationTarget})` : '');
-      Analyser.onAnalysisCompleted.emit({ node: { id: "Output" + clojuredKey + fileCounter, name: nameWithSimplificationTarget }, overlayHtml: overlayHtml });
+      const nameWithSimplificationTarget = clojuredKey + (simplificationTarget ? `(${simplificationTarget})` : '');
+      Analyser.analysisCompleted.emit({ node: { id: 'Output' + clojuredKey + fileCounter, name: nameWithSimplificationTarget }, overlayHtml: overlayHtml });
     }
 
     return overlayInsert;
     // });
-  };
+  }
 
 }
