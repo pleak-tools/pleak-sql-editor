@@ -1,5 +1,5 @@
 import * as Viewer from 'bpmn-js/lib/NavigatedViewer';
-
+import {HttpClient, HttpResponse} from '@angular/common/http';
 import { ElementsHandler } from "./elements-handler";
 import { LeaksWhenRequests } from './leaks-when-requests';
 import { Http } from '@angular/http';
@@ -18,7 +18,7 @@ let DBJexcel;
 
 export class DataObjectHandler {
 
-  constructor(public http: Http, elementsHandler: ElementsHandler, dataObject: any) {
+  constructor(public http: HttpClient, elementsHandler: ElementsHandler, dataObject: any) {
     this.viewer = elementsHandler.viewer;
     this.registry = this.viewer.get('elementRegistry');
     this.canvas = this.viewer.get('canvas');

@@ -1,5 +1,5 @@
 import * as Viewer from 'bpmn-js/lib/NavigatedViewer';
-
+import {HttpClient, HttpResponse} from '@angular/common/http';
 import { AnalysisHandler } from './analysis-handler';
 import { DataObjectHandler } from "./data-object-handler";
 import { Http } from '@angular/http';
@@ -9,7 +9,7 @@ let is = (element, type) => element.$instanceOf(type);
 
 export class ElementsHandler {
 
-  constructor(public http: Http, viewer: Viewer, diagram: String, pg_parser, parent: any, canEdit: Boolean) {
+  constructor(public http: HttpClient, viewer: Viewer, diagram: String, pg_parser, parent: any, canEdit: Boolean) {
     this.viewer = viewer;
     this.eventBus = this.viewer.get('eventBus');
     this.canvas = this.viewer.get('canvas');
