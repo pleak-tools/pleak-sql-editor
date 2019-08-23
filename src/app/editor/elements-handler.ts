@@ -1,8 +1,7 @@
 import * as Viewer from 'bpmn-js/lib/NavigatedViewer';
-import {HttpClient, HttpResponse} from '@angular/common/http';
+import {HttpClient} from '@angular/common/http';
 import { AnalysisHandler } from './analysis-handler';
-import { DataObjectHandler } from "./data-object-handler";
-import { Http } from '@angular/http';
+import { DataObjectHandler } from './data-object-handler';
 
 declare let $: any;
 let is = (element, type) => element.$instanceOf(type);

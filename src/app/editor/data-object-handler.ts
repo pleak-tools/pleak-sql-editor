@@ -2,7 +2,6 @@ import * as Viewer from 'bpmn-js/lib/NavigatedViewer';
 import {HttpClient, HttpResponse} from '@angular/common/http';
 import { ElementsHandler } from "./elements-handler";
 import { LeaksWhenRequests } from './leaks-when-requests';
-import { Http } from '@angular/http';
 import { GAPanelComponent } from '../ga-panel/ga-panel.component';
 
 declare let $: any;

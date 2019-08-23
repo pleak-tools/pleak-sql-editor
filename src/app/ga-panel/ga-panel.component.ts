@@ -1,6 +1,5 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { EditorComponent } from "../editor/editor.component";
-import { Http } from '@angular/http';
 import { PetriNets } from "../analyser/PetriNets";
 import { LeaksWhenRequests } from '../editor/leaks-when-requests';
 import { PolicyHelper } from '../editor/policy-helper';
@@ -17,7 +16,7 @@ const is = (element, type) => element.$instanceOf(type);
 export class GAPanelComponent {
   // @Output() save: EventEmitter<any> = new EventEmitter();
 
-  constructor(public http: Http) {
+  constructor(public http: HttpClient) {
   }
 
   public sidebarTitle: String = 'Analysis settings';

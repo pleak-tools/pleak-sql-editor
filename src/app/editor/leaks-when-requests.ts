@@ -1,4 +1,3 @@
-import { Http } from '@angular/http';
 // import { Analyser } from "../analyser/SQLDFlowAnalizer";
 var pg_parser = require("exports-loader?Module!pgparser/pg_query.js")
 import { Analyser } from '../analyser/SQLDFlowAnalizer';
@@ -10,15 +9,15 @@ const config = require('./../../config.json');
 
 export class LeaksWhenRequests {
 
-  public static sendPropagationRequest(http: Http, diagramId, petri, matcher, taskDtoOrdering, intermediates, schemas, queries, tableDatas, attackerSettings, callback) {
+  public static sendPropagationRequest(http: HttpClient, diagramId, petri, matcher, taskDtoOrdering, intermediates, schemas, queries, tableDatas, attackerSettings, callback) {
     let apiURL = config.backend.host + '/rest/sql-privacy/propagate';
     let petriURL = config.leakswhen.host + config.leakswhen.compute;
 
     return http.post(petriURL, { diagram_id: diagramId, petri: petri })
       .toPromise()
       .then(
-        res => {
-          let runs = res.json().runs;
+        (res: any) => {
+          let runs = res.runs;
 
           runs = runs.filter(run => {
             return run.reduce((acc, cur) => { return acc || cur.includes('EndEvent') }, false);
@@ -42,8 +41,8 @@ export class LeaksWhenRequests {
               numberOfQueries: queries.length, schemas: schemas.join('\n'), queries: queries.join('\n'), children: tableDatas, attackerSettings: attackerSettings.join('\n') })
               .toPromise()
               .then(
-                res => {
-                  callback(res.json());
+                (res: any) => {
+                  callback(res);
                   return true;
                 },
                 err => {
@@ -56,15 +55,15 @@ export class LeaksWhenRequests {
         });
   }
 
-  public static sendGARequest(http: Http, schemas, queries, tableDatas, policy, attackerSettings, attackerAdvantage, callback) {
+  public static sendGARequest(http: HttpClient, schemas, queries, tableDatas, policy, attackerSettings, attackerAdvantage, callback) {
     let apiURL = config.backend.host + '/rest/sql-privacy/analyze-guessing-advantage';
     let sensitiveAttributes = LeaksWhenRequests.analyzeGA(policy);
 
     return http.post(apiURL, { modelName: "testus2", numberOfQueries: queries.length, schemas: schemas.join('\n'), queries: queries.join('\n'), children: tableDatas, sensitiveAttributes: sensitiveAttributes, attackerSettings: attackerSettings.join('\n'), epsilon: attackerAdvantage })
     .toPromise()
     .then(
-      res => {
-        callback(res.json().result);
+      (res: any) => {
+        callback(res.result);
         return true;
       },
       err => {

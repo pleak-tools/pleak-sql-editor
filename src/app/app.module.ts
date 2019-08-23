@@ -23,7 +23,6 @@ import { ToastrModule } from 'ngx-toastr';
   imports: [
     BrowserModule,
     FormsModule,
-    // HttpModule,
     AngularMultiSelectModule,
     HttpClientModule,
     ToastrModule.forRoot({

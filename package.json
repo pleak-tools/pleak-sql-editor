@@ -19,8 +19,6 @@
     "serve": "ng serve --host 0.0.0.0 --poll 200"
   },
   "dependencies": {
-    "@angular/http": "^5.2.0",
-    "angular2-multiselect-dropdown": "^4.2.3",
     "@angular/animations": "8.0.0",
     "@angular/common": "8.0.0",
     "@angular/compiler": "8.0.0",
@@ -29,6 +27,7 @@
     "@angular/platform-browser": "8.0.0",
     "@angular/platform-browser-dynamic": "8.0.0",
     "@angular/router": "8.0.0",
+    "angular2-multiselect-dropdown": "^4.2.3",
     "bootstrap": "^3.3.7",
     "bpmn-js": "^3.3.1",
     "classlist.js": "^1.1.20150312",
