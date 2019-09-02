@@ -52,8 +52,8 @@ export class EditorComponent implements OnInit {
   @Input() authenticated: Boolean;
   @ViewChild(SidebarComponent, { static: true }) sidebarComponent: SidebarComponent;
   @ViewChild(GAPanelComponent, { static: true }) gaPanelComponent: GAPanelComponent;
-  @ViewChild(ElementsHandler, { static: false }) elementsHandler: ElementsHandler;
-
+  // @ViewChild(ElementsHandler, { static: false }) elementsHandler: ElementsHandler;
+  public elementsHandler;
   private loaded = false;
 
   private viewer: NavigatedViewer;
@@ -156,26 +156,24 @@ export class EditorComponent implements OnInit {
   }
 
   saveSQLScript(e) {
-    const self = this;
     if (!e.type) {
-      e.element.sqlScript = self.codeMirror.getValue();
+      e.element.sqlScript = this.codeMirror.getValue();
     } else {
-      e.element.policyScript = self.codeMirror.getValue();
+      e.element.policyScript = this.codeMirror.getValue();
     }
 
-    self.updateModelContentVariable();
-    self.sidebarComponent.isEditing = false;
-    self.sidebarComponent.elementBeingEdited = null;
-    self.sidebarComponent.elementOldValue = '';
+    this.updateModelContentVariable();
+    this.sidebarComponent.isEditing = false;
+    this.sidebarComponent.elementBeingEdited = null;
+    this.sidebarComponent.elementOldValue = '';
 
     if (e.element && e.element.id) {
-      self.canvas.removeMarker(e.element.id, 'selected');
+      this.canvas.removeMarker(e.element.id, 'selected');
     }
   }
 
   // Load diagram and add editor
   openDiagram(diagram: String) {
-    const self = this;
     if (diagram && this.viewer == null) {
       this.viewer = new NavigatedViewer({
         container: '#canvas',
@@ -190,11 +188,11 @@ export class EditorComponent implements OnInit {
       this.overlays = this.viewer.get('overlays');
       this.canvas = this.viewer.get('canvas');
       setTimeout(() => {
-        self.sidebarComponent.init(self.canvas, self.codeMirror);
+        this.sidebarComponent.init(this.canvas, this.codeMirror);
       }, 100);
 
-      self.sidebarComponent.save.subscribe(({ element, type }) => self.saveSQLScript({ element, type }));
-      self.elementsHandler = new ElementsHandler(this.http, this.viewer, diagram, pg_parser, this, this.canEdit());
+      this.sidebarComponent.save.subscribe(({ element, type }) => this.saveSQLScript({ element, type }));
+      this.elementsHandler = new ElementsHandler(this.http, this.viewer, diagram, pg_parser, this, this.canEdit());
 
       this.viewer.importXML(diagram, () => {
         this.viewer.get('moddle').fromXML(diagram, (_err: any, definitions: any) => {
@@ -203,38 +201,38 @@ export class EditorComponent implements OnInit {
           }
         });
 
-        self.eventBus.on('element.click', function (e) {
+        this.eventBus.on('element.click', (e) => {
           // User can select intermediate and sync data objects for leaks report
           if (is(e.element.businessObject, 'bpmn:DataObjectReference') || is(e.element.businessObject, 'bpmn:Participant')) {
             if (e.element.incoming && e.element.incoming.length || is(e.element.businessObject, 'bpmn:Participant')) {
-              self.showMenu(e);
+              this.showMenu(e);
             } else {
-              self.elementsHandler.click(e.element);
+              this.elementsHandler.click(e.element);
             }
           } else {
-            if (self.menuSelector) {
-              self.overlays.remove({ id: self.menuSelector });
-              self.menuSelector = null;
+            if (this.menuSelector) {
+              this.overlays.remove({ id: this.menuSelector });
+              this.menuSelector = null;
             }
 
             if ((is(e.element.businessObject, 'bpmn:Task') || is(e.element.businessObject, 'bpmn:StartEvent') || is(e.element.businessObject, 'bpmn:IntermediateCatchEvent')) && !$(document).find('[data-element-id=\'' + e.element.id + '\']').hasClass('highlight-input')) {
               const selectedElement = e.element.businessObject;
-              if (self.sidebarComponent.elementBeingEdited !== null && self.sidebarComponent.elementBeingEdited === selectedElement.id && self.sidebarComponent.elementOldValue !== self.codeMirror.getValue()) {
-                self.canvas.addMarker(self.sidebarComponent.elementBeingEdited, 'selected');
+              if (this.sidebarComponent.elementBeingEdited !== null && this.sidebarComponent.elementBeingEdited === selectedElement.id && this.sidebarComponent.elementOldValue !== this.codeMirror.getValue()) {
+                this.canvas.addMarker(this.sidebarComponent.elementBeingEdited, 'selected');
                 return false;
-              } else if (self.sidebarComponent.elementBeingEdited !== null && self.sidebarComponent.elementBeingEdited !== selectedElement.id && self.sidebarComponent.elementOldValue !== self.codeMirror.getValue()) {
+              } else if (this.sidebarComponent.elementBeingEdited !== null && this.sidebarComponent.elementBeingEdited !== selectedElement.id && this.sidebarComponent.elementOldValue !== this.codeMirror.getValue()) {
                 if (confirm('You have some unsaved changes. Would you like to revert these changes?')) {
-                  self.sidebarComponent.loadSQLScript(selectedElement, 0);
+                  this.sidebarComponent.loadSQLScript(selectedElement, 0);
                 } else {
-                  self.canvas.addMarker(self.sidebarComponent.elementBeingEdited, 'selected');
-                  self.canvas.removeMarker(e.element.id, 'selected');
+                  this.canvas.addMarker(this.sidebarComponent.elementBeingEdited, 'selected');
+                  this.canvas.removeMarker(e.element.id, 'selected');
                   return false;
                 }
               } else {
-                self.sidebarComponent.loadSQLScript(selectedElement, 0);
+                this.sidebarComponent.loadSQLScript(selectedElement, 0);
               }
             } else {
-              self.overlays.remove({ element: e.element });
+              this.overlays.remove({ element: e.element });
             }
           }
         });
@@ -274,12 +272,12 @@ export class EditorComponent implements OnInit {
         $('#messageModal').modal('show');
         $('#leaksWhenInputError').hide();
 
-        let reg = self.viewer.get('elementRegistry');
+        let reg = this.viewer.get('elementRegistry');
         GAPanelComponent.runPropagationAnalysis(reg, this.http, (output) => {
 
           for (var i in reg._elements) {
             var node = reg._elements[i].element;
-      
+
             if (node.type == "bpmn:DataObjectReference") {
               for(var tab in output.tableSchemas){
                 if(tab == node.businessObject.id) {
@@ -294,7 +292,7 @@ export class EditorComponent implements OnInit {
           }
 
           setTimeout(() => $('#messageModal').modal('hide'), 250);
-          
+
           // this.updateDataObjectOptions();
           // this.setNewModelContentVariableContent();
         });
@@ -341,8 +339,8 @@ export class EditorComponent implements OnInit {
           $(document).on('click', '#simpleLeaksWhen', () => {
             if (SimpleDisclosureAnalysis.SelectedTarget.simplificationDto) {
               const processedTarget = SimpleDisclosureAnalysis.SelectedTarget.simplificationDto.name.split(' ').map(word => word.toLowerCase()).join('_');
-              self.canvas.addMarker(SimpleDisclosureAnalysis.SelectedTarget.simplificationDto.id, 'highlight-group');
-              self.runLeaksWhenAnalysis(processedTarget, SimpleDisclosureAnalysis.SelectedTarget.selectedTargetForLeaksWhen);
+              this.canvas.addMarker(SimpleDisclosureAnalysis.SelectedTarget.simplificationDto.id, 'highlight-group');
+              this.runLeaksWhenAnalysis(processedTarget, SimpleDisclosureAnalysis.SelectedTarget.selectedTargetForLeaksWhen);
             } else {
               $('#leaksWhenInputError').show();
             }
