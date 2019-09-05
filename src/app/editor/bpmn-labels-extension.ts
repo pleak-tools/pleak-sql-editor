@@ -239,6 +239,11 @@ export const SqlBPMNModdle = {
           "type": "String"
         },
         {
+          "name": "isPropagated",
+          "isAttr": false,
+          "type": "String"
+        },
+        {
           "name": "attackerSettings",
           "isAttr": false,
           "type": "String"

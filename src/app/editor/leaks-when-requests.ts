@@ -38,7 +38,14 @@ export class LeaksWhenRequests {
               //   // "create or replace function aggr_cargo(portname TEXT) returns TABLE(sumcargo INT8) as $$ select sum(ship_2.cargo) as sumcargo from ship_2, port_2, parameters where port_2.name = parameters.portname 	AND (point(ship_2.latitude, ship_2.longitude) <@> point(port_2.latitude, port_2.longitude)) / ship_2.max_speed <= parameters.deadline $$ language SQL IMMUTABLE returns NULL on NULL INPUT; select p.name as name, res.sumcargo as sumcargo into aggr_cargo_2 from port_2 as p cross join aggr_cargo(p.name) as res;",
               //   "select ac2.name as name, ac2.cnt as cnt into aggr_count_1 from aggr_count_2 as ac2;"
               // ], 
-              numberOfQueries: queries.length, schemas: schemas.join('\n'), queries: queries.join('\n'), children: tableDatas, attackerSettings: attackerSettings.join('\n') })
+              numberOfQueries: queries.length, schemas: schemas.join('\n'), 
+              queries: queries.join('\n'), 
+              children: tableDatas, 
+              attackerSettings: attackerSettings.join('\n'),
+              errorUB: 0.9,
+              sigmoidBeta: 0.01,
+              sigmoidPrecision: 5.0,
+              dateStyle: "European" })
               .toPromise()
               .then(
                 (res: any) => {
@@ -59,7 +66,12 @@ export class LeaksWhenRequests {
     let apiURL = config.backend.host + '/rest/sql-privacy/analyze-guessing-advantage';
     let sensitiveAttributes = LeaksWhenRequests.analyzeGA(policy);
 
-    return http.post(apiURL, { modelName: "testus2", numberOfQueries: queries.length, schemas: schemas.join('\n'), queries: queries.join('\n'), children: tableDatas, sensitiveAttributes: sensitiveAttributes, attackerSettings: attackerSettings.join('\n'), epsilon: attackerAdvantage })
+    return http.post(apiURL, { modelName: "testus2", numberOfQueries: queries.length,
+    errorUB: 0.9,
+    sigmoidBeta: 0.01,
+    sigmoidPrecision: 5.0,
+    dateStyle: "European",
+    schemas: schemas.join('\n'), queries: queries.join('\n'), children: tableDatas, sensitiveAttributes: sensitiveAttributes, attackerSettings: attackerSettings.join('\n'), epsilon: attackerAdvantage })
     .toPromise()
     .then(
       (res: any) => {

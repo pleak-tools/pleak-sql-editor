@@ -283,6 +283,7 @@ export class EditorComponent implements OnInit {
                 if(tab == node.businessObject.id) {
                   node.businessObject.sqlScript = output.tableSchemas[tab];
                   node.businessObject.tableData = output.tableDatas[tab];
+                  node.businessObject.isPropagated = true;
                 }
               }
               // if (node.businessObject.dataInputAssociations && node.businessObject.dataInputAssociations.length) {
@@ -292,7 +293,7 @@ export class EditorComponent implements OnInit {
           }
 
           setTimeout(() => $('#messageModal').modal('hide'), 250);
-
+          this.updateModelContentVariable();
           // this.updateDataObjectOptions();
           // this.setNewModelContentVariableContent();
         });
