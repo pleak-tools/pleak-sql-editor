@@ -15,7 +15,7 @@
     "prestart": "npm install",
     "start": "ng build --prod --aot --build-optimizer=false",
     "build": "ng build --prod --aot --build-optimizer=false",
-    "build:dev": "ng build --dev",
+    "build:dev": "ng build --prod=false --build-optimizer=false",
     "serve": "ng serve --host 0.0.0.0 --poll 200"
   },
   "dependencies": {
