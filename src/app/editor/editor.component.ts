@@ -195,6 +195,7 @@ export class EditorComponent implements OnInit {
       this.elementsHandler = new ElementsHandler(this.http, this.viewer, diagram, pg_parser, this, this.canEdit());
 
       this.viewer.importXML(diagram, () => {
+        this.canvas.zoom('fit-viewport','auto');
         this.viewer.get('moddle').fromXML(diagram, (_err: any, definitions: any) => {
           if (typeof definitions !== 'undefined') {
             this.viewer.importDefinitions(definitions, () => this.elementsHandler.createElementHandlerInstances(definitions));
