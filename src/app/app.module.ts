@@ -11,6 +11,7 @@ import { SanitizeHtmlPipe } from './microcode/sanitizer';
 import { AuthService } from './auth/auth.service';
 import { AngularMultiSelectModule } from 'angular2-multiselect-dropdown';
 import { ToastrModule } from 'ngx-toastr';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 @NgModule({
   declarations: [
@@ -21,6 +22,7 @@ import { ToastrModule } from 'ngx-toastr';
     SanitizeHtmlPipe
   ],
   imports: [
+    NoopAnimationsModule,
     BrowserModule,
     FormsModule,
     AngularMultiSelectModule,
