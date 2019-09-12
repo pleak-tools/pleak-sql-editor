@@ -140,7 +140,7 @@ export class PetriNets {
               }
             }
 
-            if(!!x.sourceRef[0].sqlScript && !isFoundInputForDTO && x.sourceRef[0].$parent.id == startBusinessObj.$parent.id) {
+            if(!!x.sourceRef[0].sqlScript && !x.sourceRef[0].isPropagated && !isFoundInputForDTO && x.sourceRef[0].$parent.id == startBusinessObj.$parent.id) {
               let startEventOut = startBusinessObj.outgoing ? startBusinessObj.outgoing.map(x => x.targetRef) : null;
               if(!!startEventOut) {
                 petri[x.sourceRef[0].id] = { type: "place", out: [startEventOut[0].id], label: x.sourceRef[0].name }
@@ -151,7 +151,7 @@ export class PetriNets {
 
         if (node.businessObject.dataOutputAssociations && node.businessObject.dataOutputAssociations.length) {
           node.businessObject.dataOutputAssociations.forEach(x => {
-            if(!!x.targetRef.sqlScript) {
+            if(!!x.targetRef.sqlScript && !x.targetRef.isPropagated) {
               if (petri[node.id].out.findIndex(y => y == x.targetRef.id) == -1)
                 petri[node.id].out.push(x.targetRef.id);
               if (!petri[x.targetRef.id]) {

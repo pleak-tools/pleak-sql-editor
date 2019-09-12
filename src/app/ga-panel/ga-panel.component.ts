@@ -348,19 +348,19 @@ export class GAPanelComponent {
     if (this.analysisResult) {
       let resultsHtml = '';
 
-      let priorGuessProbability: any = Number.parseFloat(this.analysisResult[0]).toFixed(2);
-      priorGuessProbability = (priorGuessProbability === 0 ? 0 : priorGuessProbability);
-      priorGuessProbability = ( isNaN(priorGuessProbability) ? '&infin;' : priorGuessProbability + ' %' );
+      let priorGuessProbability: any = this.analysisResult[4];
+      // priorGuessProbability = (priorGuessProbability === 0 ? 0 : priorGuessProbability);
+      // priorGuessProbability = ( isNaN(priorGuessProbability) ? '&infin;' : priorGuessProbability + ' %' );
 
-      let posteriorGuessProbability: any = Number.parseFloat(this.analysisResult[1]).toFixed(2);
-      posteriorGuessProbability = (posteriorGuessProbability === 0 ? 0 : posteriorGuessProbability);
-      posteriorGuessProbability = ( isNaN(posteriorGuessProbability) ? '&infin;' : posteriorGuessProbability + ' %' );
+      let posteriorGuessProbability: any = this.analysisResult[5];
+      // posteriorGuessProbability = (posteriorGuessProbability === 0 ? 0 : posteriorGuessProbability);
+      // posteriorGuessProbability = ( isNaN(posteriorGuessProbability) ? '&infin;' : posteriorGuessProbability + ' %' );
 
-      const expectedCost: any = Number.parseFloat(this.analysisResult[2]).toFixed(2);
+      // const expectedCost: any = this.analysisResult[2];
 
-      let relativeError: any = Number.parseFloat(this.analysisResult[3]).toFixed(2);
-      relativeError = (relativeError === 0 ? 0 : relativeError);
-      relativeError = ( isNaN(relativeError) ? '&infin;' : relativeError + ' %' );
+      let relativeError: any = this.analysisResult[2];
+      // relativeError = (relativeError === 0 ? 0 : relativeError);
+      // relativeError = ( isNaN(relativeError) ? '&infin;' : relativeError + ' %' );
 
       resultsHtml += `
       <div class="" id="general-analysis-results">
@@ -371,15 +371,67 @@ export class GAPanelComponent {
           <div class="panel-body">
             <table style="width:100%;text-align:right">
               <tbody>
-                <tr><td style="width:70%;text-align:left"><b>80% relative error <br/>(additive noise / query output)</b></td><td>` + relativeError + `</td><tr>
-                <tr><td style="width:70%;text-align:left"><b>Expected cost</b></td><td>` + expectedCost + `</td><tr>
+                <tr>
+                  <td style="text-align: left;"><strong>actual outputs y</strong></td>
+                  <td>` + this.analysisResult[0] + `</td>
+                </tr>
+                <tr>
+                  <td style="text-align: left;"><strong>` + Math.round(0.9 * 100) + `%-noise magnitude a</strong></td>
+                  <td>` + this.analysisResult[1] + `</td>
+                </tr>
+                <tr>
+                  <td style="text-align: left;"><strong>` + Math.round(0.9 * 100) + `%-realtive error |a|/|y|</strong></td>
+                  <td>` + this.analysisResult[2] + `</td>
+                </tr>
               </tbody>
             </table>
             <div class="view-more-results-div" style="display:block;text-align:right;margin-top:10px;margin-bottom:10px"><span class="more-results-link">View more</span></div>
             <table style="width:100%;text-align:right;display:none" class="more-analysis-results">
               <tbody>
-                <tr><td style="width:70%;text-align:left"><b>Guess probability (prior)</b></td><td>` + priorGuessProbability + `</td><tr>
-                <tr><td style="width:70%;text-align:left"><b>Guess probability (posterior)</b></td><td>` + posteriorGuessProbability + `</td><tr>
+                <tr>
+                  <td style="text-align: left;"><strong>Cauchy (default) distribution</strong></td>
+                  <td>` + this.analysisResult[3] + `</td>
+                </tr>
+                <tr>
+                  <td style="text-align: left;"><strong>prior (worst instance)</strong></td>
+                  <td>` + this.analysisResult[4] + `</td>
+                </tr>
+                <tr>
+                  <td style="text-align: left;"><strong>posterior (worst instance)</strong></td>
+                  <td>` + this.analysisResult[5] + `</td>
+                </tr>
+                <tr>
+                  <td style="text-align: left;"><strong>DP epsilon</strong></td>
+                  <td>` + this.analysisResult[6] + `</td>
+                </tr>
+                <tr>
+                  <td style="text-align: left;"><strong>smoothness beta</strong></td>
+                  <td>` + this.analysisResult[7] + `</td>
+                </tr>
+                 <tr>
+                  <td style="text-align: left;"><strong>delta (Laplace only)</strong></td>
+                  <td>` + this.analysisResult[8] + `</td>
+                </tr>
+                 <tr>
+                  <td style="text-align: left;"><strong>norm N</strong></td>
+                  <td>` + this.analysisResult[9] + `</td>
+                </tr>
+                 <tr>
+                  <td style="text-align: left;"><strong>beta-smooth sensitivity</strong></td>
+                  <td>` + this.analysisResult[10] + `</td>
+                </tr>
+                 <tr>
+                  <td style="text-align: left;"><strong>` + Math.round(0.9 * 100) + `%-noise magnitude (Laplace)</strong></td>
+                  <td>` + this.analysisResult[11] + `</td>
+                </tr>
+                 <tr>
+                  <td style="text-align: left;"><strong>` + Math.round(0.9 * 100) + `%-realtive error (Laplace)</strong></td>
+                  <td>` + this.analysisResult[12] + `</td>
+                </tr>
+                 <tr>
+                  <td style="text-align: left;"><strong>Laplace noise distribution</strong></td>
+                  <td>` + this.analysisResult[13] + `</td>
+                </tr>
               </tbody>
             </table>
           </div>
