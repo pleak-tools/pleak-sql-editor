@@ -49,28 +49,22 @@
             Analysis <span class="caret"></span></button>
           <ul class="dropdown-menu">
             <li>
-              <a id="sd-analysis"><span class="glyphicon glyphicon-list-alt"></span> Simple Disclosure</a>
+              <a id="sd-analysis" href="#">Simple Disclosure</a>
             </li>
             <li>
-              <a id="leaks-report">
-                <span class="glyphicon glyphicon-list-alt"></span> SQL Leaks-When
-              </a>
+              <a id="leaks-report" href="#">SQL Leaks-When</a>
             </li>
             <li>
-              <a id="ga-analysis"><span class="glyphicon glyphicon-list-alt"></span> Guessing Advantage</a>
+              <a id="ga-analysis" href="#">Guessing Advantage</a>
             </li>
             <li>
-              <a id="bpmn-leaks-report"><span class="glyphicon glyphicon-list-alt"></span> BPMN Leaks-When</a>
+              <a id="bpmn-leaks-report" href="#">BPMN Leaks-When</a>
             </li>
             <li>
-              <a id="analyse-diagram">
-                <span class="glyphicon glyphicon-equalizer"></span> Analyze sensitivities
-              </a>
+              <a id="analyse-diagram" href="#">Analyze sensitivities</a>
             </li>
             <li>
-              <a id="propagate-diagram">
-                <span class="glyphicon glyphicon-export"></span> Propagate intermediates
-              </a>
+              <a id="propagate-diagram" href="#">Propagate intermediates</a>
             </li>
           </ul>
         </div>
@@ -103,25 +97,29 @@
 
 <div class="modal fade" id="simpleDisclosureReportModal" tabindex="-1" role="dialog"
   aria-labelledby="mySmallModalLabel">
-  <div class="modal-dialog" style="width: 1200px">
+  <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <form>
         <div class="modal-header">
           <h4><span id="simpleDisclosureReportTitle"></span> - Extended simple disclosure analysis report</h4>
         </div>
-        <div class="modal-body">
+        <div class="modal-body" style="overflow: scroll;">
           <div id="report-table"></div>
         </div>
         <div class="modal-footer">
-          <div class="pull-left">
-            V = visible, H = hidden, O = owner, MF = MessageFlow, S = SecureChannel, D = direct, I = indirect
-          </div>
-          <div class="pull-right">
-            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+          <div class="pull-left" style="text-align: left;">
+            V = visible<br>
+            H = hidden<br>
+            O = owner<br>
+            MF = MessageFlow<br>
+            S = SecureChannel<br>
+            D = direct<br>
+            I = indirect
           </div>
           <div class="pull-right">
             <button id="simpleLeaksWhen" type="button" class="btn btn-default" data-dismiss="modal">Run simple
               Leaks-When</button>
+            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
           </div>
         </div>
       </form>
