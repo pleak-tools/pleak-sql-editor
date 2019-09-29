@@ -1,52 +1,27 @@
 # Pleak SQL-privacy editor
 
-This project is the front-end part of the [SQL analysis tool for pleak.io](https://github.com/pleak-tools/pleak-sql-analysis).
+This project is the front-end part of the [SQL analysis tools](https://github.com/pleak-tools/pleak-sql-analysis) and [SQL and BPMN leaks-when analysis tools](https://github.com/pleak-tools/pleak-leaks-when-analysis). It also uses Simple Disclosure analyis from [PE-BPMN editor](https://github.com/pleak-tools/pleak-pe-bpmn-editor).
 
 ## Prerequisites
 
-You need to locate [pleak-backend](https://github.com/pleak-tools/pleak-backend), [pleak-frontend](https://github.com/pleak-tools/pleak-frontend), [pleak-sql-analysis](https://github.com/pleak-tools/pleak-sql-analysis) and pleak-sql-editor directories all in the same directory and specify their names in the config.json file.
+You need to locate [pleak-backend](https://github.com/pleak-tools/pleak-backend), [pleak-frontend](https://github.com/pleak-tools/pleak-frontend), [pleak-sql-analysis](https://github.com/pleak-tools/pleak-sql-analysis), [pleak-leaks-when-ast-transformation](https://github.com/pleak-tools/pleak-leaks-when-ast-transformation), [pleak-leaks-when-analysis](https://github.com/pleak-tools/pleak-leaks-when-analysis), [pleak-pe-bpmn-editor](https://github.com/pleak-tools/pleak-pe-bpmn-editor) and pleak-sql-editor directories all in the same directory and specify their names in the config.json file.
 Read more from sub-repositories how to build each module.
 
-To use all functionalities of the SQL-privacy editor, set up the [pleak-sql-analysis](https://github.com/pleak-tools/pleak-sql-analysis) tool:
+To use all functionalities of the SQL-privacy editor, set up:
 
-1) Haskell Tool Stack - to install, execute `wget -qO- https://get.haskellstack.org/ | sh`
+1) [SQL global sensitivity analysis tool](https://github.com/pleak-tools/pleak-sql-analysis/tree/master/globalsensitivity-cabal)
 
-2) Z3 Theorem Prover - to install, you can clone it from [https://github.com/Z3Prover/z3](https://github.com/Z3Prover/z3) and compile it yourself or (on some Linux versions, for example Ubuntu 16.4) execute `apt install z3`. You will need Z3 to be in the PATH.
+2) [SQL local sensitivity analysis tool](https://github.com/pleak-tools/pleak-sql-analysis/tree/master/localsensitivity-cabal)
 
-To make it available for the pleak-sql-editor, execute:
+3) [SQL derivative sensitivity analysis tool](https://github.com/pleak-tools/pleak-sql-analysis/tree/master/banach)
 
-`git submodule init` (in pleak-sql-analysis folder)
+4) [SQL leaks-when analysis tool](https://github.com/pleak-tools/pleak-leaks-when-ast-transformation)
 
-`git submodule update`
+5) [BPMN leaks-when analysis tool](https://github.com/pleak-tools/pleak-leaks-when-analysis)
 
-`stack setup`
+6) [PE-BPMN editor](https://github.com/pleak-tools/pleak-pe-bpmn-editor)
 
-`stack build` (sqla file is created into .stack-work/install/x86_64-linux/lts-7.19/8.0.1/bin directory - or into some other similarly named directory)
-
-`ln -s .stack-work/install/x86_64-linux/lts-7.19/8.0.1/bin/sqla .` (this command creates a shortcut to the sqla file, this shortcut is needed for the editor to execute the analyser)
-
-You can find more information from the [SQL analysis tool repository](https://github.com/pleak-tools/pleak-sql-analysis).
-
-
-And set up the [SQL leaks-when analysis tool](https://github.com/pleak-tools/pleak-leaks-when-analysis), using wrapper at [https://github.com/pleak-tools/pleak-leaks-when-ast-transformation](https://github.com/pleak-tools/pleak-leaks-when-ast-transformation). Read installation instructions from the [SQL leaks-when analysis tool](https://github.com/pleak-tools/pleak-leaks-when-analysis) repository.
-
-
-And set up the [BPMN leaks-when analysis tool](https://github.com/pleak-tools/pleak-leaks-when-analysis):
-
-Requirements:
-
-- ocaml (`apt install ocaml`)
-- opam (`apt install opam`)
-- libocamlgraph-ocaml-dev (`apt install libocamlgraph-ocaml-dev` / `opam install ocamlgraph`)
-- libxml-light-ocaml-dev (`apt install libxml-light-ocaml-dev` / `opam install xml-light`)
-- Z3 Theorem Prover - to install, you can clone it from [https://github.com/Z3Prover/z3](https://github.com/Z3Prover/z3) and compile it yourself or (on some Linux versions, for example Ubuntu 16.4) execute `apt install z3`. You will need Z3 to be in the PATH.
-
-Based on environment, you might also need to install:
-
-- m4 (`apt install m4`)
-- ocamlfind (`opam install ocamlfind`)
-
-To build the BPMN leaks-when analysis tool, execute `ocamlbuild -use-ocamlfind GrbDriver.native` in `/src` directory of [BPMN leaks-when analysis tool](https://github.com/pleak-tools/pleak-leaks-when-analysis)
+7) For SQL intermediates propagation, set up a postgresql database and a user (with password and superuser privileges). Create "cube" and "earthdistance" extensions for the user. Specify user credentials in [SQLAnalyserService.java](https://github.com/pleak-tools/pleak-backend/blob/master/src/main/java/com/naples/rest/SQLAnalyserService.java) under "/propagate" endpoint.
 
 ## Build
 
