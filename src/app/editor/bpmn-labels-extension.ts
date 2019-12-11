@@ -309,7 +309,8 @@ export const SqlBPMNModdle = {
     {
       name: "PolicyProcess",
       extends: [
-        "bpmn:Process"
+        "bpmn:Process",
+        "bpmn:Collaboration"
       ],
       properties: [
         {
