@@ -133,7 +133,7 @@ export class PetriNets {
               if (is(node2.businessObject, 'bpmn:Task') || is(node2.businessObject, 'bpmn:IntermediateCatchEvent')) {
                 if (node2.businessObject.dataOutputAssociations && node2.businessObject.dataOutputAssociations.length) {
                   node2.businessObject.dataOutputAssociations.forEach(y => {
-                    if(y.targetRef.name == x.sourceRef[0].name)
+                    if(y.targetRef.id == x.sourceRef[0].id)
                       isFoundInputForDTO = true;
                   });
                 }
