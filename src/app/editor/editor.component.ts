@@ -174,6 +174,7 @@ export class EditorComponent implements OnInit {
 
   // Load diagram and add editor
   openDiagram(diagram: String) {
+    let self = this;
     if (diagram && this.viewer == null) {
       this.viewer = new NavigatedViewer({
         container: '#canvas',
@@ -342,7 +343,10 @@ export class EditorComponent implements OnInit {
             if (SimpleDisclosureAnalysis.SelectedTarget.simplificationDto) {
               const processedTarget = SimpleDisclosureAnalysis.SelectedTarget.simplificationDto.name.split(' ').map(word => word.toLowerCase()).join('_');
               this.canvas.addMarker(SimpleDisclosureAnalysis.SelectedTarget.simplificationDto.id, 'highlight-group');
-              this.runLeaksWhenAnalysis(processedTarget, SimpleDisclosureAnalysis.SelectedTarget.selectedTargetForLeaksWhen);
+
+              // console.log(SimpleDisclosureAnalysis.SelectedTarget.selectedTargetsForLeaksWhen)
+              self.simpleLeaksWhenMessageFlowIndex = 0;
+              this.runLeaksWhenAnalysis(processedTarget, SimpleDisclosureAnalysis.SelectedTarget.selectedTargetsForLeaksWhen[0]);
             } else {
               $('#leaksWhenInputError').show();
             }
@@ -371,6 +375,8 @@ export class EditorComponent implements OnInit {
       });
     }
   }
+
+  simpleLeaksWhenMessageFlowIndex = 0;
 
   loadExtendedSimpleDisclosureData(): any {
     return new Promise((resolve) => {
@@ -720,7 +726,20 @@ export class EditorComponent implements OnInit {
 
             $('#messageModal').modal('show');
             LeaksWhenRequests.sendPreparationRequest(self.http, serverPetriFileName, JSON.stringify(petriNetArray), matcher, (outputTarget ? [outputTarget] : self.selectedDataObjects), self.taskDtoOrdering, participants, simplificationTarget, serverResponsePromises)
-              .then(res => $('#messageModal').modal('hide'),
+              .then(res => {
+                self.simpleLeaksWhenMessageFlowIndex++;
+                if(SimpleDisclosureAnalysis.SelectedTarget.selectedTargetsForLeaksWhen[self.simpleLeaksWhenMessageFlowIndex]){
+                  let currentIndex = self.simpleLeaksWhenMessageFlowIndex;
+                  let nextMessageFlowFunc = () => {
+                    // console.log(`message flow index: ${currentIndex}`);
+                    $('#messageModal').off('hidden.bs.modal', nextMessageFlowFunc);
+                    const processedTarget = SimpleDisclosureAnalysis.SelectedTarget.simplificationDto.name.split(' ').map(word => word.toLowerCase()).join('_');
+                    self.runLeaksWhenAnalysis(processedTarget, SimpleDisclosureAnalysis.SelectedTarget.selectedTargetsForLeaksWhen[currentIndex]);
+                  };
+                  $('#messageModal').on('hidden.bs.modal', nextMessageFlowFunc);
+                }
+                $('#messageModal').modal('hide');
+              },
                 () => {
                   $('#messageModal').modal('hide');
                   $('#leaksWhenServerError').show();

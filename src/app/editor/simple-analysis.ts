@@ -8,7 +8,7 @@ export class SimpleDisclosureAnalysis {
     simplificationDto: null,
     r: null,
     c: null,
-    selectedTargetForLeaksWhen: null
+    selectedTargetsForLeaksWhen: []
   };
 
   public static showPopup(registry, esd) {
@@ -17,7 +17,7 @@ export class SimpleDisclosureAnalysis {
       simplificationDto: null,
       r: null,
       c: null,
-      selectedTargetForLeaksWhen: null
+      selectedTargetsForLeaksWhen: []
     };
 
     let maxPlaceNumberObj = { maxPlaceNumber: 1 };
@@ -30,17 +30,23 @@ export class SimpleDisclosureAnalysis {
     let messageFlows = SimpleDisclosureAnalysis.handleMessageFlows(registry, rolesDisclosures);
 
     let allDtos = [];
+    let allTasks = [];
     for (var i in registry._elements) {
       var node = registry._elements[i].element;
       if (is(node.businessObject, 'bpmn:DataObjectReference')) {
         if (!allDtos.find(x => x.id == node.businessObject.id))
           allDtos.push(node.businessObject);
       }
+      if (is(node.businessObject, 'bpmn:Task')) {
+        if (!allTasks.find(x => x.id == node.businessObject.id))
+          allTasks.push(node.businessObject);
+      }
     }
 
-    // allDtos = allDtos.sort((x, y) => {
-    //   return x.orderingIndex <= y.orderingIndex ? x : y;
-    // });
+    allTasks = allTasks.sort((x, y) => {
+      return x.orderingIndex - y.orderingIndex;
+    });
+    // console.log(allTasks)
 
     esd = JSON.parse(esd);
     let simpleDisclosureDataObjects = esd.simpleDisclosureDataObjects;
@@ -76,7 +82,7 @@ export class SimpleDisclosureAnalysis {
               SimpleDisclosureAnalysis.SelectedTarget.c = c;
               SimpleDisclosureAnalysis.SelectedTarget.r = r;
   
-              SimpleDisclosureAnalysis.findOutputDtoForLeaksWhen(messageFlows, allDtos);
+              SimpleDisclosureAnalysis.findOutputDtoForLeaksWhen(messageFlows, allDtos, allTasks);
             });
           }
         } else {
@@ -245,20 +251,41 @@ export class SimpleDisclosureAnalysis {
     }
   }
 
-  private static findOutputDtoForLeaksWhen(messageFlows, allDtos) {
+  private static findOutputDtoForLeaksWhen(messageFlows, allDtos, allTasks) {
     let nextMessageFlows = messageFlows
       .filter(x => (x.source.participant.id == SimpleDisclosureAnalysis.SelectedTarget.simplificationDto.participant.id) &&
         x.source.orderingIndex >= SimpleDisclosureAnalysis.SelectedTarget.simplificationDto.orderingIndex);
     nextMessageFlows = nextMessageFlows.sort((a, b) => a.source.orderingIndex - b.source.orderingIndex);
+    
+    for (let i = 0; i < nextMessageFlows.length; i++) {
+      let nextMessageFlow = nextMessageFlows[i];
 
-    if (nextMessageFlows.length) {
-      let nextMessageFlow = nextMessageFlows[0];
+      let sqlFlow = "";
+      for (var j = 0; j < allTasks.length; j++) {
+        let x = allTasks[j];
+        if(!!x.sqlScript && x.orderingIndex <= nextMessageFlow.target.orderingIndex)
+          sqlFlow += x.sqlScript + '\n\n'
+      }
+      
+      sqlFlow = sqlFlow.toLowerCase();
+
       let outputDtos = allDtos.filter(x => x.name != 'parameters' && (x.participant.id == nextMessageFlow.target.participant.id) &&
         (x.orderingIndex >= nextMessageFlow.target.orderingIndex));
-      outputDtos = outputDtos.sort((a, b) => a.orderingIndex - b.orderingIndex);
+      outputDtos = outputDtos
+                    .sort((a, b) => a.orderingIndex - b.orderingIndex)
+                    .filter(x => {
+                      const regex = RegExp(`into ${x.name.split(' ').map(word => word.toLowerCase()).join('_')}\\s+from`);
+                      // console.log(regex)
+                      // console.log(sqlFlow)
+                      const found = sqlFlow.match(regex);
+                      return !!found;
+                    })
+
+      // console.log(sqlFlow)
+      // console.log(outputDtos)
       if(outputDtos.length){
         let outputDto = outputDtos[0];
-        SimpleDisclosureAnalysis.SelectedTarget.selectedTargetForLeaksWhen = outputDto;
+        SimpleDisclosureAnalysis.SelectedTarget.selectedTargetsForLeaksWhen.push(outputDto);
       }
     }
   }
