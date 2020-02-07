@@ -243,7 +243,7 @@ export class SimpleDisclosureAnalysis {
       if ((is(node.businessObject, 'bpmn:Task') || is(node.businessObject, 'bpmn:IntermediateCatchEvent'))) {
         if (node.businessObject.dataInputAssociations && node.businessObject.dataInputAssociations.length) {
           node.businessObject.dataInputAssociations.forEach(x => {
-            if (!x.sourceRef[0].orderingIndex)
+            if (!x.sourceRef[0].orderingIndex || node.businessObject.orderingIndex < x.sourceRef[0].orderingIndex)
               x.sourceRef[0].orderingIndex = node.businessObject.orderingIndex;
           });
         }
@@ -252,25 +252,33 @@ export class SimpleDisclosureAnalysis {
   }
 
   private static findOutputDtoForLeaksWhen(messageFlows, allDtos, allTasks) {
+    console.log(allDtos)
     let nextMessageFlows = messageFlows
       .filter(x => (x.source.participant.id == SimpleDisclosureAnalysis.SelectedTarget.simplificationDto.participant.id) &&
         x.source.orderingIndex >= SimpleDisclosureAnalysis.SelectedTarget.simplificationDto.orderingIndex);
     nextMessageFlows = nextMessageFlows.sort((a, b) => a.source.orderingIndex - b.source.orderingIndex);
     
+    // console.log(nextMessageFlows)
+
     for (let i = 0; i < nextMessageFlows.length; i++) {
       let nextMessageFlow = nextMessageFlows[i];
 
       let sqlFlow = "";
       for (var j = 0; j < allTasks.length; j++) {
         let x = allTasks[j];
-        if(!!x.sqlScript && x.orderingIndex <= nextMessageFlow.target.orderingIndex)
+        if(!!x.sqlScript && 
+          (x.participant.id == nextMessageFlow.target.participant.id && x.orderingIndex <= nextMessageFlow.target.orderingIndex || 
+          (x.participant.id == nextMessageFlow.source.participant.id && x.orderingIndex <= nextMessageFlow.source.orderingIndex)))
           sqlFlow += x.sqlScript + '\n\n'
       }
       
       sqlFlow = sqlFlow.toLowerCase();
 
+      // console.log(nextMessageFlow.target.orderingIndex)
       let outputDtos = allDtos.filter(x => x.name != 'parameters' && (x.participant.id == nextMessageFlow.target.participant.id) &&
         (x.orderingIndex >= nextMessageFlow.target.orderingIndex));
+        // console.log("out dtos = ")
+        // console.log(outputDtos)
       outputDtos = outputDtos
                     .sort((a, b) => a.orderingIndex - b.orderingIndex)
                     .filter(x => {
