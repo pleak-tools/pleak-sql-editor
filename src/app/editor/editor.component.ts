@@ -288,6 +288,19 @@ export class EditorComponent implements OnInit {
                   node.businessObject.isPropagated = true;
                 }
               }
+              for(var tab in output.tableConstraints){
+                if(node.businessObject.name == tab){
+                  node.businessObject.attackerSettings = output.tableConstraints[tab];
+                  node.businessObject.isPropagated = true;
+                }
+              }
+              if(output.commandError){
+                $('#propServerError').show();
+                $('#propServerError').text(output.commandError);
+              }
+              else{
+                $('#propServerError').hide();
+              }
               // if (node.businessObject.dataInputAssociations && node.businessObject.dataInputAssociations.length) {
               //   // let isGAInputFound = false;
               // }
