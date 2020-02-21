@@ -205,6 +205,16 @@ export const SqlBPMNModdle = {
           "name": "PETComputation",
           "isAttr": false,
           "type": "String"
+        },
+        {
+          "name": "ABEncrypt",
+          "isAttr": false,
+          "type": "String"
+        },
+        {
+          "name": "ABDecrypt",
+          "isAttr": false,
+          "type": "String"
         }
       ]
     },
@@ -289,6 +299,16 @@ export const SqlBPMNModdle = {
           "name": "PKPrivate",
           "isAttr": false,
           "type": "String"
+        },
+        {
+          "name": "ABPublic",
+          "isAttr": false,
+          "type": "String"
+        },
+        {
+          "name": "ABPrivate",
+          "isAttr": false,
+          "type": "String"
         }
       ]
     },
@@ -315,6 +335,44 @@ export const SqlBPMNModdle = {
       properties: [
         {
           "name": "policyInfo",
+          "isAttr": false,
+          "type": "String"
+        }
+      ]
+    },
+    {
+      name: "CompositionTask",
+      extends: [
+        "bpmn:Task"
+      ],
+      properties: [
+        {
+          "name": "compositionTaskDetails",
+          "isAttr": false,
+          "type": "String"
+        },
+      ]
+    },
+    {
+      name: "CompositionLinkElement",
+      extends: [
+        "bpmn:Task",
+        "bpmn:DataObjectReference",
+        "bpmn:DataStoreReference",
+        "bpmn:StartEvent",
+        "bpmn:EndEvent",
+        "bpmn:BoundaryEvent",
+        "bpmn:IntermediateCatchEvent",
+        "bpmn:IntermediateThrowEvent",
+        "bpmn:ExclusiveGateway",
+        "bpmn:InclusiveGateway",
+        "bpmn:ParallelGateway",
+        "bpmn:ComplexGateway",
+        "bpmn:SubProcess"
+      ],
+      properties: [
+        {
+          "name": "compositionLinkInfo",
           "isAttr": false,
           "type": "String"
         }
