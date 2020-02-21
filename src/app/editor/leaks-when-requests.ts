@@ -9,7 +9,28 @@ const config = require('./../../config.json');
 
 export class LeaksWhenRequests {
 
-  public static sendPropagationRequest(http: HttpClient, diagramId, petri, matcher, taskDtoOrdering, intermediates, schemas, queries, tableDatas, attackerSettings, callback) {
+  public static sendSqlCleanRequest(http: HttpClient, diagramId, petri, matcher, taskDtoOrdering, intermediates, schemas, queries, tableDatas, attackerSettings, callback){
+    const apiURL = config.leakswhen.host + config.leakswhen.adapt;
+
+    // console.log(schemas);
+    // console.log(queries);
+    return http.post(apiURL, { diagram_id: diagramId, sql_script: (schemas.join('\n') + '\n' + queries.join('\n')), target: "selected_ships" })
+      .toPromise()
+      .then(
+        (res: any) => {
+          let clean_sql = res.clean_sql;
+          callback(clean_sql);
+          return true;
+        },
+        err => {
+          $('#leaksWhenServerError').show();
+          $('#analysis-results-panel').hide();
+          $('.analysis-spinner').hide();
+          return true;
+        });
+  }
+
+  public static sendPropagationRequest(http: HttpClient, diagramId, petri, matcher, taskDtoOrdering, intermediates, schemas, queries, tableDatas, attackerSettings, cleanSql, callback) {
     let apiURL = config.backend.host + '/rest/sql-privacy/propagate';
     let petriURL = config.leakswhen.host + config.leakswhen.compute;
 
@@ -40,7 +61,8 @@ export class LeaksWhenRequests {
               // ], 
               numberOfQueries: queries.length, schemas: schemas.join('\n'), 
               queries: queries.join('\n'), 
-              children: tableDatas, 
+              children: tableDatas,
+              cleanSql: cleanSql, 
               attackerSettings: attackerSettings.join('\n'),
               errorUB: 0.9,
               sigmoidBeta: 0.01,

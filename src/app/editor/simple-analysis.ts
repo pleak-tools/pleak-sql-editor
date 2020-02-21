@@ -252,7 +252,7 @@ export class SimpleDisclosureAnalysis {
   }
 
   private static findOutputDtoForLeaksWhen(messageFlows, allDtos, allTasks) {
-    console.log(allDtos)
+    // console.log(allDtos)
     let nextMessageFlows = messageFlows
       .filter(x => (x.source.participant.id == SimpleDisclosureAnalysis.SelectedTarget.simplificationDto.participant.id) &&
         x.source.orderingIndex >= SimpleDisclosureAnalysis.SelectedTarget.simplificationDto.orderingIndex);

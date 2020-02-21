@@ -192,7 +192,9 @@ export class GAPanelComponent {
       }
     }
 
-    LeaksWhenRequests.sendPropagationRequest(http, serverPetriFileName, JSON.stringify(petriNetArray), matcher, this.taskDtoOrdering, intermediates, schemas, queries, tableDatas, attackerSettings, (output) => callback(output));
+    LeaksWhenRequests.sendSqlCleanRequest(http, serverPetriFileName, JSON.stringify(petriNetArray), matcher, this.taskDtoOrdering, intermediates, schemas, queries, tableDatas, attackerSettings, (cleanSql) => {
+        LeaksWhenRequests.sendPropagationRequest(http, serverPetriFileName, JSON.stringify(petriNetArray), matcher, this.taskDtoOrdering, intermediates, schemas, queries, tableDatas, attackerSettings, cleanSql, (output) => callback(output));
+    });
   }
 
   runAnalysis() {
