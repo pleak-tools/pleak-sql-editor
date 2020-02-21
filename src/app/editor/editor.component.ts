@@ -289,7 +289,7 @@ export class EditorComponent implements OnInit {
                 }
               }
               for(var tab in output.tableConstraints){
-                if(node.businessObject.name == tab.substring(0, tab.length - 4)){
+                if(node.businessObject.name.split(' ').map(word => word.toLowerCase()).join('_') == tab.substring(0, tab.length - 4)){
                   node.businessObject.attackerSettings = output.tableConstraints[tab];
                   node.businessObject.isPropagated = true;
                 }

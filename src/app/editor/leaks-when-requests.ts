@@ -14,7 +14,7 @@ export class LeaksWhenRequests {
 
     // console.log(schemas);
     // console.log(queries);
-    return http.post(apiURL, { diagram_id: diagramId, sql_script: (schemas.join('\n') + '\n' + queries.join('\n')), target: "selected_ships" })
+    return http.post(apiURL, { diagram_id: diagramId, sql_script: (schemas.join('\n') + '\n' + queries.join('\n')), target: "capacities_1" })
       .toPromise()
       .then(
         (res: any) => {
