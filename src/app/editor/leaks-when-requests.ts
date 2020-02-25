@@ -175,6 +175,17 @@ export class LeaksWhenRequests {
             return run.reduce((acc, cur) => acc || cur.includes('EndEvent'), false);
           });
 
+          let runs_unique = []
+
+          runs.forEach(run => {
+            let included = runs_unique.reduce((acc, cur) => { return acc || (JSON.stringify(cur)==JSON.stringify(run)) }, false);
+            if(!included)
+              runs_unique.push(run)
+          });
+
+          runs = runs_unique
+          // console.log(runs)
+
           return runs.reduce((acc, run, runNumber) => acc.then(() => {
             const sqlCommands = run.reduce((acc, id) => acc + (matcher[id] ? matcher[id] + '\n' : ''), '');
 
