@@ -1,4 +1,4 @@
-# Pleak SQL-privacy editor
+# Pleak SQL-privacy editor [DEPRECATED]
 
 This project is the front-end part of the [SQL analysis tools](https://github.com/pleak-tools/pleak-sql-analysis) and [SQL and BPMN leaks-when analysis tools](https://github.com/pleak-tools/pleak-leaks-when-analysis). It also uses Simple Disclosure analyis from [PE-BPMN editor](https://github.com/pleak-tools/pleak-pe-bpmn-editor).
 
