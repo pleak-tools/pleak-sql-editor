@@ -33,7 +33,7 @@
     "classlist.js": "^1.1.20150312",
     "codemirror": "^5.49.2",
     "core-js": "^2.6.10",
-    "exports-loader": "^0.7.0",
+    "exports-loader": "^4.0.0",
     "font-awesome": "^4.7.0",
     "jexcel": "^1.5.0",
     "jquery": "^3.4.1",
@@ -47,7 +47,7 @@
     "zone.js": "~0.9.1"
   },
   "devDependencies": {
-    "@angular-devkit/build-angular": "~0.803.5",
+    "@angular-devkit/build-angular": "~15.0.4",
     "@angular/cli": "^8.3.17",
     "@angular/compiler-cli": "^8.2.13",
     "@angular/language-service": "^8.2.13",
